@@ -9,9 +9,9 @@ services:
     container_name: seal_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: seal_dev
-      POSTGRES_USER: seal_user
-      POSTGRES_PASSWORD: seal_password
+      POSTGRES_DB: seal_db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - '5432:5432'
@@ -20,31 +20,29 @@ services:
     networks:
       - seal_network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U seal_user -d seal_dev']
+      test: ['CMD-SHELL', 'pg_isready -U root -d seal_db']
       interval: 10s
       timeout: 5s
       retries: 5
 
   # ==========================================
-  # pgAdmin (Optional - UI for PostgreSQL)
-  # Uncomment to enable pgAdmin
+  # pgAdmin (UI for PostgreSQL)
   # ==========================================
-  # pgadmin:
-  #   image: dpage/pgadmin4:latest
-  #   container_name: seal_pgadmin
-  #   restart: unless-stopped
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@seal.local
-  #     PGADMIN_DEFAULT_PASSWORD: admin123
-  #     PGADMIN_CONFIG_SERVER_MODE: 'False'
-  #   ports:
-  #     - '5050:80'
-  #   volumes:
-  #     - pgadmin_data:/var/lib/pgadmin
-  #   depends_on:
-  #     - postgres
-  #   networks:
-  #     - seal_network
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: seal_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - '5050:80'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - seal_network
 
 # ==========================================
 # Volumes - Persist data between restarts
@@ -52,8 +50,8 @@ services:
 volumes:
   postgres_data:
     driver: local
-  # pgadmin_data:
-  #   driver: local
+  pgadmin_data:
+    driver: local
 
 # ==========================================
 # Networks
