@@ -134,7 +134,7 @@ export async function bootstrap() {
         description: 'Enter your JWT access token',
         in: 'header',
       },
-      'access-token', // Reference key used in @ApiBearerAuth()
+      'bearer', // Reference key matching default @ApiBearerAuth()
     )
     .addCookieAuth('refresh_token', {
       type: 'apiKey',

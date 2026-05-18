@@ -36,16 +36,18 @@ import { RedisService } from './redis.service';
           lazyConnect: false,
         });
 
+        const logger = new (require('@nestjs/common').Logger)('Redis');
+
         client.on('connect', () => {
-          console.log('[Redis] Connected successfully');
+          logger.log('Connected successfully');
         });
 
         client.on('error', (err) => {
-          console.error('[Redis] Connection error:', err.message);
+          logger.error(`Connection error: ${err.message}`);
         });
 
         client.on('reconnecting', () => {
-          console.warn('[Redis] Reconnecting...');
+          logger.warn('Reconnecting...');
         });
 
         return client;

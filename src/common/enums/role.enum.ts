@@ -5,6 +5,8 @@
  * Lifecycle: Guard reads this enum to authorize protected routes.
  */
 export enum Role {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
+  PARTICIPANT = 'participant',
+  EXAMINATOR = 'examinator',
+  SUPPORTOR = 'supportor',
+  ADMIN = 'admin',
 }

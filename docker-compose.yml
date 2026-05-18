@@ -44,6 +44,34 @@ services:
     networks:
       - seal_network
 
+  # ==========================================
+  # Redis Cache
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: seal_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    networks:
+      - seal_network
+    volumes:
+      - redis_data:/data
+
+  # ==========================================
+  # Redis Insight (Giao diện web để xem Redis)
+  # ==========================================
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: seal_redisinsight
+    restart: unless-stopped
+    ports:
+      - '8001:8001'
+    volumes:
+      - redisinsight_data:/db
+    networks:
+      - seal_network
+
 # ==========================================
 # Volumes - Persist data between restarts
 # ==========================================
@@ -51,6 +79,10 @@ volumes:
   postgres_data:
     driver: local
   pgadmin_data:
+    driver: local
+  redis_data:
+    driver: local
+  redisinsight_data:
     driver: local
 
 # ==========================================

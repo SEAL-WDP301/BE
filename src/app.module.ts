@@ -37,34 +37,26 @@ import { UserEntity } from './modules/user/entities/user.entity';
  * Middleware is applied at module level via configure().
  * NestJS Lifecycle: [Middleware] → Guard → Interceptor → Pipe → Handler
  */
+import { Inject } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
+
 @Module({
   imports: [
-    // ─────────────────────────────────────────────────────────────────────────
-    // 1. Config Module (global, loads .env based on NODE_ENV)
-    // ─────────────────────────────────────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      // Load environment-specific .env file
       envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
       load: [appConfig, databaseConfig, jwtConfig, redisConfig],
       cache: true,
     }),
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 2. Winston Logger (replaces default NestJS logger)
-    // bootstrap.ts will call app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))
-    // ─────────────────────────────────────────────────────────────────────────
     WinstonModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) =>
         createWinstonConfig(configService),
     }),
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 3. TypeORM — PostgreSQL database connection
-    // autoLoadEntities: true → entities registered via forFeature() auto-load
-    // synchronize: based on NODE_ENV (true in dev, false in prod)
-    // ─────────────────────────────────────────────────────────────────────────
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -87,25 +79,24 @@ import { UserEntity } from './modules/user/entities/user.entity';
       }),
     }),
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 4. Redis Module (global)
-    // ─────────────────────────────────────────────────────────────────────────
     RedisModule,
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 5. Feature Modules
-    // ─────────────────────────────────────────────────────────────────────────
     AuthModule,
     UserModule,
     HealthModule,
   ],
 })
 export class AppModule implements NestModule {
-  /**
-   * Apply RequestLoggerMiddleware to all routes ('*').
-   * This is the first step in the NestJS lifecycle for every request.
-   * Flow: [RequestLoggerMiddleware] → Guard → Interceptor → Pipe → Handler
-   */
+  constructor(
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: Logger,
+    private readonly dataSource: DataSource,
+  ) {
+    if (this.dataSource.isInitialized) {
+      this.logger.log('info', 'Database connected successfully', { context: 'Database' });
+    }
+  }
+
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(RequestLoggerMiddleware).forRoutes('*');
   }

@@ -7,7 +7,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
-import { UserModule } from '../user/user.module';
+import { UserModule } from '@modules/user/user.module';
 
 /**
  * AuthModule — encapsulates authentication concerns.
@@ -22,21 +22,15 @@ import { UserModule } from '../user/user.module';
   imports: [
     UserModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-
-    // Register JwtModule without default secret — secrets are passed per-call
     JwtModule.register({}),
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
-
-    // Passport strategies (registered as 'jwt' and 'google' with PassportModule)
     JwtStrategy,
     GoogleStrategy,
-
-    // Guards exported for use in other modules
     JwtAuthGuard,
-    GoogleOAuthGuard,
+    GoogleOAuthGuard
   ],
   exports: [AuthService, JwtAuthGuard],
 })

@@ -24,16 +24,16 @@ jspm_packages/
 .DS_Store
 Thumbs.db
 
-# TypeScript / Typings cache
+# TypeScript cache
 *.tsbuildinfo
 typings/
 
-# Env files (Must never be committed)
+# Env files (Must never be committed to repository)
 .env
 .env.local
+.env.development
 .env.test
 .env.production
-.env.development
 .env.development.local
 .env.test.local
 .env.production.local
@@ -67,7 +67,7 @@ out/
 .vite/
 .turbo/
 
-# Coverage directory
+# Coverage
 coverage/
 *.lcov
 .nyc_output/
@@ -75,6 +75,6 @@ coverage/
 # Serverless directories
 .serverless/
 
-# Antigravity agent directories (Internal local AI agent)
+# Antigravity agent directories
 .agent/
 .agent_logs/

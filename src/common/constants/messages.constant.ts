@@ -3,7 +3,6 @@
  * Centralizes all user-facing messages for consistency and i18n readiness.
  */
 export const MESSAGES = {
-  // Auth
   SIGNUP_SUCCESS: 'Account created successfully',
   SIGNIN_SUCCESS: 'Login successful',
   LOGOUT_SUCCESS: 'Logged out successfully',
@@ -11,7 +10,6 @@ export const MESSAGES = {
   UNAUTHORIZED: 'Unauthorized access',
   FORBIDDEN: 'Access forbidden',
   INVALID_CREDENTIALS: 'Invalid email or password',
-
   // User
   USER_NOT_FOUND: 'User not found',
   USER_ALREADY_EXISTS: 'User with this email already exists',

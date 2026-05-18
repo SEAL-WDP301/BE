@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
+import { RoleEntity } from './entities/role.entity';
 import { UserService } from './services/user.service';
 import { UserController } from './controllers/user.controller';
 
@@ -11,8 +12,8 @@ import { UserController } from './controllers/user.controller';
  */
 @Module({
   imports: [
-    // Register UserEntity repository for this module scope
-    TypeOrmModule.forFeature([UserEntity]),
+    // Register UserEntity and RoleEntity repositories for this module scope
+    TypeOrmModule.forFeature([UserEntity, RoleEntity]),
   ],
   controllers: [UserController],
   providers: [UserService],

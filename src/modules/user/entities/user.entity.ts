@@ -5,8 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { Role } from '../../../common/enums/role.enum';
+import { RoleEntity } from './role.entity';
 import { Provider } from '../../../common/enums/provider.enum';
 import { Exclude } from 'class-transformer';
 
@@ -27,11 +29,6 @@ export class UserEntity {
 
   @Column({ unique: true, length: 255 })
   email: string;
-
-  /**
-   * Nullable: OAuth users (Google) may not have a local password.
-   * Always stored as bcrypt hash — NEVER plain text.
-   */
   @Column({ nullable: true, select: false })
   @Exclude()
   password: string | null;
@@ -39,16 +36,15 @@ export class UserEntity {
   @Column({ name: 'full_name', length: 100 })
   fullName: string;
 
-  @Column({
-    type: 'enum',
-    enum: Role,
-    default: Role.USER,
-  })
-  role: Role;
+  @Column({ unique: true, nullable: true, length: 50 })
+  code: string | null;
 
-  /**
-   * Authentication provider: LOCAL (email/password) or GOOGLE (OAuth2).
-   */
+  @Column({ nullable: true, length: 20 })
+  phone: string | null;
+
+  @ManyToOne(() => RoleEntity, (role) => role.users, { eager: true })
+  @JoinColumn({ name: 'role_id' })
+  role: RoleEntity;
   @Column({
     type: 'enum',
     enum: Provider,
@@ -56,18 +52,10 @@ export class UserEntity {
   })
   provider: Provider;
 
-  /**
-   * Google OAuth2 user ID — null for LOCAL users.
-   */
   @Column({ name: 'google_id', nullable: true, length: 100 })
   @Index()
   googleId: string | null;
 
-  /**
-   * Bcrypt hash of the current refresh token.
-   * Null if user is logged out (token revoked).
-   * Storing hash (not raw token) prevents token theft from DB compromise.
-   */
   @Column({ name: 'hashed_refresh_token', nullable: true, select: false })
   @Exclude()
   hashedRefreshToken: string | null;

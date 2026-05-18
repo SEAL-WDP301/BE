@@ -80,11 +80,6 @@ export class AuthService {
       },
     };
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // SIGNIN
-  // ─────────────────────────────────────────────────────────────────────────────
-
   /**
    * Authenticate user with email and password.
    * @throws UnauthorizedException on invalid credentials
@@ -161,13 +156,6 @@ export class AuthService {
     };
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // LOGOUT
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Logout user: clear refresh token cookie and nullify stored hash in DB.
-   */
   async logout(userId: string, res: Response) {
     await this.userService.updateRefreshToken(userId, null);
     this.clearRefreshTokenCookie(res);
@@ -175,14 +163,6 @@ export class AuthService {
     return { message: MESSAGES.LOGOUT_SUCCESS, data: null };
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // GOOGLE OAUTH
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Handle Google OAuth2 callback.
-   * Find existing user by googleId/email, or auto-create new account.
-   */
   async googleLogin(googleUser: any, res: Response) {
     let user = await this.userService.findByEmail(googleUser.email);
 
@@ -214,10 +194,6 @@ export class AuthService {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // PRIVATE HELPERS
-  // ─────────────────────────────────────────────────────────────────────────────
-
   /**
    * Generate both access token and refresh token for a user.
    */
@@ -225,7 +201,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role?.name,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -277,9 +253,7 @@ export class AuthService {
     });
   }
 
-  /**
-   * Remove sensitive fields from user object before returning to client.
-   */
+
   private sanitizeUser(user: UserEntity) {
     const { hashedRefreshToken: _hrt, password: _pw, ...safeUser } = user as any;
     return safeUser;

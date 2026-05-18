@@ -63,32 +63,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
 
-      // Log 4xx as warnings (client errors), 5xx as errors
+      // Đính kèm tin nhắn lỗi cụ thể vào request để Middleware mạng hiển thị
+      request['errMessage'] = message;
+
+      // Chỉ log lỗi nếu là lỗi nghiêm trọng của hệ thống (5xx)
       if (statusCode >= 500) {
-        this.logger.error(`[${request.method}] ${request.url} → ${statusCode}`, {
-          context: 'AllExceptionsFilter',
-          statusCode,
-          message,
-          stack: exception instanceof Error ? exception.stack : undefined,
-        });
-      } else {
-        this.logger.warn(`[${request.method}] ${request.url} → ${statusCode}: ${message}`, {
-          context: 'AllExceptionsFilter',
-          statusCode,
-        });
+        this.logger.error(
+          `[${request.method}] ${request.url} → ${statusCode}: ${message}`,
+          exception instanceof Error ? exception.stack : undefined,
+          'AllExceptionsFilter',
+        );
       }
     } else {
       // ─── Unknown / Unexpected Errors ─────────────────────────────
-      // Log full details server-side, return generic message to client
-      this.logger.error('Unhandled exception', {
-        context: 'AllExceptionsFilter',
-        error: exception,
-        stack: exception instanceof Error ? exception.stack : 'No stack available',
-        url: request.url,
-        method: request.method,
-      });
+      // Log full details server-side (500)
+      this.logger.error(
+        `Unhandled exception: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
+        exception instanceof Error ? exception.stack : undefined,
+        'AllExceptionsFilter',
+      );
 
       message = 'Internal server error';
+      request['errMessage'] = message;
     }
 
     response.status(statusCode).json({

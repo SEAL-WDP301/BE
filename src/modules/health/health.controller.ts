@@ -4,12 +4,6 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { RedisService } from '../redis/redis.service';
 
-/**
- * HealthController — provides system health status for monitoring.
- *
- * GET /health → checks DB connection, Redis connection, and process uptime.
- * Used by load balancers and monitoring tools (e.g., Docker healthcheck).
- */
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {

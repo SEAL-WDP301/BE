@@ -17,6 +17,6 @@ export default registerAs('database', () => ({
    */
   synchronize: process.env.NODE_ENV !== 'production',
 
-  /** Log SQL queries in development */
-  logging: process.env.NODE_ENV === 'development',
+  /** Log SQL queries in development (optional) */
+  logging: process.env.DB_LOGGING === 'true',
 }));

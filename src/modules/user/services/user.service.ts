@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../entities/user.entity';
+import { RoleEntity } from '../entities/role.entity';
 import { Provider } from '../../../common/enums/provider.enum';
 import { Role } from '../../../common/enums/role.enum';
 import { hashPassword } from '../../../common/utils/hash.util';
@@ -17,6 +18,8 @@ interface CreateUserData {
   provider: Provider;
   googleId?: string;
   role?: Role;
+  code?: string;
+  phone?: string;
 }
 
 /**
@@ -27,11 +30,59 @@ interface CreateUserData {
  * This enforces the layered architecture and keeps concerns separated.
  */
 @Injectable()
-export class UserService {
+export class UserService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(RoleEntity)
+    private readonly roleRepository: Repository<RoleEntity>,
   ) {}
+
+  /**
+   * Auto-seed a default Admin user if the database is empty.
+   * Runs automatically on NestJS application bootstrap.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    // 1. Seed Roles
+    const roles = Object.values(Role);
+    for (const roleName of roles) {
+      const roleExists = await this.roleRepository.findOne({ where: { name: roleName } });
+      if (!roleExists) {
+        const newRole = this.roleRepository.create({ name: roleName });
+        await this.roleRepository.save(newRole);
+        this.logger.log(`Seeded role: ${roleName}`);
+      }
+    }
+
+    // 2. Seed default Admin User
+    const adminEmail = 'admin@admin.com';
+    const adminExists = await this.userRepository.findOne({ where: { email: adminEmail } });
+
+    if (!adminExists) {
+      this.logger.log('Default Admin user not found. Seeding default Admin user...');
+      
+      const plainPassword = 'admin123';
+      const hashedPassword = await hashPassword(plainPassword);
+
+      const adminRole = await this.roleRepository.findOne({ where: { name: Role.ADMIN } });
+
+      const defaultAdmin = this.userRepository.create({
+        email: adminEmail,
+        fullName: 'System Admin',
+        password: hashedPassword,
+        provider: Provider.LOCAL,
+        role: adminRole,
+        code: 'ADMIN001',
+        phone: '0999999999',
+      });
+
+      await this.userRepository.save(defaultAdmin);
+      this.logger.log(`Default Admin user seeded successfully!`);
+      this.logger.log(`Credentials -> Email: ${adminEmail} | Password: ${plainPassword}`);
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // READ operations
@@ -94,13 +145,18 @@ export class UserService {
    * Accepts both LOCAL (with password) and GOOGLE (without password) users.
    */
   async createUser(data: CreateUserData): Promise<UserEntity> {
+    const roleName = data.role ?? Role.PARTICIPANT;
+    const roleEntity = await this.roleRepository.findOne({ where: { name: roleName } });
+
     const user = this.userRepository.create({
       email: data.email,
       fullName: data.fullName,
       password: data.password,
       provider: data.provider,
       googleId: data.googleId ?? null,
-      role: data.role ?? Role.USER,
+      role: roleEntity,
+      code: data.code ?? null,
+      phone: data.phone ?? null,
     });
 
     return this.userRepository.save(user);

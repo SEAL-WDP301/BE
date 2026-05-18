@@ -1,13 +1,14 @@
-import { IsString, IsOptional, IsEnum, MinLength, MaxLength } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Role } from '../../../common/enums/role.enum';
+import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
 
 /**
  * UpdateUserDto — partial update payload for user profile.
  * Only allow safe fields to be updated (not email, role, or provider).
  */
 export class UpdateUserDto {
-  @ApiPropertyOptional({ example: 'Jane Doe' })
+  /**
+   * Full name of the user
+   * @example 'Jane Doe'
+   */
   @IsOptional()
   @IsString()
   @MinLength(2)
