@@ -46,7 +46,7 @@ import { Logger } from 'winston';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
       load: [appConfig, databaseConfig, jwtConfig, redisConfig],
       cache: true,
     }),
@@ -70,6 +70,9 @@ import { Logger } from 'winston';
         synchronize: configService.get<boolean>('database.synchronize'),
         logging: configService.get<boolean>('database.logging'),
         autoLoadEntities: true,
+        ssl: configService.get<boolean>('database.ssl')
+          ? { rejectUnauthorized: false }
+          : undefined,
         // Connection pool settings
         extra: {
           max: 10,           // Maximum pool size

@@ -10,6 +10,7 @@ export default registerAs('database', () => ({
   username: process.env.DB_USERNAME || 'seal_user',
   password: process.env.DB_PASSWORD || 'seal_password',
   name: process.env.DB_NAME || 'seal_dev',
+  ssl: process.env.DB_SSL === 'true',
 
   /**
    * synchronize: true — auto-sync entity schema to DB (dev only).

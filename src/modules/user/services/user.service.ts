@@ -116,7 +116,6 @@ export class UserService implements OnApplicationBootstrap {
       .where('user.email = :email', { email })
       .getOne();
   }
-
   /**
    * Find user by ID WITH hashedRefreshToken field included.
    * Used during token refresh flow to validate stored token hash.
@@ -135,7 +134,6 @@ export class UserService implements OnApplicationBootstrap {
   async findByGoogleId(googleId: string): Promise<UserEntity | null> {
     return this.userRepository.findOne({ where: { googleId } });
   }
-
   // ─────────────────────────────────────────────────────────────────────────────
   // WRITE operations
   // ─────────────────────────────────────────────────────────────────────────────
