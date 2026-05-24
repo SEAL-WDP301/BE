@@ -5,7 +5,7 @@ import { Role } from '../../../common/enums/role.enum';
  * Keep minimal: only IDs and role (no PII like email in access tokens).
  */
 export interface JwtPayload {
-  sub: string;
+  sub: number;
   email: string;
   role: string;
 }

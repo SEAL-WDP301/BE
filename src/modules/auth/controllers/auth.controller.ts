@@ -19,6 +19,9 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { SignUpDto } from '../dto/signup.dto';
 import { SignInDto } from '../dto/signin.dto';
+import { VerifyOtpDto } from '../dto/verify-otp.dto';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { GoogleOAuthGuard } from '../guards/google-oauth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -38,9 +41,18 @@ export class AuthController {
   @ApiResponse({ status: 422, description: 'Validation failed' })
   async signup(
     @Body() dto: SignUpDto,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.signup(dto, res);
+    return this.authService.signup(dto);
+  }
+
+  /**
+   * Verify OTP and activate user account
+   */
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 401, description: 'Invalid OTP' })
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto);
   }
 
   /**
@@ -54,6 +66,25 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.signin(dto, res);
+  }
+
+  /**
+   * Forgot Password - Request reset link
+   */
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  /**
+   * Reset Password - Set new password using token
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   /**
@@ -83,7 +114,7 @@ export class AuthController {
     @CurrentUser('id') userId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.logout(userId, res);
+    return this.authService.logout(Number(userId), res);
   }
 
   /**

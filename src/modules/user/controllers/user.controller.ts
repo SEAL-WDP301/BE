@@ -33,7 +33,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized — missing or invalid token' })
   async getProfile(@CurrentUser('id') userId: string) {
-    const user = await this.userService.getProfile(userId);
+    const user = await this.userService.getProfile(Number(userId));
     return {
       message: MESSAGES.PROFILE_FETCHED,
       data: user,

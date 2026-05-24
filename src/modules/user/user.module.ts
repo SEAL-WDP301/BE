@@ -1,7 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserEntity } from './entities/user.entity';
-import { RoleEntity } from './entities/role.entity';
 import { UserService } from './services/user.service';
 import { UserController } from './controllers/user.controller';
 
@@ -11,10 +8,7 @@ import { UserController } from './controllers/user.controller';
  * Exports UserService so AuthModule can use it for auth operations.
  */
 @Module({
-  imports: [
-    // Register UserEntity and RoleEntity repositories for this module scope
-    TypeOrmModule.forFeature([UserEntity, RoleEntity]),
-  ],
+  imports: [],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService],

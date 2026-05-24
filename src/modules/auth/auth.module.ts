@@ -8,6 +8,8 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 import { UserModule } from '@modules/user/user.module';
+import { RedisModule } from '@modules/redis/redis.module';
+import { MailModule } from '@modules/mail/mail.module';
 
 /**
  * AuthModule — encapsulates authentication concerns.
@@ -21,6 +23,8 @@ import { UserModule } from '@modules/user/user.module';
 @Module({
   imports: [
     UserModule,
+    RedisModule,
+    MailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
   ],

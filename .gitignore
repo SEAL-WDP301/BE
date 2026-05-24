@@ -78,3 +78,5 @@ coverage/
 # Antigravity agent directories
 .agent/
 .agent_logs/
+# Added by code-review-graph
+.code-review-graph/

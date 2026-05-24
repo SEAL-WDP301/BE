@@ -1,15 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
   constructor(
-    @InjectDataSource()
-    private readonly dataSource: DataSource,
+    private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -33,7 +31,7 @@ export class HealthController {
     // ─── Database Health ─────────────────────────────────────────────────────
     let databaseStatus = 'disconnected';
     try {
-      await this.dataSource.query('SELECT 1');
+      await this.prisma.$queryRaw`SELECT 1`;
       databaseStatus = 'connected';
     } catch {
       databaseStatus = 'error';
