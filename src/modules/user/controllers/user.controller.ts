@@ -26,7 +26,10 @@ export class UserController {
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized — missing or invalid token' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized — missing or invalid token',
+  })
   async getProfile(@CurrentUser('id') userId: string) {
     const user = await this.userService.getProfile(Number(userId));
     return {

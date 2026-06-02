@@ -14,6 +14,7 @@ export const MESSAGES = {
   USER_NOT_FOUND: 'User not found',
   USER_ALREADY_EXISTS: 'User with this email already exists',
   PROFILE_FETCHED: 'Profile retrieved successfully',
+  PROFILE_UPDATED: 'Profile updated successfully',
 
   // General
   SUCCESS: 'Success',

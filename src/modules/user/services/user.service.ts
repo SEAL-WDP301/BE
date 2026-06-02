@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, OnApplicationBootstrap, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { User, Role } from '@prisma/client';
 import { Provider } from '../../../common/enums/provider.enum';
@@ -7,6 +7,7 @@ import { MESSAGES } from '../../../common/constants/messages.constant';
 import { UpsertStudentProfileDto } from '../dto/upsert-student-profile.dto';
 import { UpsertStakeholderProfileDto } from '../dto/upsert-stakeholder-profile.dto';
 import { OrganizerUpdateUserDto } from '../dto/organizer-update-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
 
 /**
  * CreateUserData — internal type for creating users from different sources.
@@ -33,7 +34,7 @@ export interface CreateUserData {
 export class UserService implements OnApplicationBootstrap {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Auto-seed a default Admin user if the database is empty.
@@ -42,11 +43,15 @@ export class UserService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     // Seed default Admin User
     const adminEmail = 'admin@admin.com';
-    const adminExists = await this.prisma.user.findUnique({ where: { email: adminEmail } });
+    const adminExists = await this.prisma.user.findUnique({
+      where: { email: adminEmail },
+    });
 
     if (!adminExists) {
-      this.logger.log('Default Admin user not found. Seeding default Admin user...');
-      
+      this.logger.log(
+        'Default Admin user not found. Seeding default Admin user...',
+      );
+
       const plainPassword = 'admin123';
       const hashedPassword = await hashPassword(plainPassword);
 
@@ -60,7 +65,9 @@ export class UserService implements OnApplicationBootstrap {
       });
 
       this.logger.log(`Default Admin user seeded successfully!`);
-      this.logger.log(`Credentials -> Email: ${adminEmail} | Password: ${plainPassword}`);
+      this.logger.log(
+        `Credentials -> Email: ${adminEmail} | Password: ${plainPassword}`,
+      );
     }
   }
 
@@ -128,7 +135,10 @@ export class UserService implements OnApplicationBootstrap {
   /**
    * Update a user's refresh token.
    */
-  async updateRefreshToken(id: number, refreshToken: string | null): Promise<void> {
+  async updateRefreshToken(
+    id: number,
+    refreshToken: string | null,
+  ): Promise<void> {
     const hashedToken = refreshToken ? await hashPassword(refreshToken) : null;
     await this.prisma.user.update({
       where: { id },
@@ -151,6 +161,83 @@ export class UserService implements OnApplicationBootstrap {
       throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
     }
     return user;
+  }
+
+  /**
+   * Update the authenticated student's profile.
+   */
+  async updateStudentProfile(id: number, dto: UpdateUserDto): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
+    }
+
+    const existingProfile = await this.prisma.studentProfile.findUnique({
+      where: { userId: id },
+    });
+
+    const studentProfileData = {
+      studentType: dto.studentType,
+      studentCode: dto.studentCode,
+      universityName: dto.universityName,
+      phone: dto.phone,
+    };
+    const hasStudentProfileData = Object.values(studentProfileData).some(
+      (value) => value !== undefined,
+    );
+
+    if (
+      !existingProfile &&
+      hasStudentProfileData &&
+      (!dto.studentType || !dto.studentCode)
+    ) {
+      throw new BadRequestException('studentType and studentCode are required');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      if (hasStudentProfileData) {
+        if (existingProfile) {
+          await tx.studentProfile.update({
+            where: { userId: id },
+            data: studentProfileData,
+          });
+        } else {
+          await tx.studentProfile.create({
+            data: {
+              userId: id,
+              studentType: dto.studentType!,
+              studentCode: dto.studentCode!,
+              universityName: dto.universityName,
+              phone: dto.phone,
+            },
+          });
+        }
+      }
+
+      if (dto.fullName) {
+        return tx.user.update({
+          where: { id },
+          data: {
+            name: dto.fullName,
+            avatarUrl: dto.avatarUrl,
+          },
+          include: { studentProfile: true },
+        });
+      }
+
+      if (dto.avatarUrl) {
+        return tx.user.update({
+          where: { id },
+          data: { avatarUrl: dto.avatarUrl },
+          include: { studentProfile: true },
+        });
+      }
+
+      return tx.user.findUniqueOrThrow({
+        where: { id },
+        include: { studentProfile: true },
+      });
+    });
   }
 
   /**
