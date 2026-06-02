@@ -1,30 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class MailService {
-  private resend: Resend;
   private readonly logger = new Logger(MailService.name);
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    if (apiKey) {
-      this.resend = new Resend(apiKey);
-    } else {
-      this.logger.warn('RESEND_API_KEY is not configured. Emails will not be sent.');
-    }
-  }
+  constructor(private readonly mailerService: MailerService) {}
 
   async sendOtpEmail(to: string, otp: string) {
-    if (!this.resend) {
-      this.logger.warn(`Simulating email to ${to} with OTP: ${otp}`);
-      return;
-    }
-
     try {
-      const response = await this.resend.emails.send({
-        from: 'SEAL Hackathon <onboarding@resend.dev>', // You should verify a domain in Resend and use it here
+      const response = await this.mailerService.sendMail({
         to,
         subject: 'SEAL - Xác thực địa chỉ Email',
         html: `
@@ -39,13 +24,8 @@ export class MailService {
         `,
       });
 
-      if (response.error) {
-        this.logger.error(`Resend API Error: ${response.error.message}`, response.error);
-        throw new Error(response.error.message);
-      }
-
-      this.logger.log(`OTP Email sent to ${to}, ID: ${response.data?.id}`);
-      return response.data;
+      this.logger.log(`OTP Email sent to ${to}, MessageID: ${response?.messageId}`);
+      return response;
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}`, error);
       throw error;
@@ -53,14 +33,8 @@ export class MailService {
   }
 
   async sendResetPasswordEmail(to: string, resetLink: string) {
-    if (!this.resend) {
-      this.logger.warn(`Simulating reset password email to ${to} with Link: ${resetLink}`);
-      return;
-    }
-
     try {
-      const response = await this.resend.emails.send({
-        from: 'SEAL Hackathon <onboarding@resend.dev>',
+      const response = await this.mailerService.sendMail({
         to,
         subject: 'SEAL - Khôi phục mật khẩu',
         html: `
@@ -79,13 +53,8 @@ export class MailService {
         `,
       });
 
-      if (response.error) {
-        this.logger.error(`Resend API Error: ${response.error.message}`, response.error);
-        throw new Error(response.error.message);
-      }
-
-      this.logger.log(`Reset Password Email sent to ${to}, ID: ${response.data?.id}`);
-      return response.data;
+      this.logger.log(`Reset Password Email sent to ${to}, MessageID: ${response?.messageId}`);
+      return response;
     } catch (error) {
       this.logger.error(`Failed to send reset password email to ${to}`, error);
       throw error;

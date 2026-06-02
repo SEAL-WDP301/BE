@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
 enum Role {
@@ -59,6 +59,12 @@ enum TeamStatus {
 enum TeamMemberRole {
   leader
   member
+}
+
+enum TeamMemberStatus {
+  pending
+  accepted
+  rejected
 }
 
 enum RegistrationStatus {
@@ -188,6 +194,7 @@ model Track {
   name        String
   description String?
   maxTeams    Int?      @map("max_teams")
+  maxMembersPerTeam Int? @map("max_members_per_team")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -245,6 +252,7 @@ model Team {
   trackId    Int        @map("track_id")
   name       String
   status     TeamStatus @default(pending)
+  eliminationReason String? @map("elimination_reason")
   leaderId   Int        @map("leader_id")
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
@@ -265,6 +273,7 @@ model TeamMember {
   teamId    Int            @map("team_id")
   userId    Int            @map("user_id")
   role      TeamMemberRole
+  status    TeamMemberStatus @default(pending)
   joinedAt  DateTime       @default(now()) @map("joined_at")
 
   team      Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)

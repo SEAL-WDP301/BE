@@ -25,18 +25,6 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { APP_CONSTANTS } from '@common/constants/app.constant';
 
-/**
- * AuthService — handles all authentication business logic.
- *
- * Responsibilities:
- * - User registration (signup) with bcrypt password hashing
- * - User login (signin) with credential verification
- * - JWT access token generation (short-lived, returned in response JSON)
- * - JWT refresh token generation (long-lived, stored as HttpOnly cookie)
- * - Token refresh flow
- * - Logout (clears cookie + nullifies hashed refresh token in DB)
- * - Google OAuth2 user find-or-create
- */
 @Injectable()
 export class AuthService {
   constructor(
@@ -294,6 +282,8 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
+    // log access token
+    this.logger.log('info', `Access token: ${tokens.accessToken}`)
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
     this.setRefreshTokenCookie(res, tokens.refreshToken);
 
