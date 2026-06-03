@@ -8,49 +8,47 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiResponse,
   ApiBearerAuth,
   ApiCookieAuth,
-} from '@nestjs/swagger';
-import { Request, Response } from 'express';
-import { AuthService } from '../services/auth.service';
-import { SignUpDto } from '../dto/signup.dto';
-import { SignInDto } from '../dto/signin.dto';
-import { VerifyOtpDto } from '../dto/verify-otp.dto';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import { ResetPasswordDto } from '../dto/reset-password.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { GoogleOAuthGuard } from '../guards/google-oauth.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { APP_CONSTANTS } from '../../../common/constants/app.constant';
+} from "@nestjs/swagger";
+import { Request, Response } from "express";
+import { AuthService } from "../services/auth.service";
+import { SignUpDto } from "../dto/signup.dto";
+import { SignInDto } from "../dto/signin.dto";
+import { VerifyOtpDto } from "../dto/verify-otp.dto";
+import { ForgotPasswordDto } from "../dto/forgot-password.dto";
+import { ResetPasswordDto } from "../dto/reset-password.dto";
+import { JwtAuthGuard } from "../guards/jwt-auth.guard";
+import { GoogleOAuthGuard } from "../guards/google-oauth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { APP_CONSTANTS } from "../../../common/constants/app.constant";
 
-@ApiTags('Authentication')
-@Controller('auth')
+@ApiTags("Authentication")
+@Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
    * Register a new user account
    */
-  @Post('signup')
+  @Post("signup")
   @HttpCode(HttpStatus.CREATED)
-  @ApiResponse({ status: 409, description: 'Email already exists' })
-  @ApiResponse({ status: 422, description: 'Validation failed' })
-  async signup(
-    @Body() dto: SignUpDto,
-  ) {
+  @ApiResponse({ status: 409, description: "Email already exists" })
+  @ApiResponse({ status: 422, description: "Validation failed" })
+  async signup(@Body() dto: SignUpDto) {
     return this.authService.signup(dto);
   }
 
   /**
    * Verify OTP and activate user account
    */
-  @Post('verify-otp')
+  @Post("verify-otp")
   @HttpCode(HttpStatus.OK)
-  @ApiResponse({ status: 401, description: 'Invalid OTP' })
+  @ApiResponse({ status: 401, description: "Invalid OTP" })
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.authService.verifyOtp(dto);
   }
@@ -58,9 +56,9 @@ export class AuthController {
   /**
    * Login with email and password
    */
-  @Post('signin')
+  @Post("signin")
   @HttpCode(HttpStatus.OK)
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 401, description: "Invalid credentials" })
   async signin(
     @Body() dto: SignInDto,
     @Res({ passthrough: true }) res: Response,
@@ -71,7 +69,7 @@ export class AuthController {
   /**
    * Forgot Password - Request reset link
    */
-  @Post('forgot-password')
+  @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
@@ -80,9 +78,9 @@ export class AuthController {
   /**
    * Reset Password - Set new password using token
    */
-  @Post('reset-password')
+  @Post("reset-password")
   @HttpCode(HttpStatus.OK)
-  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
+  @ApiResponse({ status: 401, description: "Invalid or expired token" })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
@@ -90,10 +88,10 @@ export class AuthController {
   /**
    * Refresh access token using HttpOnly refresh token cookie
    */
-  @Post('refresh')
+  @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  @ApiCookieAuth('refresh_token')
-  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @ApiCookieAuth("refresh_token")
+  @ApiResponse({ status: 401, description: "Invalid or expired refresh token" })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -105,13 +103,13 @@ export class AuthController {
   /**
    * Logout and invalidate refresh token
    */
-  @Post('logout')
+  @Post("logout")
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
   async logout(
-    @CurrentUser('id') userId: string,
+    @CurrentUser("id") userId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.logout(Number(userId), res);
@@ -121,7 +119,7 @@ export class AuthController {
    * Initiate Google OAuth2 login
    * Redirects browser to Google consent screen. Not for API clients.
    */
-  @Get('google')
+  @Get("google")
   @UseGuards(GoogleOAuthGuard)
   googleLogin() {
     // Guard handles the redirect — this handler body is never executed
@@ -131,12 +129,9 @@ export class AuthController {
    * Google OAuth2 callback — handled by GoogleStrategy
    * Google redirects here after user grants permissions.
    */
-  @Get('google/callback')
+  @Get("google/callback")
   @UseGuards(GoogleOAuthGuard)
-  async googleCallback(
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
     return this.authService.googleLogin(req.user, res);
   }
 }

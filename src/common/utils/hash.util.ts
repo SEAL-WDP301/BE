@@ -1,5 +1,5 @@
-import * as bcrypt from 'bcrypt';
-import { APP_CONSTANTS } from '../constants/app.constant';
+import * as bcrypt from "bcrypt";
+import { APP_CONSTANTS } from "../constants/app.constant";
 
 /**
  * Password hashing utilities using bcrypt.

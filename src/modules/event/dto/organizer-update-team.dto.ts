@@ -1,6 +1,6 @@
-import { IsEnum, IsString, IsOptional, ValidateIf } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TeamStatus } from '@prisma/client';
+import { IsEnum, IsString, IsOptional, ValidateIf } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { TeamStatus } from "@prisma/client";
 
 export class OrganizerUpdateTeamDto {
   @ApiProperty({ enum: TeamStatus })

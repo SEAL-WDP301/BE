@@ -1,8 +1,8 @@
-import { Injectable, NestMiddleware, Inject } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, NestMiddleware, Inject } from "@nestjs/common";
+import { Request, Response, NextFunction } from "express";
+import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
+import { Logger } from "winston";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * RequestLoggerMiddleware — logs every incoming HTTP request with metadata.
@@ -30,22 +30,22 @@ export class RequestLoggerMiddleware implements NestMiddleware {
 
     // Generate a unique request ID for distributed tracing
     const requestId = uuidv4();
-    req['requestId'] = requestId;
-    res.setHeader('X-Request-Id', requestId);
+    req["requestId"] = requestId;
+    res.setHeader("X-Request-Id", requestId);
 
     // Log response after it finishes (to capture status code and duration)
-    res.on('finish', () => {
+    res.on("finish", () => {
       const { statusCode } = res;
       const duration = Date.now() - startTime;
-      const userAgent = req.get('user-agent') || '-';
 
-      const logLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'log';
+      const logLevel =
+        statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "log";
 
-      const errMessage = req['errMessage'] ? ` → ${req['errMessage']}` : '';
+      const errMessage = req["errMessage"] ? ` → ${req["errMessage"]}` : "";
 
       this.logger[logLevel](
         `${method} ${originalUrl} ${statusCode} ${duration}ms${errMessage}`,
-        'HTTP',
+        "HTTP",
       );
     });
 

@@ -1,13 +1,20 @@
-import { Injectable, NotFoundException, ConflictException, OnApplicationBootstrap, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma/prisma.service';
-import { User, Role } from '@prisma/client';
-import { Provider } from '../../../common/enums/provider.enum';
-import { hashPassword } from '../../../common/utils/hash.util';
-import { MESSAGES } from '../../../common/constants/messages.constant';
-import { UpsertStudentProfileDto } from '../dto/upsert-student-profile.dto';
-import { UpsertStakeholderProfileDto } from '../dto/upsert-stakeholder-profile.dto';
-import { OrganizerUpdateUserDto } from '../dto/organizer-update-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  OnApplicationBootstrap,
+  Logger,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../database/prisma/prisma.service";
+import { User, Role } from "@prisma/client";
+import { Provider } from "../../../common/enums/provider.enum";
+import { hashPassword } from "../../../common/utils/hash.util";
+import { MESSAGES } from "../../../common/constants/messages.constant";
+import { UpsertStudentProfileDto } from "../dto/upsert-student-profile.dto";
+import { UpsertStakeholderProfileDto } from "../dto/upsert-stakeholder-profile.dto";
+import { OrganizerUpdateUserDto } from "../dto/organizer-update-user.dto";
+import { UpdateUserDto } from "../dto/update-user.dto";
 
 /**
  * CreateUserData — internal type for creating users from different sources.
@@ -34,7 +41,7 @@ export interface CreateUserData {
 export class UserService implements OnApplicationBootstrap {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Auto-seed a default Admin user if the database is empty.
@@ -42,23 +49,23 @@ export class UserService implements OnApplicationBootstrap {
    */
   async onApplicationBootstrap(): Promise<void> {
     // Seed default Admin User
-    const adminEmail = 'admin@admin.com';
+    const adminEmail = "admin@admin.com";
     const adminExists = await this.prisma.user.findUnique({
       where: { email: adminEmail },
     });
 
     if (!adminExists) {
       this.logger.log(
-        'Default Admin user not found. Seeding default Admin user...',
+        "Default Admin user not found. Seeding default Admin user...",
       );
 
-      const plainPassword = 'admin123';
+      const plainPassword = "admin123";
       const hashedPassword = await hashPassword(plainPassword);
 
       await this.prisma.user.create({
         data: {
           email: adminEmail,
-          name: 'System Admin',
+          name: "System Admin",
           passwordHash: hashedPassword,
           role: Role.admin,
         },
@@ -191,7 +198,7 @@ export class UserService implements OnApplicationBootstrap {
       hasStudentProfileData &&
       (!dto.studentType || !dto.studentCode)
     ) {
-      throw new BadRequestException('studentType and studentCode are required');
+      throw new BadRequestException("studentType and studentCode are required");
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -282,9 +289,13 @@ export class UserService implements OnApplicationBootstrap {
   // ─────────────────────────────────────────────────────────────────────────────
 
   async upsertStudentProfile(userId: number, data: UpsertStudentProfileDto) {
-    const existingStakeholder = await this.prisma.stakeholderProfile.findUnique({ where: { userId } });
+    const existingStakeholder = await this.prisma.stakeholderProfile.findUnique(
+      { where: { userId } },
+    );
     if (existingStakeholder) {
-      throw new ConflictException('User already has a stakeholder profile. Cannot be both.');
+      throw new ConflictException(
+        "User already has a stakeholder profile. Cannot be both.",
+      );
     }
 
     const profile = await this.prisma.studentProfile.upsert({
@@ -312,10 +323,17 @@ export class UserService implements OnApplicationBootstrap {
     return profile;
   }
 
-  async upsertStakeholderProfile(userId: number, data: UpsertStakeholderProfileDto) {
-    const existingStudent = await this.prisma.studentProfile.findUnique({ where: { userId } });
+  async upsertStakeholderProfile(
+    userId: number,
+    data: UpsertStakeholderProfileDto,
+  ) {
+    const existingStudent = await this.prisma.studentProfile.findUnique({
+      where: { userId },
+    });
     if (existingStudent) {
-      throw new ConflictException('User already has a student profile. Cannot be both.');
+      throw new ConflictException(
+        "User already has a student profile. Cannot be both.",
+      );
     }
 
     const profile = await this.prisma.stakeholderProfile.upsert({
@@ -356,7 +374,10 @@ export class UserService implements OnApplicationBootstrap {
     });
   }
 
-  async updateUserBaseInfo(id: number, data: OrganizerUpdateUserDto): Promise<User> {
+  async updateUserBaseInfo(
+    id: number,
+    data: OrganizerUpdateUserDto,
+  ): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException(MESSAGES.USER_NOT_FOUND);

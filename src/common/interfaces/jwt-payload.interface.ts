@@ -1,4 +1,4 @@
-import { Role } from '../enums/role.enum';
+import { Role } from "../enums/role.enum";
 
 /**
  * JWT Payload interface — shape of decoded JWT token.

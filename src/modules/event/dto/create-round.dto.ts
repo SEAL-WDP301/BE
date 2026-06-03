@@ -1,6 +1,14 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsInt, Min, IsDateString } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SubmissionType } from '@prisma/client';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsInt,
+  Min,
+  IsDateString,
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { SubmissionType } from "@prisma/client";
 
 export class CreateRoundDto {
   @ApiProperty()

@@ -1,9 +1,18 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma/prisma.service';
-import { EventStatus, TeamMemberRole, TeamMemberStatus, TeamStatus } from '@prisma/client';
-import { RegisterIndividualDto } from '../dto/register-individual.dto';
-import { RegisterTeamDto } from '../dto/register-team.dto';
-import { UpdateTeamRegistrationDto } from '../dto/update-team-registration.dto';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../database/prisma/prisma.service";
+import {
+  EventStatus,
+  TeamMemberRole,
+  TeamMemberStatus,
+  TeamStatus,
+} from "@prisma/client";
+import { RegisterIndividualDto } from "../dto/register-individual.dto";
+import { RegisterTeamDto } from "../dto/register-team.dto";
 
 @Injectable()
 export class EventStudentService {
@@ -21,7 +30,7 @@ export class EventStudentService {
       include: {
         tracks: true,
       },
-      orderBy: { startDate: 'asc' },
+      orderBy: { startDate: "asc" },
     });
   }
 
@@ -33,7 +42,7 @@ export class EventStudentService {
       },
     });
 
-    if (!event) throw new NotFoundException('Event not found');
+    if (!event) throw new NotFoundException("Event not found");
 
     // Fetch individual registration
     const registration = await this.prisma.studentRegistration.findUnique({
@@ -62,21 +71,29 @@ export class EventStudentService {
       event,
       registrationStatus: registration ? registration.status : null,
       individualRegistration: registration,
-      teamInfo: teamMember ? {
-        role: teamMember.role,
-        status: teamMember.status,
-        team: teamMember.team,
-      } : null,
+      teamInfo: teamMember
+        ? {
+            role: teamMember.role,
+            status: teamMember.status,
+            team: teamMember.team,
+          }
+        : null,
     };
   }
 
-  async registerIndividual(userId: number, eventId: number, dto: RegisterIndividualDto) {
+  async registerIndividual(
+    userId: number,
+    eventId: number,
+    dto: RegisterIndividualDto,
+  ) {
     // Check if already registered
     const existing = await this.prisma.studentRegistration.findUnique({
       where: { userId_eventId: { userId, eventId } },
     });
     if (existing) {
-      throw new BadRequestException('You are already registered for this event');
+      throw new BadRequestException(
+        "You are already registered for this event",
+      );
     }
 
     return this.prisma.studentRegistration.create({
@@ -92,14 +109,17 @@ export class EventStudentService {
 
   async registerTeam(userId: number, eventId: number, dto: RegisterTeamDto) {
     // 1. Verify track exists
-    const track = await this.prisma.track.findUnique({ where: { id: dto.trackId } });
+    const track = await this.prisma.track.findUnique({
+      where: { id: dto.trackId },
+    });
     if (!track || track.eventId !== eventId) {
-      throw new NotFoundException('Track not found for this event');
+      throw new NotFoundException("Track not found for this event");
     }
 
     // Check if max members limit exists
     const maxMembers = track.maxMembersPerTeam || 4; // default to 4 if not set
-    if (dto.memberEmails.length + 1 > maxMembers) { // +1 for leader
+    if (dto.memberEmails.length + 1 > maxMembers) {
+      // +1 for leader
       throw new BadRequestException(`Maximum members allowed is ${maxMembers}`);
     }
 
@@ -111,13 +131,17 @@ export class EventStudentService {
     });
 
     if (members.length !== dto.memberEmails.length) {
-      const foundEmails = members.map(m => m.email);
-      const missingEmails = dto.memberEmails.filter(e => !foundEmails.includes(e));
-      throw new BadRequestException(`These emails are not registered in the system: ${missingEmails.join(', ')}`);
+      const foundEmails = members.map((m) => m.email);
+      const missingEmails = dto.memberEmails.filter(
+        (e) => !foundEmails.includes(e),
+      );
+      throw new BadRequestException(
+        `These emails are not registered in the system: ${missingEmails.join(", ")}`,
+      );
     }
 
     // Check if any member is already in a team for this event
-    const memberIds = members.map(m => m.id);
+    const memberIds = members.map((m) => m.id);
     const existingMemberships = await this.prisma.teamMember.findMany({
       where: {
         userId: { in: [...memberIds, userId] },
@@ -127,8 +151,10 @@ export class EventStudentService {
     });
 
     if (existingMemberships.length > 0) {
-      const conflictingUsers = existingMemberships.map(m => m.user.email);
-      throw new BadRequestException(`These users are already in a team for this event: ${conflictingUsers.join(', ')}`);
+      const conflictingUsers = existingMemberships.map((m) => m.user.email);
+      throw new BadRequestException(
+        `These users are already in a team for this event: ${conflictingUsers.join(", ")}`,
+      );
     }
 
     // Transaction to create team, leader, and pending members
@@ -157,14 +183,14 @@ export class EventStudentService {
       // Add members as pending
       if (members.length > 0) {
         await prisma.teamMember.createMany({
-          data: members.map(member => ({
+          data: members.map((member) => ({
             teamId: team.id,
             userId: member.id,
             role: TeamMemberRole.member,
             status: TeamMemberStatus.pending,
           })),
         });
-        
+
         // TODO: Trigger email notification to invited members here
       }
 
@@ -207,7 +233,9 @@ export class EventStudentService {
     });
 
     if (!membership || membership.status !== TeamMemberStatus.pending) {
-      throw new BadRequestException('Invitation not found or already processed');
+      throw new BadRequestException(
+        "Invitation not found or already processed",
+      );
     }
 
     if (!accept) {

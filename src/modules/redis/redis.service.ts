@@ -1,6 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
-import Redis from 'ioredis';
-import { APP_CONSTANTS } from '../../common/constants/app.constant';
+import { Injectable, Inject } from "@nestjs/common";
+import Redis from "ioredis";
+import { APP_CONSTANTS } from "../../common/constants/app.constant";
 
 /**
  * RedisService — abstraction layer over raw ioredis client.
@@ -20,7 +20,7 @@ export class RedisService {
    */
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
     if (ttlSeconds) {
-      await this.redis.set(key, value, 'EX', ttlSeconds);
+      await this.redis.set(key, value, "EX", ttlSeconds);
     } else {
       await this.redis.set(key, value);
     }
@@ -59,9 +59,13 @@ export class RedisService {
    * Set a key only if it does not exist (NX flag). Used for distributed locks.
    * Returns true if key was set, false if already existed.
    */
-  async setNx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
-    const result = await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');
-    return result === 'OK';
+  async setNx(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    const result = await this.redis.set(key, value, "EX", ttlSeconds, "NX");
+    return result === "OK";
   }
 
   /**
@@ -77,7 +81,7 @@ export class RedisService {
   async ping(): Promise<boolean> {
     try {
       const result = await this.redis.ping();
-      return result === 'PONG';
+      return result === "PONG";
     } catch {
       return false;
     }

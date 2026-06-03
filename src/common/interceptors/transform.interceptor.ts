@@ -3,9 +3,9 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 /**
  * Unified success response format.
@@ -35,9 +35,10 @@ export interface SuccessResponse<T> {
  * }
  */
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, SuccessResponse<T>>
-{
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  SuccessResponse<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -45,13 +46,12 @@ export class TransformInterceptor<T>
     return next.handle().pipe(
       map((data) => {
         // If the handler already returns the full envelope shape, pass through
-        if (data && typeof data === 'object' && 'success' in data) {
+        if (data && typeof data === "object" && "success" in data) {
           return data;
         }
 
         // If handler returns { message, data } destructure it
-        const message =
-          data?.message ?? 'Success';
+        const message = data?.message ?? "Success";
         const payload = data?.data !== undefined ? data.data : data;
 
         return {

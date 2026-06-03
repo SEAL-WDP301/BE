@@ -1,8 +1,8 @@
-import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
-import { APP_CONSTANTS } from '../../common/constants/app.constant';
-import { RedisService } from './redis.service';
+import { Global, Module, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
+import { APP_CONSTANTS } from "../../common/constants/app.constant";
+import { RedisService } from "./redis.service";
 
 /**
  * RedisModule — provides a global ioredis client instance.
@@ -20,11 +20,12 @@ import { RedisService } from './redis.service';
       inject: [ConfigService],
       useFactory: (configService: ConfigService): Redis => {
         const client = new Redis({
-          host: configService.get<string>('redis.host'),
-          port: configService.get<number>('redis.port'),
-          password: configService.get<string>('redis.password') || undefined,
-          connectTimeout: configService.get<number>('redis.connectTimeout') || 10000,
-          keepAlive: configService.get<number>('redis.keepAlive') || 10000,
+          host: configService.get<string>("redis.host"),
+          port: configService.get<number>("redis.port"),
+          password: configService.get<string>("redis.password") || undefined,
+          connectTimeout:
+            configService.get<number>("redis.connectTimeout") || 10000,
+          keepAlive: configService.get<number>("redis.keepAlive") || 10000,
 
           // Auto-reconnect on connection drop
           retryStrategy: (times: number) => {
@@ -36,18 +37,18 @@ import { RedisService } from './redis.service';
           lazyConnect: false,
         });
 
-        const logger = new (require('@nestjs/common').Logger)('Redis');
+        const logger = new Logger("Redis");
 
-        client.on('connect', () => {
-          logger.log('Connected successfully');
+        client.on("connect", () => {
+          logger.log("Connected successfully");
         });
 
-        client.on('error', (err) => {
+        client.on("error", (err) => {
           logger.error(`Connection error: ${err.message}`);
         });
 
-        client.on('reconnecting', () => {
-          logger.warn('Reconnecting...');
+        client.on("reconnecting", () => {
+          logger.warn("Reconnecting...");
         });
 
         return client;

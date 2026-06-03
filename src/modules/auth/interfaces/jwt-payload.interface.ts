@@ -1,5 +1,3 @@
-import { Role } from '../../../common/enums/role.enum';
-
 /**
  * JWT Payload — data encoded inside access tokens.
  * Keep minimal: only IDs and role (no PII like email in access tokens).

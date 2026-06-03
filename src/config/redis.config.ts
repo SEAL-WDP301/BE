@@ -1,12 +1,12 @@
-import { registerAs } from '@nestjs/config';
+import { registerAs } from "@nestjs/config";
 
 /**
  * Redis configuration namespace: 'redis'
  * Used by ioredis for cache and future scalability (pub/sub, queues).
  */
-export default registerAs('redis', () => ({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+export default registerAs("redis", () => ({
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379", 10),
 
   /** Optional password for Redis AUTH */
   password: process.env.REDIS_PASSWORD || undefined,

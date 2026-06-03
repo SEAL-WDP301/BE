@@ -1,10 +1,10 @@
-import * as winston from 'winston';
-import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
-import { ConfigService } from '@nestjs/config';
+import * as winston from "winston";
+import { utilities as nestWinstonModuleUtilities } from "nest-winston";
+import { ConfigService } from "@nestjs/config";
 
 // ignore nest bootstrap log
 const ignoreNestBootstrap = winston.format((info) => {
-  const ignoredContexts = ['InstanceLoader', 'RouterExplorer'];
+  const ignoredContexts = ["InstanceLoader", "RouterExplorer"];
   //'RoutesResolver'
   if (ignoredContexts.includes(info.context as string)) {
     return false; // Hủy dòng log này
@@ -13,18 +13,19 @@ const ignoreNestBootstrap = winston.format((info) => {
 });
 
 export const createWinstonConfig = (configService: ConfigService) => {
-  const isProduction = configService.get<string>('app.nodeEnv') === 'production';
+  const isProduction =
+    configService.get<string>("app.nodeEnv") === "production";
 
   return {
-    level: isProduction ? 'warn' : 'info',
+    level: isProduction ? "warn" : "info",
 
     transports: [
       new winston.transports.Console({
         format: winston.format.combine(
           ignoreNestBootstrap(), // Kích hoạt bộ lọc
-          winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+          winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
           winston.format.ms(),
-          nestWinstonModuleUtilities.format.nestLike('SEAL', {
+          nestWinstonModuleUtilities.format.nestLike("SEAL", {
             colors: true,
             prettyPrint: true,
             processId: true,
@@ -35,4 +36,3 @@ export const createWinstonConfig = (configService: ConfigService) => {
     ],
   };
 };
-

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Injectable } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
 
 /**
  * JwtAuthGuard — protects routes by validating the JWT Bearer token.
@@ -18,4 +18,4 @@ import { AuthGuard } from '@nestjs/passport';
  * 3. Throws 401 if token is missing/invalid/expired
  */
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {}
+export class JwtAuthGuard extends AuthGuard("jwt") {}

@@ -1,6 +1,6 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma/prisma.service';
-import { EventStatus } from '@prisma/client';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../../database/prisma/prisma.service";
+import { EventStatus } from "@prisma/client";
 
 @Injectable()
 export class EventPublicService {
@@ -18,7 +18,7 @@ export class EventPublicService {
       include: {
         tracks: true,
       },
-      orderBy: { startDate: 'desc' },
+      orderBy: { startDate: "desc" },
     });
   }
 
@@ -32,7 +32,7 @@ export class EventPublicService {
     });
 
     if (!event) {
-      throw new NotFoundException('Event not found');
+      throw new NotFoundException("Event not found");
     }
 
     return event;

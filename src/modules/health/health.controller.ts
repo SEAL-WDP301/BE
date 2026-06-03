@@ -1,10 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { PrismaService } from '../../database/prisma/prisma.service';
-import { RedisService } from '../redis/redis.service';
+import { Controller, Get } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { PrismaService } from "../../database/prisma/prisma.service";
+import { RedisService } from "../redis/redis.service";
 
-@ApiTags('Health')
-@Controller('health')
+@ApiTags("Health")
+@Controller("health")
 export class HealthController {
   constructor(
     private readonly prisma: PrismaService,
@@ -12,43 +12,42 @@ export class HealthController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Check system health status' })
+  @ApiOperation({ summary: "Check system health status" })
   @ApiResponse({
     status: 200,
-    description: 'System health report',
+    description: "System health report",
     schema: {
       example: {
         success: true,
-        status: 'ok',
-        database: 'connected',
-        redis: 'connected',
+        status: "ok",
+        database: "connected",
+        redis: "connected",
         uptime: 123.45,
-        timestamp: '2024-01-01T00:00:00.000Z',
+        timestamp: "2024-01-01T00:00:00.000Z",
       },
     },
   })
   async check() {
     // ─── Database Health ─────────────────────────────────────────────────────
-    let databaseStatus = 'disconnected';
+    let databaseStatus = "disconnected";
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      databaseStatus = 'connected';
+      databaseStatus = "connected";
     } catch {
-      databaseStatus = 'error';
+      databaseStatus = "error";
     }
 
     // ─── Redis Health ─────────────────────────────────────────────────────────
     const isRedisConnected = await this.redisService.ping();
-    const redisStatus = isRedisConnected ? 'connected' : 'disconnected';
+    const redisStatus = isRedisConnected ? "connected" : "disconnected";
 
     // ─── Overall Status ───────────────────────────────────────────────────────
-    const isHealthy =
-      databaseStatus === 'connected' && isRedisConnected;
+    const isHealthy = databaseStatus === "connected" && isRedisConnected;
 
     return {
-      message: isHealthy ? 'All systems operational' : 'Some systems degraded',
+      message: isHealthy ? "All systems operational" : "Some systems degraded",
       data: {
-        status: isHealthy ? 'ok' : 'degraded',
+        status: isHealthy ? "ok" : "degraded",
         database: databaseStatus,
         redis: redisStatus,
         uptime: process.uptime(),

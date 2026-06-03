@@ -1,4 +1,4 @@
-import { StudentType } from '@prisma/client';
+import { StudentType } from "@prisma/client";
 import {
   IsEnum,
   IsOptional,
@@ -6,7 +6,7 @@ import {
   IsUrl,
   MaxLength,
   MinLength,
-} from 'class-validator';
+} from "class-validator";
 
 /**
  * UpdateUserDto — partial update payload for user profile.

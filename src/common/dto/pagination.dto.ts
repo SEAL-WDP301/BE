@@ -1,6 +1,6 @@
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
-import { APP_CONSTANTS } from '../constants/app.constant';
+import { IsOptional, IsInt, Min, Max } from "class-validator";
+import { Type } from "class-transformer";
+import { APP_CONSTANTS } from "../constants/app.constant";
 
 /**
  * Common pagination DTO — extend in module-specific list DTOs.

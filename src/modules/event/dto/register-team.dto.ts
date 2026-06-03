@@ -1,5 +1,5 @@
-import { IsInt, IsString, IsArray, IsEmail, ArrayMinSize } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsString, IsArray, IsEmail } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class RegisterTeamDto {
   @ApiProperty()
