@@ -16,10 +16,21 @@ export class EventOrganizerService {
   ) {}
 
   async createEvent(userId: number, dto: CreateEventDto) {
+    const { tracks, rounds, ...eventData } = dto;
     return this.prisma.event.create({
       data: {
-        ...dto,
+        ...eventData,
         createdById: userId,
+        tracks: {
+          create: tracks,
+        },
+        rounds: {
+          create: rounds,
+        },
+      },
+      include: {
+        tracks: true,
+        rounds: true,
       },
     });
   }
@@ -44,9 +55,10 @@ export class EventOrganizerService {
 
   async updateEvent(id: number, dto: UpdateEventDto) {
     await this.getEventById(id); // Check existence
+    const { tracks, rounds, ...eventData } = dto;
     return this.prisma.event.update({
       where: { id },
-      data: dto,
+      data: eventData,
     });
   }
 

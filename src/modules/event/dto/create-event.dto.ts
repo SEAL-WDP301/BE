@@ -1,6 +1,9 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsDateString, IsInt, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsDateString, IsInt, IsUrl, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { Type } from 'class-transformer';
 import { Season, EventStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CreateTrackDto } from './create-track.dto';
+import { CreateRoundDto } from './create-round.dto';
 
 export class CreateEventDto {
   @ApiProperty()
@@ -40,4 +43,18 @@ export class CreateEventDto {
   @IsUrl()
   @IsOptional()
   githubOrgUrl?: string;
+
+  @ApiProperty({ type: [CreateTrackDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateTrackDto)
+  tracks: CreateTrackDto[];
+
+  @ApiProperty({ type: [CreateRoundDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateRoundDto)
+  rounds: CreateRoundDto[];
 }

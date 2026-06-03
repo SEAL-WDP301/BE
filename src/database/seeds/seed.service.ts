@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, Season, EventStatus } from '@prisma/client';
+import { Role, Season, EventStatus, SubmissionType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -60,6 +60,10 @@ export class SeedService {
         tracks: [
           { name: 'Web3 & Blockchain', description: 'Build decentralized applications', maxTeams: 50, maxMembersPerTeam: 4 },
           { name: 'AI & Machine Learning', description: 'Create smart solutions using AI', maxTeams: 50, maxMembersPerTeam: 5 }
+        ],
+        rounds: [
+          { roundNumber: 1, name: 'Idea Proposal', submissionType: SubmissionType.pdf },
+          { roundNumber: 2, name: 'Final Submission', submissionType: SubmissionType.github_link }
         ]
       },
       {
@@ -76,6 +80,9 @@ export class SeedService {
           { name: 'FinTech', description: 'Financial technology innovations', maxTeams: 30, maxMembersPerTeam: 4 },
           { name: 'HealthTech', description: 'Improving healthcare through tech', maxTeams: 30, maxMembersPerTeam: 4 },
           { name: 'EdTech', description: 'Future of education', maxTeams: 30, maxMembersPerTeam: 4 }
+        ],
+        rounds: [
+          { roundNumber: 1, name: 'Prototype', submissionType: SubmissionType.github_link }
         ]
       },
       {
@@ -90,6 +97,10 @@ export class SeedService {
         tracks: [
           { name: 'GameFi', description: 'Play-to-earn game development', maxTeams: 40, maxMembersPerTeam: 3 },
           { name: 'Cybersecurity', description: 'Secure the future', maxTeams: 40, maxMembersPerTeam: 3 }
+        ],
+        rounds: [
+          { roundNumber: 1, name: 'Design Document', submissionType: SubmissionType.pdf },
+          { roundNumber: 2, name: 'Game Demo', submissionType: SubmissionType.github_link }
         ]
       },
       {
@@ -104,6 +115,10 @@ export class SeedService {
         tracks: [
           { name: 'Generative AI', description: 'LLMs, Image generation, and beyond', maxTeams: 60, maxMembersPerTeam: 4 },
           { name: 'Robotics', description: 'Software for autonomous robots', maxTeams: 20, maxMembersPerTeam: 5 }
+        ],
+        rounds: [
+          { roundNumber: 1, name: 'Model Pitch', submissionType: SubmissionType.pdf },
+          { roundNumber: 2, name: 'Working Application', submissionType: SubmissionType.github_link }
         ]
       },
       {
@@ -118,6 +133,10 @@ export class SeedService {
         tracks: [
           { name: 'Internet of Things (IoT)', description: 'Connected devices', maxTeams: 40, maxMembersPerTeam: 4 },
           { name: 'E-commerce Next Gen', description: 'Reinventing online shopping', maxTeams: 40, maxMembersPerTeam: 4 }
+        ],
+        rounds: [
+          { roundNumber: 1, name: 'System Architecture', submissionType: SubmissionType.pdf },
+          { roundNumber: 2, name: 'MVP Submission', submissionType: SubmissionType.github_link }
         ]
       },
       {
@@ -132,23 +151,29 @@ export class SeedService {
         tracks: [
           { name: 'Enterprise Software', description: 'B2B solutions', maxTeams: 50, maxMembersPerTeam: 5 },
           { name: 'Mobile Apps', description: 'Consumer mobile experiences', maxTeams: 50, maxMembersPerTeam: 4 }
+        ],
+        rounds: [
+          { roundNumber: 1, name: 'Release Candidate', submissionType: SubmissionType.github_link }
         ]
       }
     ];
 
     for (const data of eventsData) {
-      const { tracks, ...eventDetails } = data;
+      const { tracks, rounds, ...eventDetails } = data;
       await this.prisma.event.create({
         data: {
           ...eventDetails,
           createdById: adminId,
           tracks: {
             create: tracks,
+          },
+          rounds: {
+            create: rounds,
           }
         }
       });
     }
 
-    console.log('[Event] Successfully seeded 6 past events with tracks.');
+    console.log('[Event] Successfully seeded 6 past events with tracks and rounds.');
   }
 }
