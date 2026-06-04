@@ -80,9 +80,13 @@ export class EventOrganizerService {
         trackId,
       },
       include: {
-        leader: { select: { id: true, name: true, email: true } },
+        leader: {
+          select: { id: true, name: true, email: true, studentProfile: true },
+        },
         members: {
-          include: { user: { select: { id: true, name: true, email: true } } },
+          include: {
+            user: { select: { id: true, name: true, email: true, studentProfile: true } },
+          },
         },
       },
     });

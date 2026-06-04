@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Param,
   ParseIntPipe,
@@ -25,24 +26,17 @@ import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
 export class EventStudentController {
   constructor(private readonly eventStudentService: EventStudentService) {}
 
-  @Get()
-  @ApiOperation({ summary: "Get active events" })
-  async getActiveEvents() {
-    const events = await this.eventStudentService.getActiveEvents();
-    return { message: "Active events fetched", data: events };
-  }
-
   @Get(":id")
-  @ApiOperation({ summary: "Get event detail and registration status" })
-  async getEventDetail(
+  @ApiOperation({ summary: "Get student registration status for an event" })
+  async getRegistrationStatus(
     @Param("id", ParseIntPipe) eventId: number,
     @CurrentUser("id") userId: string,
   ) {
-    const detail = await this.eventStudentService.getEventDetail(
+    const detail = await this.eventStudentService.getRegistrationStatus(
       eventId,
       Number(userId),
     );
-    return { message: "Event detail fetched", data: detail };
+    return { message: "Registration status fetched", data: detail };
   }
 
   @Post(":id/register/individual")
@@ -76,6 +70,21 @@ export class EventStudentController {
       dto,
     );
     return { message: "Team registration successful", data: team };
+  }
+
+  @Put(":id/register/team")
+  @ApiOperation({ summary: "Update team registration for an event" })
+  async updateTeamRegistration(
+    @Param("id", ParseIntPipe) eventId: number,
+    @CurrentUser("id") userId: string,
+    @Body() dto: RegisterTeamDto,
+  ) {
+    const team = await this.eventStudentService.updateTeamRegistration(
+      Number(userId),
+      eventId,
+      dto,
+    );
+    return { message: "Team registration updated successfully", data: team };
   }
 
   @Get("invitations/pending")

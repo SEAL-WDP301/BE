@@ -48,13 +48,6 @@ export class EventOrganizerController {
     return { message: "Events fetched", data: events };
   }
 
-  @Get(":id")
-  @ApiOperation({ summary: "Get event by ID" })
-  async getEventById(@Param("id", ParseIntPipe) id: number) {
-    const event = await this.eventOrganizerService.getEventById(id);
-    return { message: "Event fetched", data: event };
-  }
-
   @Put(":id")
   @ApiOperation({ summary: "Update an event" })
   async updateEvent(

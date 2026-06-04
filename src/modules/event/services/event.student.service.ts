@@ -13,37 +13,18 @@ import {
 } from "@prisma/client";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { RegisterTeamDto } from "../dto/register-team.dto";
+import { MailService } from "../../mail/mail.service";
 
 @Injectable()
 export class EventStudentService {
   private readonly logger = new Logger(EventStudentService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
-  async getActiveEvents() {
-    return this.prisma.event.findMany({
-      where: {
-        status: {
-          in: [EventStatus.active, EventStatus.ongoing],
-        },
-      },
-      include: {
-        tracks: true,
-      },
-      orderBy: { startDate: "asc" },
-    });
-  }
-
-  async getEventDetail(eventId: number, userId: number) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      include: {
-        tracks: true,
-      },
-    });
-
-    if (!event) throw new NotFoundException("Event not found");
-
+  async getRegistrationStatus(eventId: number, userId: number) {
     // Fetch individual registration
     const registration = await this.prisma.studentRegistration.findUnique({
       where: {
@@ -58,6 +39,7 @@ export class EventStudentService {
     const teamMember = await this.prisma.teamMember.findFirst({
       where: {
         userId,
+        status: TeamMemberStatus.accepted,
         team: {
           eventId,
         },
@@ -68,7 +50,6 @@ export class EventStudentService {
     });
 
     return {
-      event,
       registrationStatus: registration ? registration.status : null,
       individualRegistration: registration,
       teamInfo: teamMember
@@ -158,7 +139,7 @@ export class EventStudentService {
     }
 
     // Transaction to create team, leader, and pending members
-    return this.prisma.$transaction(async (prisma) => {
+    const resultTeam = await this.prisma.$transaction(async (prisma) => {
       // Create team
       const team = await prisma.team.create({
         data: {
@@ -191,7 +172,6 @@ export class EventStudentService {
           })),
         });
 
-        // TODO: Trigger email notification to invited members here
       }
 
       // Automatically create a StudentRegistration for the leader to mark them as registered
@@ -206,6 +186,127 @@ export class EventStudentService {
 
       return team;
     });
+
+    // Send emails after transaction successfully completes
+    if (members.length > 0) {
+      const leader = await this.prisma.user.findUnique({ where: { id: userId } });
+      const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+      
+      Promise.all(
+        members.map((member) =>
+          this.mailService.sendTeamInvitationEmail(
+            member.email,
+            dto.teamName,
+            event?.name || "Sự kiện",
+            track.name,
+            leader?.name || "Một người bạn",
+          )
+        )
+      ).catch((err) => this.logger.error("Failed to send invitations", err));
+    }
+
+    return resultTeam;
+  }
+
+  async updateTeamRegistration(userId: number, eventId: number, dto: RegisterTeamDto) {
+    const team = await this.prisma.team.findFirst({
+      where: { eventId, leaderId: userId },
+      include: { members: { include: { user: true } } },
+    });
+
+    if (!team) throw new NotFoundException("Team not found or you are not the leader");
+    if (team.status !== TeamStatus.pending) throw new BadRequestException("Only pending teams can be updated");
+
+    // 1. Verify track
+    const track = await this.prisma.track.findUnique({ where: { id: dto.trackId } });
+    if (!track || track.eventId !== eventId) throw new NotFoundException("Track not found");
+    const maxMembers = track.maxMembersPerTeam || 4;
+    if (dto.memberEmails.length + 1 > maxMembers) throw new BadRequestException(`Max members allowed is ${maxMembers}`);
+
+    // 2. Validate all member emails
+    const members = await this.prisma.user.findMany({ where: { email: { in: dto.memberEmails } } });
+    if (members.length !== dto.memberEmails.length) {
+      const foundEmails = members.map((m) => m.email);
+      const missingEmails = dto.memberEmails.filter((e) => !foundEmails.includes(e));
+      throw new BadRequestException(`These emails are not registered: ${missingEmails.join(", ")}`);
+    }
+
+    // 3. Find out who to add and who to remove
+    const currentMemberEmails = team.members.filter(m => m.role === TeamMemberRole.member).map(m => m.user.email);
+    const emailsToAdd = dto.memberEmails.filter(e => !currentMemberEmails.includes(e));
+    const emailsToRemove = currentMemberEmails.filter(e => !dto.memberEmails.includes(e));
+
+    const usersToAdd = members.filter(m => emailsToAdd.includes(m.email));
+    
+    // Check if new members are already in another team
+    if (usersToAdd.length > 0) {
+      const memberIds = usersToAdd.map(m => m.id);
+      const existingMemberships = await this.prisma.teamMember.findMany({
+        where: { userId: { in: memberIds }, team: { eventId } },
+        include: { user: true },
+      });
+      if (existingMemberships.length > 0) {
+        const conflictingUsers = existingMemberships.map((m) => m.user.email);
+        throw new BadRequestException(`These users are already in a team: ${conflictingUsers.join(", ")}`);
+      }
+    }
+
+    const resultTeam = await this.prisma.$transaction(async (prisma) => {
+      // Update team details
+      await prisma.team.update({
+        where: { id: team.id },
+        data: { name: dto.teamName, trackId: dto.trackId },
+      });
+
+      // Update leader's track registration
+      await prisma.studentRegistration.update({
+        where: { userId_eventId: { userId, eventId } },
+        data: { trackId: dto.trackId },
+      });
+
+      // Remove members
+      if (emailsToRemove.length > 0) {
+        const usersToRemove = team.members.filter(m => emailsToRemove.includes(m.user.email));
+        await prisma.teamMember.deleteMany({
+          where: { id: { in: usersToRemove.map(m => m.id) } }
+        });
+      }
+
+      // Add new members
+      if (usersToAdd.length > 0) {
+        await prisma.teamMember.createMany({
+          data: usersToAdd.map((member) => ({
+            teamId: team.id,
+            userId: member.id,
+            role: TeamMemberRole.member,
+            status: TeamMemberStatus.pending,
+          })),
+        });
+
+      }
+
+      return prisma.team.findUnique({ where: { id: team.id } });
+    });
+
+    // Send emails after transaction successfully completes
+    if (usersToAdd.length > 0) {
+      const leader = await this.prisma.user.findUnique({ where: { id: userId } });
+      const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+      
+      Promise.all(
+        usersToAdd.map((member) =>
+          this.mailService.sendTeamInvitationEmail(
+            member.email,
+            dto.teamName,
+            event?.name || "Sự kiện",
+            track.name,
+            leader?.name || "Một người bạn",
+          )
+        )
+      ).catch((err) => this.logger.error("Failed to send invitations", err));
+    }
+
+    return resultTeam;
   }
 
   async getInvitations(userId: number) {
@@ -238,6 +339,21 @@ export class EventStudentService {
       );
     }
 
+    if (accept) {
+      // Check if user is already in an accepted team for this event
+      const existingAccepted = await this.prisma.teamMember.findFirst({
+        where: {
+          userId,
+          status: TeamMemberStatus.accepted,
+          team: { eventId: membership.team.eventId },
+        },
+      });
+
+      if (existingAccepted) {
+        throw new BadRequestException("You are already a member of another team in this event.");
+      }
+    }
+
     if (!accept) {
       // Reject: Update status to rejected
       return this.prisma.teamMember.update({
@@ -251,6 +367,17 @@ export class EventStudentService {
       const updated = await prisma.teamMember.update({
         where: { id: membership.id },
         data: { status: TeamMemberStatus.accepted },
+      });
+
+      // Reject all other pending invitations for this user in this event
+      await prisma.teamMember.updateMany({
+        where: {
+          userId,
+          status: TeamMemberStatus.pending,
+          id: { not: membership.id },
+          team: { eventId: membership.team.eventId },
+        },
+        data: { status: TeamMemberStatus.rejected },
       });
 
       await prisma.studentRegistration.upsert({

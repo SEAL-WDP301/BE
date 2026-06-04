@@ -64,4 +64,36 @@ export class MailService {
       throw error;
     }
   }
+
+  async sendTeamInvitationEmail(
+    to: string,
+    teamName: string,
+    eventName: string,
+    trackName: string,
+    leaderName: string,
+  ) {
+    try {
+      const response = await this.mailerService.sendMail({
+        to,
+        subject: `SEAL - Lời mời tham gia đội thi ${teamName}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>Bạn nhận được một lời mời tham gia đội thi!</h2>
+            <p><strong>${leaderName}</strong> vừa mời bạn gia nhập đội <strong>${teamName}</strong> để cùng tham gia cuộc thi <strong>${eventName}</strong> (Track: <strong>${trackName}</strong>).</p>
+            <p>Vui lòng đăng nhập vào hệ thống SEAL, đi tới mục Thông báo hoặc trang Chi tiết cuộc thi để <strong>Chấp nhận</strong> hoặc <strong>Từ chối</strong> lời mời này.</p>
+            <br/>
+            <p>Trân trọng,<br/>Đội ngũ SEAL</p>
+          </div>
+        `,
+      });
+
+      this.logger.log(
+        `Team invitation email sent to ${to}, MessageID: ${response?.messageId}`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to send team invitation email to ${to}`, error);
+      throw error;
+    }
+  }
 }
