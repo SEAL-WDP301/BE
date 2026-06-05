@@ -123,10 +123,10 @@ export class EventOrganizerService {
     });
 
     // Send notifications
-    const emailsToNotify = [
+    const emailsToNotify = Array.from(new Set([
       team.leader.email,
       ...team.members.map((m) => m.user.email),
-    ];
+    ]));
 
     // Create notifications in DB
     const notifications = emailsToNotify

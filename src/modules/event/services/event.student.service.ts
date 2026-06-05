@@ -44,8 +44,24 @@ export class EventStudentService {
           eventId,
         },
       },
+      orderBy: {
+        joinedAt: 'desc',
+      },
       include: {
-        team: true,
+        team: {
+          include: {
+            members: {
+              include: {
+                user: {
+                  select: {
+                    email: true,
+                    name: true,
+                  }
+                }
+              }
+            }
+          }
+        },
       },
     });
 
@@ -67,18 +83,15 @@ export class EventStudentService {
     eventId: number,
     dto: RegisterIndividualDto,
   ) {
-    // Check if already registered
-    const existing = await this.prisma.studentRegistration.findUnique({
+    // Upsert registration
+    return this.prisma.studentRegistration.upsert({
       where: { userId_eventId: { userId, eventId } },
-    });
-    if (existing) {
-      throw new BadRequestException(
-        "You are already registered for this event",
-      );
-    }
-
-    return this.prisma.studentRegistration.create({
-      data: {
+      update: {
+        trackId: dto.trackId,
+        hasTeam: false,
+        skills: dto.skills,
+      },
+      create: {
         userId,
         eventId,
         trackId: dto.trackId,
@@ -126,7 +139,12 @@ export class EventStudentService {
     const existingMemberships = await this.prisma.teamMember.findMany({
       where: {
         userId: { in: [...memberIds, userId] },
-        team: { eventId },
+        team: { 
+          eventId,
+          status: {
+            not: TeamStatus.eliminated
+          }
+        },
       },
       include: { user: true },
     });
@@ -174,9 +192,19 @@ export class EventStudentService {
 
       }
 
-      // Automatically create a StudentRegistration for the leader to mark them as registered
-      await prisma.studentRegistration.create({
-        data: {
+      // Automatically create or update StudentRegistration for the leader
+      await prisma.studentRegistration.upsert({
+        where: {
+          userId_eventId: {
+            userId,
+            eventId,
+          },
+        },
+        update: {
+          trackId: dto.trackId,
+          hasTeam: true,
+        },
+        create: {
           userId,
           eventId,
           trackId: dto.trackId,
@@ -345,7 +373,10 @@ export class EventStudentService {
         where: {
           userId,
           status: TeamMemberStatus.accepted,
-          team: { eventId: membership.team.eventId },
+          team: { 
+            eventId: membership.team.eventId,
+            status: { not: TeamStatus.eliminated }
+          },
         },
       });
 

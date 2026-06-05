@@ -171,6 +171,74 @@ export class UserService implements OnApplicationBootstrap {
   }
 
   /**
+   * Get notifications for the given user.
+   */
+  async getUserNotifications(userId: number) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      include: {
+        event: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  /**
+   * Mark a single notification as read.
+   */
+  async markNotificationAsRead(userId: number, notificationId: number) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException("Notification not found");
+    }
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+  }
+
+  /**
+   * Mark all notifications as read for a user.
+   */
+  async markAllNotificationsAsRead(userId: number) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  /**
+   * Delete a single notification.
+   */
+  async deleteNotification(userId: number, notificationId: number) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException("Notification not found");
+    }
+    return this.prisma.notification.delete({
+      where: { id: notificationId },
+    });
+  }
+
+  /**
+   * Delete all notifications for a user.
+   */
+  async deleteAllNotifications(userId: number) {
+    return this.prisma.notification.deleteMany({
+      where: { userId },
+    });
+  }
+
+  /**
    * Update the authenticated student's profile.
    */
   async updateStudentProfile(id: number, dto: UpdateUserDto): Promise<User> {
