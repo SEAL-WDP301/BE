@@ -5,12 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import {
-  EventStatus,
-  TeamMemberRole,
-  TeamMemberStatus,
-  TeamStatus,
-} from "@prisma/client";
+import { TeamMemberRole, TeamMemberStatus, TeamStatus } from "@prisma/client";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { RegisterTeamDto } from "../dto/register-team.dto";
 import { MailService } from "../../mail/mail.service";
@@ -45,7 +40,7 @@ export class EventStudentService {
         },
       },
       orderBy: {
-        joinedAt: 'desc',
+        joinedAt: "desc",
       },
       include: {
         team: {
@@ -56,11 +51,11 @@ export class EventStudentService {
                   select: {
                     email: true,
                     name: true,
-                  }
-                }
-              }
-            }
-          }
+                  },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -139,11 +134,11 @@ export class EventStudentService {
     const existingMemberships = await this.prisma.teamMember.findMany({
       where: {
         userId: { in: [...memberIds, userId] },
-        team: { 
+        team: {
           eventId,
           status: {
-            not: TeamStatus.eliminated
-          }
+            not: TeamStatus.eliminated,
+          },
         },
       },
       include: { user: true },
@@ -189,7 +184,6 @@ export class EventStudentService {
             status: TeamMemberStatus.pending,
           })),
         });
-
       }
 
       // Automatically create or update StudentRegistration for the leader
@@ -217,9 +211,13 @@ export class EventStudentService {
 
     // Send emails after transaction successfully completes
     if (members.length > 0) {
-      const leader = await this.prisma.user.findUnique({ where: { id: userId } });
-      const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-      
+      const leader = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+      });
+
       Promise.all(
         members.map((member) =>
           this.mailService.sendTeamInvitationEmail(
@@ -228,54 +226,78 @@ export class EventStudentService {
             event?.name || "Sự kiện",
             track.name,
             leader?.name || "Một người bạn",
-          )
-        )
+          ),
+        ),
       ).catch((err) => this.logger.error("Failed to send invitations", err));
     }
 
     return resultTeam;
   }
 
-  async updateTeamRegistration(userId: number, eventId: number, dto: RegisterTeamDto) {
+  async updateTeamRegistration(
+    userId: number,
+    eventId: number,
+    dto: RegisterTeamDto,
+  ) {
     const team = await this.prisma.team.findFirst({
       where: { eventId, leaderId: userId },
       include: { members: { include: { user: true } } },
     });
 
-    if (!team) throw new NotFoundException("Team not found or you are not the leader");
-    if (team.status !== TeamStatus.pending) throw new BadRequestException("Only pending teams can be updated");
+    if (!team)
+      throw new NotFoundException("Team not found or you are not the leader");
+    if (team.status !== TeamStatus.pending)
+      throw new BadRequestException("Only pending teams can be updated");
 
     // 1. Verify track
-    const track = await this.prisma.track.findUnique({ where: { id: dto.trackId } });
-    if (!track || track.eventId !== eventId) throw new NotFoundException("Track not found");
+    const track = await this.prisma.track.findUnique({
+      where: { id: dto.trackId },
+    });
+    if (!track || track.eventId !== eventId)
+      throw new NotFoundException("Track not found");
     const maxMembers = track.maxMembersPerTeam || 4;
-    if (dto.memberEmails.length + 1 > maxMembers) throw new BadRequestException(`Max members allowed is ${maxMembers}`);
+    if (dto.memberEmails.length + 1 > maxMembers)
+      throw new BadRequestException(`Max members allowed is ${maxMembers}`);
 
     // 2. Validate all member emails
-    const members = await this.prisma.user.findMany({ where: { email: { in: dto.memberEmails } } });
+    const members = await this.prisma.user.findMany({
+      where: { email: { in: dto.memberEmails } },
+    });
     if (members.length !== dto.memberEmails.length) {
       const foundEmails = members.map((m) => m.email);
-      const missingEmails = dto.memberEmails.filter((e) => !foundEmails.includes(e));
-      throw new BadRequestException(`These emails are not registered: ${missingEmails.join(", ")}`);
+      const missingEmails = dto.memberEmails.filter(
+        (e) => !foundEmails.includes(e),
+      );
+      throw new BadRequestException(
+        `These emails are not registered: ${missingEmails.join(", ")}`,
+      );
     }
 
     // 3. Find out who to add and who to remove
-    const currentMemberEmails = team.members.filter(m => m.role === TeamMemberRole.member).map(m => m.user.email);
-    const emailsToAdd = dto.memberEmails.filter(e => !currentMemberEmails.includes(e));
-    const emailsToRemove = currentMemberEmails.filter(e => !dto.memberEmails.includes(e));
+    const currentMemberEmails = team.members
+      .filter((m) => m.role === TeamMemberRole.member)
+      .map((m) => m.user.email);
+    const emailsToAdd = dto.memberEmails.filter(
+      (e) => !currentMemberEmails.includes(e),
+    );
+    const emailsToRemove = currentMemberEmails.filter(
+      (e) => !dto.memberEmails.includes(e),
+    );
 
-    const usersToAdd = members.filter(m => emailsToAdd.includes(m.email));
-    
+    const usersToAdd = members.filter((m) => emailsToAdd.includes(m.email));
+
     // Check if new members are already in another team
     if (usersToAdd.length > 0) {
-      const memberIds = usersToAdd.map(m => m.id);
+      const memberIds = usersToAdd.map((m) => m.id);
       const existingMemberships = await this.prisma.teamMember.findMany({
         where: { userId: { in: memberIds }, team: { eventId } },
         include: { user: true },
       });
       if (existingMemberships.length > 0) {
         const conflictingUsers = existingMemberships.map((m) => m.user.email);
-        throw new BadRequestException(`These users are already in a team: ${conflictingUsers.join(", ")}`);
+        throw new BadRequestException(
+          `These users are already in a team: ${conflictingUsers.join(", ")}`,
+        );
       }
     }
 
@@ -294,9 +316,11 @@ export class EventStudentService {
 
       // Remove members
       if (emailsToRemove.length > 0) {
-        const usersToRemove = team.members.filter(m => emailsToRemove.includes(m.user.email));
+        const usersToRemove = team.members.filter((m) =>
+          emailsToRemove.includes(m.user.email),
+        );
         await prisma.teamMember.deleteMany({
-          where: { id: { in: usersToRemove.map(m => m.id) } }
+          where: { id: { in: usersToRemove.map((m) => m.id) } },
         });
       }
 
@@ -310,7 +334,6 @@ export class EventStudentService {
             status: TeamMemberStatus.pending,
           })),
         });
-
       }
 
       return prisma.team.findUnique({ where: { id: team.id } });
@@ -318,9 +341,13 @@ export class EventStudentService {
 
     // Send emails after transaction successfully completes
     if (usersToAdd.length > 0) {
-      const leader = await this.prisma.user.findUnique({ where: { id: userId } });
-      const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-      
+      const leader = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+      });
+
       Promise.all(
         usersToAdd.map((member) =>
           this.mailService.sendTeamInvitationEmail(
@@ -329,8 +356,8 @@ export class EventStudentService {
             event?.name || "Sự kiện",
             track.name,
             leader?.name || "Một người bạn",
-          )
-        )
+          ),
+        ),
       ).catch((err) => this.logger.error("Failed to send invitations", err));
     }
 
@@ -373,15 +400,17 @@ export class EventStudentService {
         where: {
           userId,
           status: TeamMemberStatus.accepted,
-          team: { 
+          team: {
             eventId: membership.team.eventId,
-            status: { not: TeamStatus.eliminated }
+            status: { not: TeamStatus.eliminated },
           },
         },
       });
 
       if (existingAccepted) {
-        throw new BadRequestException("You are already a member of another team in this event.");
+        throw new BadRequestException(
+          "You are already a member of another team in this event.",
+        );
       }
     }
 

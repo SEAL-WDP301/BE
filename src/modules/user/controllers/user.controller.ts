@@ -50,13 +50,18 @@ export class UserController {
 
   @Get("notifications")
   @ApiOperation({ summary: "Get current user notifications" })
-  @ApiResponse({ status: 200, description: "Notifications retrieved successfully" })
+  @ApiResponse({
+    status: 200,
+    description: "Notifications retrieved successfully",
+  })
   @ApiResponse({
     status: 401,
     description: "Unauthorized — missing or invalid token",
   })
   async getNotifications(@CurrentUser("id") userId: string) {
-    const notifications = await this.userService.getUserNotifications(Number(userId));
+    const notifications = await this.userService.getUserNotifications(
+      Number(userId),
+    );
     return {
       message: "Notifications retrieved successfully",
       data: notifications,
@@ -78,7 +83,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: "Notification marked as read" })
   async markNotificationAsRead(
     @CurrentUser("id") userId: string,
-    @Param("id") id: string
+    @Param("id") id: string,
   ) {
     await this.userService.markNotificationAsRead(Number(userId), Number(id));
     return {
@@ -101,7 +106,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: "Notification deleted" })
   async deleteNotification(
     @CurrentUser("id") userId: string,
-    @Param("id") id: string
+    @Param("id") id: string,
   ) {
     await this.userService.deleteNotification(Number(userId), Number(id));
     return {

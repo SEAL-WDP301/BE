@@ -183,7 +183,7 @@ export class UserService implements OnApplicationBootstrap {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
   }

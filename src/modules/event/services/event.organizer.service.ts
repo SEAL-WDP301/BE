@@ -85,7 +85,14 @@ export class EventOrganizerService {
         },
         members: {
           include: {
-            user: { select: { id: true, name: true, email: true, studentProfile: true } },
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                studentProfile: true,
+              },
+            },
           },
         },
       },
@@ -123,10 +130,9 @@ export class EventOrganizerService {
     });
 
     // Send notifications
-    const emailsToNotify = Array.from(new Set([
-      team.leader.email,
-      ...team.members.map((m) => m.user.email),
-    ]));
+    const emailsToNotify = Array.from(
+      new Set([team.leader.email, ...team.members.map((m) => m.user.email)]),
+    );
 
     // Create notifications in DB
     const notifications = emailsToNotify
