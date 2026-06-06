@@ -10,6 +10,7 @@ import { UpdateEventDto } from "../dto/update-event.dto";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 import { TeamStatus, NotificationType } from "@prisma/client";
 import { MailService } from "@modules/mail/mail.service";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class EventOrganizerService {
@@ -18,6 +19,7 @@ export class EventOrganizerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createEvent(userId: number, dto: CreateEventDto) {
@@ -129,26 +131,46 @@ export class EventOrganizerService {
       },
     });
 
-    // Send notifications
-    const emailsToNotify = Array.from(
-      new Set([team.leader.email, ...team.members.map((m) => m.user.email)]),
+    await this.notifyEntireTeam(
+      team,
+      NotificationType.team_assigned,
+      `Team Status Updated: ${dto.status}`,
+      `Your team "${team.name}" status has been updated to ${dto.status}. ${dto.reason ? `Reason: ${dto.reason}` : ""}`,
     );
 
-    // Create notifications in DB
+    return updated;
+  }
+
+  /**
+   * Helper: Gửi thông báo cho toàn bộ thành viên trong đội (bao gồm Leader)
+   */
+  async notifyEntireTeam(
+    team: any,
+    type: NotificationType,
+    title: string,
+    content: string,
+  ) {
+    const emailsToNotify = Array.from(
+      new Set([
+        team.leader.email,
+        ...team.members.map((m: any) => m.user.email),
+      ]),
+    );
+
     const notifications = emailsToNotify
       .map((email) => {
         const user =
           email === team.leader.email
             ? team.leader
-            : team.members.find((m) => m.user.email === email)?.user;
+            : team.members.find((m: any) => m.user.email === email)?.user;
         if (user) {
           return {
             userId: user.id,
             eventId: team.eventId,
-            type: NotificationType.team_assigned,
-            title: `Team Status Updated: ${dto.status}`,
-            content: `Your team "${team.name}" status has been updated to ${dto.status}. ${dto.reason ? `Reason: ${dto.reason}` : ""}`,
-            isEmailSent: true, // we assume it sends successfully
+            type,
+            title,
+            content,
+            isEmailSent: true,
           };
         }
         return null;
@@ -157,16 +179,13 @@ export class EventOrganizerService {
 
     if (notifications.length > 0) {
       await this.prisma.notification.createMany({ data: notifications });
+      notifications.forEach((notif) => {
+        this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+      });
     }
 
-    // Mock Mail Service
     emailsToNotify.forEach((email) => {
-      this.logger.log(
-        `[MOCK MAIL] Sending email to ${email} regarding team ${team.name} status change to ${dto.status}`,
-      );
-      // In a real app, call this.mailService.sendEmail(...)
+      this.logger.log(`[MOCK MAIL] Sending email to ${email}: ${title}`);
     });
-
-    return updated;
   }
 }

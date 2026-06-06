@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   ParseIntPipe,
+  Sse,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -66,6 +67,13 @@ export class UserController {
       message: "Notifications retrieved successfully",
       data: notifications,
     };
+  }
+
+  @Sse("notifications/stream")
+  @ApiOperation({ summary: "Stream user notifications (SSE)" })
+  @ApiResponse({ status: 200, description: "Stream established" })
+  streamNotifications(@CurrentUser("id") userId: string) {
+    return this.userService.streamNotifications(Number(userId));
   }
 
   @Patch("notifications/read-all")

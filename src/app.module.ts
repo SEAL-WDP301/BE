@@ -25,6 +25,7 @@ import { RedisModule } from "./modules/redis/redis.module";
 import { MailModule } from "./modules/mail/mail.module";
 import { EventModule } from "./modules/event/event.module";
 
+import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
@@ -45,6 +46,7 @@ import { Logger } from "winston";
     }),
 
     PrismaModule,
+    EventEmitterModule.forRoot(),
     RedisModule,
     MailModule,
     AuthModule,

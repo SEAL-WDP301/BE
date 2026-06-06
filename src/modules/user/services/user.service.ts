@@ -15,6 +15,9 @@ import { UpsertStudentProfileDto } from "../dto/upsert-student-profile.dto";
 import { UpsertStakeholderProfileDto } from "../dto/upsert-stakeholder-profile.dto";
 import { OrganizerUpdateUserDto } from "../dto/organizer-update-user.dto";
 import { UpdateUserDto } from "../dto/update-user.dto";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { Observable, fromEvent } from "rxjs";
+import { map } from "rxjs/operators";
 
 /**
  * CreateUserData — internal type for creating users from different sources.
@@ -41,7 +44,10 @@ export interface CreateUserData {
 export class UserService implements OnApplicationBootstrap {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * Auto-seed a default Admin user if the database is empty.
@@ -186,6 +192,21 @@ export class UserService implements OnApplicationBootstrap {
       orderBy: { createdAt: "desc" },
       take: 50,
     });
+  }
+
+  /**
+   * Stream real-time notifications via SSE.
+   */
+  streamNotifications(userId: number): Observable<MessageEvent> {
+    // Lắng nghe các event nội bộ có dạng 'notification.user.<userId>'
+    return fromEvent(this.eventEmitter, `notification.user.${userId}`).pipe(
+      map(
+        (payload: any) =>
+          ({
+            data: payload,
+          }) as MessageEvent,
+      ),
+    );
   }
 
   /**

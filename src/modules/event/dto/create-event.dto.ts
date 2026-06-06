@@ -55,6 +55,26 @@ export class CreateEventDto {
   @IsOptional()
   githubOrgUrl?: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  prize1st?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  prize2nd?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  prize3rd?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  prizeHonorable?: string;
+
   @ApiProperty({ type: [CreateTrackDto] })
   @IsArray()
   @ArrayMinSize(1)

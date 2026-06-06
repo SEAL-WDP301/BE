@@ -42,7 +42,14 @@ export class TransformInterceptor<T> implements NestInterceptor<
   intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Observable<SuccessResponse<T>> {
+  ): Observable<SuccessResponse<T>> | Observable<any> {
+    const request = context.switchToHttp().getRequest();
+
+    // Skip transformation for Server-Sent Events (SSE)
+    if (request.headers.accept?.includes("text/event-stream")) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         // If the handler already returns the full envelope shape, pass through
