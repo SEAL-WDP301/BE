@@ -7,10 +7,10 @@ import {
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
-import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 import { TeamStatus, NotificationType } from "@prisma/client";
 import { MailService } from "@modules/mail/mail.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { OrganizerUpdateTeamDto } from "@modules/team/dto/organizer-update-team.dto";
 
 @Injectable()
 export class EventOrganizerService {

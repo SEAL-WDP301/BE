@@ -17,8 +17,8 @@ import { EventOrganizerService } from "../services/event.organizer.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
-import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
+import { OrganizerUpdateTeamDto } from "@modules/team/dto/organizer-update-team.dto";
 
 @ApiTags("Organizer/Events")
 @ApiBearerAuth()
