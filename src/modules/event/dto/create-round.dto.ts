@@ -26,6 +26,11 @@ export class CreateRoundDto {
   submissionType: SubmissionType;
 
   @ApiPropertyOptional()
+  @IsInt()
+  @IsOptional()
+  id?: number;
+
+  @ApiPropertyOptional()
   @IsDateString()
   @IsOptional()
   submissionDeadline?: string;

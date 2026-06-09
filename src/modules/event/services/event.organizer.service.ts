@@ -54,7 +54,14 @@ export class EventOrganizerService {
   async getEventById(id: number) {
     const event = await this.prisma.event.findUnique({
       where: { id },
-      include: { tracks: true, rounds: true },
+      include: {
+        tracks: {
+          include: { _count: { select: { teams: true } } }
+        },
+        rounds: {
+          include: { _count: { select: { submissions: true } } }
+        }
+      },
     });
     if (!event) throw new NotFoundException("Event not found");
     return event;
@@ -62,11 +69,54 @@ export class EventOrganizerService {
 
   async updateEvent(id: number, dto: UpdateEventDto) {
     await this.getEventById(id); // Check existence
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { tracks, rounds, ...eventData } = dto;
+
+    const tracksUpdate = tracks ? {
+      deleteMany: { id: { notIn: tracks.filter(t => t.id).map(t => t.id!) } },
+      create: tracks.filter(t => !t.id).map(t => ({
+        name: t.name,
+        description: t.description,
+        maxTeams: t.maxTeams,
+        maxMembersPerTeam: t.maxMembersPerTeam,
+      })),
+      update: tracks.filter(t => t.id).map(t => ({
+        where: { id: t.id },
+        data: {
+          name: t.name,
+          description: t.description,
+          maxTeams: t.maxTeams,
+          maxMembersPerTeam: t.maxMembersPerTeam,
+        },
+      })),
+    } : undefined;
+
+    const roundsUpdate = rounds ? {
+      deleteMany: { id: { notIn: rounds.filter(r => r.id).map(r => r.id!) } },
+      create: rounds.filter(r => !r.id).map(r => ({
+        roundNumber: r.roundNumber,
+        name: r.name,
+        submissionType: r.submissionType,
+        submissionDeadline: r.submissionDeadline,
+      })),
+      update: rounds.filter(r => r.id).map(r => ({
+        where: { id: r.id },
+        data: {
+          roundNumber: r.roundNumber,
+          name: r.name,
+          submissionType: r.submissionType,
+          submissionDeadline: r.submissionDeadline,
+        },
+      })),
+    } : undefined;
+
     return this.prisma.event.update({
       where: { id },
-      data: eventData,
+      data: {
+        ...eventData,
+        ...(tracksUpdate && { tracks: tracksUpdate }),
+        ...(roundsUpdate && { rounds: roundsUpdate }),
+      },
+      include: { tracks: true, rounds: true },
     });
   }
 
