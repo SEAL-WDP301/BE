@@ -18,7 +18,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
-import { OrganizerUpdateTeamDto } from "@modules/team/dto/organizer-update-team.dto";
+
 
 @ApiTags("Organizer/Events")
 @ApiBearerAuth()
@@ -65,31 +65,4 @@ export class EventOrganizerController {
     return { message: "Event deleted successfully" };
   }
 
-  @Get(":eventId/tracks/:trackId/teams")
-  @ApiOperation({ summary: "Get all teams for a specific track" })
-  async getTeamsByTrack(
-    @Param("eventId", ParseIntPipe) eventId: number,
-    @Param("trackId", ParseIntPipe) trackId: number,
-  ) {
-    const teams = await this.eventOrganizerService.getTeamsByTrack(
-      eventId,
-      trackId,
-    );
-    return { message: "Teams fetched", data: teams };
-  }
-
-  @Put(":eventId/tracks/:trackId/teams/:teamId/status")
-  @ApiOperation({ summary: "Approve or eliminate a team" })
-  async updateTeamStatus(
-    @Param("teamId", ParseIntPipe) teamId: number,
-    @CurrentUser("id") adminId: string,
-    @Body() dto: OrganizerUpdateTeamDto,
-  ) {
-    const updated = await this.eventOrganizerService.updateTeamStatus(
-      teamId,
-      dto,
-      Number(adminId),
-    );
-    return { message: "Team status updated", data: updated };
-  }
 }

@@ -4,8 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  
-  // url = env("DATABASE_URL")
+  // url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -50,11 +49,21 @@ enum SubmissionType {
 enum TeamStatus {
   pending
   approved
-  advancing
+  rejected
+  disqualified
+}
+
+enum RoundResultStatus {
+  competing
+  advanced
   eliminated
-  finalist
-  winner
-  runner_up
+}
+
+enum AwardType {
+  first_prize
+  second_prize
+  third_prize
+  honorable_mention
 }
 
 enum TeamMemberRole {
@@ -222,6 +231,7 @@ model Round {
   criteria           Criterion[]
   submissions        Submission[]
   judgeAssignments   JudgeAssignment[]
+  teamRounds         TeamRound[]
 
   @@unique([eventId, roundNumber])
   @@map("rounds")
@@ -255,6 +265,7 @@ model Team {
   status     TeamStatus @default(pending)
   eliminationReason String? @map("elimination_reason")
   leaderId   Int        @map("leader_id")
+  award      AwardType?
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
 
@@ -265,8 +276,25 @@ model Team {
   submissions Submission[]
   mentorAssignments MentorAssignment[]
   mentorFeedbacks MentorFeedback[]
+  teamRounds TeamRound[]
 
   @@map("teams")
+}
+
+model TeamRound {
+  id        Int               @id @default(autoincrement())
+  teamId    Int               @map("team_id")
+  roundId   Int               @map("round_id")
+  status    RoundResultStatus @default(competing)
+  score     Decimal?
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @default(now()) @updatedAt @map("updated_at")
+
+  team      Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round     Round             @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, roundId])
+  @@map("team_rounds")
 }
 
 model TeamMember {

@@ -6,13 +6,13 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { TeamMemberRole, TeamMemberStatus, TeamStatus } from "@prisma/client";
+import { MailService } from "../../mail/mail.service";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { RegisterTeamDto } from "../dto/register-team.dto";
-import { MailService } from "../../mail/mail.service";
 
 @Injectable()
-export class EventStudentService {
-  private readonly logger = new Logger(EventStudentService.name);
+export class TeamStudentService {
+  private readonly logger = new Logger(TeamStudentService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -20,7 +20,6 @@ export class EventStudentService {
   ) {}
 
   async getRegistrationStatus(eventId: number, userId: number) {
-    // Fetch individual registration
     const registration = await this.prisma.studentRegistration.findUnique({
       where: {
         userId_eventId: {
@@ -30,7 +29,6 @@ export class EventStudentService {
       },
     });
 
-    // Fetch team membership
     const teamMember = await this.prisma.teamMember.findFirst({
       where: {
         userId,
@@ -78,7 +76,6 @@ export class EventStudentService {
     eventId: number,
     dto: RegisterIndividualDto,
   ) {
-    // Upsert registration
     return this.prisma.studentRegistration.upsert({
       where: { userId_eventId: { userId, eventId } },
       update: {
@@ -97,7 +94,6 @@ export class EventStudentService {
   }
 
   async registerTeam(userId: number, eventId: number, dto: RegisterTeamDto) {
-    // 1. Verify track exists
     const track = await this.prisma.track.findUnique({
       where: { id: dto.trackId },
     });
@@ -105,14 +101,11 @@ export class EventStudentService {
       throw new NotFoundException("Track not found for this event");
     }
 
-    // Check if max members limit exists
-    const maxMembers = track.maxMembersPerTeam || 4; // default to 4 if not set
+    const maxMembers = track.maxMembersPerTeam || 4;
     if (dto.memberEmails.length + 1 > maxMembers) {
-      // +1 for leader
       throw new BadRequestException(`Maximum members allowed is ${maxMembers}`);
     }
 
-    // 2. Validate all member emails exist in the system (Requirement A)
     const members = await this.prisma.user.findMany({
       where: {
         email: { in: dto.memberEmails },
@@ -129,7 +122,10 @@ export class EventStudentService {
       );
     }
 
-    // Check if any member is already in a team for this event
+    if (members.some((m) => m.id === userId)) {
+      throw new BadRequestException("You cannot invite yourself to the team.");
+    }
+
     const memberIds = members.map((m) => m.id);
     const existingMemberships = await this.prisma.teamMember.findMany({
       where: {
@@ -137,7 +133,7 @@ export class EventStudentService {
         team: {
           eventId,
           status: {
-            not: TeamStatus.eliminated,
+            notIn: [TeamStatus.rejected, TeamStatus.disqualified],
           },
         },
       },
@@ -151,9 +147,7 @@ export class EventStudentService {
       );
     }
 
-    // Transaction to create team, leader, and pending members
     const resultTeam = await this.prisma.$transaction(async (prisma) => {
-      // Create team
       const team = await prisma.team.create({
         data: {
           name: dto.teamName,
@@ -164,7 +158,6 @@ export class EventStudentService {
         },
       });
 
-      // Add leader as accepted
       await prisma.teamMember.create({
         data: {
           teamId: team.id,
@@ -174,7 +167,6 @@ export class EventStudentService {
         },
       });
 
-      // Add members as pending
       if (members.length > 0) {
         await prisma.teamMember.createMany({
           data: members.map((member) => ({
@@ -186,7 +178,6 @@ export class EventStudentService {
         });
       }
 
-      // Automatically create or update StudentRegistration for the leader
       await prisma.studentRegistration.upsert({
         where: {
           userId_eventId: {
@@ -209,7 +200,6 @@ export class EventStudentService {
       return team;
     });
 
-    // Send emails after transaction successfully completes
     if (members.length > 0) {
       const leader = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -249,7 +239,6 @@ export class EventStudentService {
     if (team.status !== TeamStatus.pending)
       throw new BadRequestException("Only pending teams can be updated");
 
-    // 1. Verify track
     const track = await this.prisma.track.findUnique({
       where: { id: dto.trackId },
     });
@@ -259,7 +248,6 @@ export class EventStudentService {
     if (dto.memberEmails.length + 1 > maxMembers)
       throw new BadRequestException(`Max members allowed is ${maxMembers}`);
 
-    // 2. Validate all member emails
     const members = await this.prisma.user.findMany({
       where: { email: { in: dto.memberEmails } },
     });
@@ -273,7 +261,10 @@ export class EventStudentService {
       );
     }
 
-    // 3. Find out who to add and who to remove
+    if (members.some((m) => m.id === userId)) {
+      throw new BadRequestException("You cannot invite yourself to the team.");
+    }
+
     const currentMemberEmails = team.members
       .filter((m) => m.role === TeamMemberRole.member)
       .map((m) => m.user.email);
@@ -286,7 +277,6 @@ export class EventStudentService {
 
     const usersToAdd = members.filter((m) => emailsToAdd.includes(m.email));
 
-    // Check if new members are already in another team
     if (usersToAdd.length > 0) {
       const memberIds = usersToAdd.map((m) => m.id);
       const existingMemberships = await this.prisma.teamMember.findMany({
@@ -302,19 +292,16 @@ export class EventStudentService {
     }
 
     const resultTeam = await this.prisma.$transaction(async (prisma) => {
-      // Update team details
       await prisma.team.update({
         where: { id: team.id },
         data: { name: dto.teamName, trackId: dto.trackId },
       });
 
-      // Update leader's track registration
       await prisma.studentRegistration.update({
         where: { userId_eventId: { userId, eventId } },
         data: { trackId: dto.trackId },
       });
 
-      // Remove members
       if (emailsToRemove.length > 0) {
         const usersToRemove = team.members.filter((m) =>
           emailsToRemove.includes(m.user.email),
@@ -324,7 +311,6 @@ export class EventStudentService {
         });
       }
 
-      // Add new members
       if (usersToAdd.length > 0) {
         await prisma.teamMember.createMany({
           data: usersToAdd.map((member) => ({
@@ -339,7 +325,6 @@ export class EventStudentService {
       return prisma.team.findUnique({ where: { id: team.id } });
     });
 
-    // Send emails after transaction successfully completes
     if (usersToAdd.length > 0) {
       const leader = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -395,14 +380,13 @@ export class EventStudentService {
     }
 
     if (accept) {
-      // Check if user is already in an accepted team for this event
       const existingAccepted = await this.prisma.teamMember.findFirst({
         where: {
           userId,
           status: TeamMemberStatus.accepted,
           team: {
             eventId: membership.team.eventId,
-            status: { not: TeamStatus.eliminated },
+            status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] },
           },
         },
       });
@@ -415,21 +399,18 @@ export class EventStudentService {
     }
 
     if (!accept) {
-      // Reject: Update status to rejected
       return this.prisma.teamMember.update({
         where: { id: membership.id },
         data: { status: TeamMemberStatus.rejected },
       });
     }
 
-    // Accept: Update status and create StudentRegistration
     return this.prisma.$transaction(async (prisma) => {
       const updated = await prisma.teamMember.update({
         where: { id: membership.id },
         data: { status: TeamMemberStatus.accepted },
       });
 
-      // Reject all other pending invitations for this user in this event
       await prisma.teamMember.updateMany({
         where: {
           userId,

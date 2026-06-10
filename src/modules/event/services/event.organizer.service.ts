@@ -7,10 +7,7 @@ import {
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
-import { TeamStatus, NotificationType } from "@prisma/client";
-import { MailService } from "@modules/mail/mail.service";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { OrganizerUpdateTeamDto } from "@modules/team/dto/organizer-update-team.dto";
+
 
 @Injectable()
 export class EventOrganizerService {
@@ -18,8 +15,6 @@ export class EventOrganizerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mailService: MailService,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createEvent(userId: number, dto: CreateEventDto) {
@@ -125,117 +120,4 @@ export class EventOrganizerService {
     return this.prisma.event.delete({ where: { id } });
   }
 
-  async getTeamsByTrack(eventId: number, trackId: number) {
-    return this.prisma.team.findMany({
-      where: {
-        eventId,
-        trackId,
-      },
-      include: {
-        leader: {
-          select: { id: true, name: true, email: true, studentProfile: true },
-        },
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                studentProfile: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  }
-
-  async updateTeamStatus(
-    teamId: number,
-    dto: OrganizerUpdateTeamDto,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    adminId: number,
-  ) {
-    const team = await this.prisma.team.findUnique({
-      where: { id: teamId },
-      include: {
-        leader: true,
-        members: { include: { user: true } },
-        event: true,
-      },
-    });
-
-    if (!team) throw new NotFoundException("Team not found");
-
-    if (dto.status === TeamStatus.eliminated && !dto.reason) {
-      throw new BadRequestException("Elimination reason is required");
-    }
-
-    const updated = await this.prisma.team.update({
-      where: { id: teamId },
-      data: {
-        status: dto.status,
-        eliminationReason:
-          dto.status === TeamStatus.eliminated ? dto.reason : null,
-      },
-    });
-
-    await this.notifyEntireTeam(
-      team,
-      NotificationType.team_assigned,
-      `Team Status Updated: ${dto.status}`,
-      `Your team "${team.name}" status has been updated to ${dto.status}. ${dto.reason ? `Reason: ${dto.reason}` : ""}`,
-    );
-
-    return updated;
-  }
-
-  /**
-   * Helper: Gửi thông báo cho toàn bộ thành viên trong đội (bao gồm Leader)
-   */
-  async notifyEntireTeam(
-    team: any,
-    type: NotificationType,
-    title: string,
-    content: string,
-  ) {
-    const emailsToNotify = Array.from(
-      new Set([
-        team.leader.email,
-        ...team.members.map((m: any) => m.user.email),
-      ]),
-    );
-
-    const notifications = emailsToNotify
-      .map((email) => {
-        const user =
-          email === team.leader.email
-            ? team.leader
-            : team.members.find((m: any) => m.user.email === email)?.user;
-        if (user) {
-          return {
-            userId: user.id,
-            eventId: team.eventId,
-            type,
-            title,
-            content,
-            isEmailSent: true,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as any[];
-
-    if (notifications.length > 0) {
-      await this.prisma.notification.createMany({ data: notifications });
-      notifications.forEach((notif) => {
-        this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
-      });
-    }
-
-    emailsToNotify.forEach((email) => {
-      this.logger.log(`[MOCK MAIL] Sending email to ${email}: ${title}`);
-    });
-  }
 }

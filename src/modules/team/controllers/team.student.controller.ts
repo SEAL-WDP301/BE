@@ -12,41 +12,41 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
-import { EventStudentService } from "../services/event.student.service";
+import { TeamStudentService } from "../services/team.student.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { RegisterIndividualDto } from "../dto/register-individual.dto";
-import { RegisterTeamDto } from "../dto/register-team.dto";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
+import { RegisterTeamDto } from "../dto/register-team.dto";
+import { RegisterIndividualDto } from "../dto/register-individual.dto";
 
-@ApiTags("Student/Events")
+@ApiTags("Student/Teams")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STUDENT)
-@Controller("student/events")
-export class EventStudentController {
-  constructor(private readonly eventStudentService: EventStudentService) {}
+@Controller("student/teams")
+export class TeamStudentController {
+  constructor(private readonly teamStudentService: TeamStudentService) {}
 
-  @Get(":id")
+  @Get("status/:eventId")
   @ApiOperation({ summary: "Get student registration status for an event" })
   async getRegistrationStatus(
-    @Param("id", ParseIntPipe) eventId: number,
+    @Param("eventId", ParseIntPipe) eventId: number,
     @CurrentUser("id") userId: string,
   ) {
-    const detail = await this.eventStudentService.getRegistrationStatus(
+    const detail = await this.teamStudentService.getRegistrationStatus(
       eventId,
       Number(userId),
     );
     return { message: "Registration status fetched", data: detail };
   }
 
-  @Post(":id/register/individual")
+  @Post("register/individual/:eventId")
   @ApiOperation({ summary: "Register individually for an event" })
   async registerIndividual(
-    @Param("id", ParseIntPipe) eventId: number,
+    @Param("eventId", ParseIntPipe) eventId: number,
     @CurrentUser("id") userId: string,
     @Body() dto: RegisterIndividualDto,
   ) {
-    const registration = await this.eventStudentService.registerIndividual(
+    const registration = await this.teamStudentService.registerIndividual(
       Number(userId),
       eventId,
       dto,
@@ -57,14 +57,14 @@ export class EventStudentController {
     };
   }
 
-  @Post(":id/register/team")
+  @Post("register/team/:eventId")
   @ApiOperation({ summary: "Register a team for an event" })
   async registerTeam(
-    @Param("id", ParseIntPipe) eventId: number,
+    @Param("eventId", ParseIntPipe) eventId: number,
     @CurrentUser("id") userId: string,
     @Body() dto: RegisterTeamDto,
   ) {
-    const team = await this.eventStudentService.registerTeam(
+    const team = await this.teamStudentService.registerTeam(
       Number(userId),
       eventId,
       dto,
@@ -72,14 +72,14 @@ export class EventStudentController {
     return { message: "Team registration successful", data: team };
   }
 
-  @Put(":id/register/team")
+  @Put("register/team/:eventId")
   @ApiOperation({ summary: "Update team registration for an event" })
   async updateTeamRegistration(
-    @Param("id", ParseIntPipe) eventId: number,
+    @Param("eventId", ParseIntPipe) eventId: number,
     @CurrentUser("id") userId: string,
     @Body() dto: RegisterTeamDto,
   ) {
-    const team = await this.eventStudentService.updateTeamRegistration(
+    const team = await this.teamStudentService.updateTeamRegistration(
       Number(userId),
       eventId,
       dto,
@@ -90,7 +90,7 @@ export class EventStudentController {
   @Get("invitations/pending")
   @ApiOperation({ summary: "Get pending team invitations" })
   async getInvitations(@CurrentUser("id") userId: string) {
-    const invitations = await this.eventStudentService.getInvitations(
+    const invitations = await this.teamStudentService.getInvitations(
       Number(userId),
     );
     return { message: "Invitations fetched", data: invitations };
@@ -102,7 +102,7 @@ export class EventStudentController {
     @Param("teamId", ParseIntPipe) teamId: number,
     @CurrentUser("id") userId: string,
   ) {
-    const updated = await this.eventStudentService.respondToInvitation(
+    const updated = await this.teamStudentService.respondToInvitation(
       Number(userId),
       teamId,
       true,
@@ -116,7 +116,7 @@ export class EventStudentController {
     @Param("teamId", ParseIntPipe) teamId: number,
     @CurrentUser("id") userId: string,
   ) {
-    const updated = await this.eventStudentService.respondToInvitation(
+    const updated = await this.teamStudentService.respondToInvitation(
       Number(userId),
       teamId,
       false,
