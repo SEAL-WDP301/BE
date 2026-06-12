@@ -3,12 +3,15 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { TeamMemberRole, TeamMemberStatus, TeamStatus } from "@prisma/client";
 import { MailService } from "../../mail/mail.service";
+import { StorageService } from "../../storage/storage.service";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { RegisterTeamDto } from "../dto/register-team.dto";
+import { SubmitProjectDto } from "../dto/submit-project.dto";
 
 @Injectable()
 export class TeamStudentService {
@@ -17,6 +20,7 @@ export class TeamStudentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly storageService: StorageService,
   ) {}
 
   async getRegistrationStatus(eventId: number, userId: number) {
@@ -435,6 +439,176 @@ export class TeamStudentService {
       });
 
       return updated;
+    });
+  }
+
+  async getWorkspaceOverview(userId: number, eventId: number) {
+    const teamMember = await this.prisma.teamMember.findFirst({
+      where: {
+        userId,
+        status: TeamMemberStatus.accepted,
+        team: { eventId, status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] } },
+      },
+      include: { team: true },
+    });
+
+    if (!teamMember) {
+      throw new NotFoundException("You don't have an active team for this event");
+    }
+
+    const teamId = teamMember.team.id;
+
+    // Lấy rounds của event này
+    const rounds = await this.prisma.round.findMany({
+      where: { eventId },
+      orderBy: { roundNumber: "asc" },
+      include: {
+        teamRounds: {
+          where: { teamId },
+        },
+      },
+    });
+
+    const now = new Date();
+    // Vòng đang diễn ra (nếu có)
+    const currentActiveRound = rounds.find(
+      (r) => r.status === "open" || (r.submissionDeadline && r.submissionDeadline > now)
+    );
+
+    // Bài nộp gần nhất nếu có vòng đang diễn ra
+    let latestSubmission = null;
+    if (currentActiveRound) {
+      latestSubmission = await this.prisma.submission.findUnique({
+        where: {
+          teamId_roundId: {
+            teamId,
+            roundId: currentActiveRound.id,
+          },
+        },
+      });
+    }
+
+    return {
+      team: teamMember.team,
+      rounds,
+      currentActiveRound,
+      latestSubmission,
+    };
+  }
+
+  async submitProject(userId: number, dto: SubmitProjectDto, file?: Express.Multer.File) {
+    const teamMember = await this.prisma.teamMember.findFirst({
+      where: {
+        userId,
+        status: TeamMemberStatus.accepted,
+        team: { eventId: dto.eventId, status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] } },
+      },
+      include: { team: true },
+    });
+
+    if (!teamMember) {
+      throw new NotFoundException("You do not belong to an active team in this event");
+    }
+
+    if (teamMember.team.leaderId !== userId) {
+      throw new ForbiddenException("Only the team leader can submit the project");
+    }
+
+    const teamId = teamMember.team.id;
+
+    const round = await this.prisma.round.findUnique({
+      where: { id: dto.roundId },
+    });
+
+    if (!round || round.eventId !== dto.eventId) {
+      throw new BadRequestException("Invalid round");
+    }
+
+    if (file && file.size > round.maxFileSizeMb * 1024 * 1024) {
+      throw new BadRequestException(`File size exceeds the limit of ${round.maxFileSizeMb}MB`);
+    }
+
+    if (round.status !== "open" && (!round.submissionDeadline || round.submissionDeadline < new Date())) {
+      throw new BadRequestException("Submission for this round is closed");
+    }
+
+    // Check if team is in this round
+    const teamRound = await this.prisma.teamRound.findUnique({
+      where: { teamId_roundId: { teamId, roundId: dto.roundId } },
+    });
+
+    // If there's no team round, it means the team hasn't been advanced to this round
+    if (!teamRound && round.roundNumber > 1) {
+      throw new BadRequestException("Your team is not competing in this round");
+    } else if (!teamRound && round.roundNumber === 1) {
+      // Auto create team round for round 1 if it doesn't exist yet
+      await this.prisma.teamRound.create({
+        data: {
+          teamId,
+          roundId: dto.roundId,
+        },
+      });
+    }
+
+    const existingSubmission = await this.prisma.submission.findUnique({
+      where: { teamId_roundId: { teamId, roundId: dto.roundId } },
+    });
+
+    let fileUrl = existingSubmission?.fileUrl;
+    let fileKey = existingSubmission?.fileKey;
+
+    if (file) {
+      // Delete old file if exists
+      if (existingSubmission?.fileKey) {
+        await this.storageService.deleteFile(existingSubmission.fileKey);
+      }
+      const trackPath = (round as any).isTrackSpecific ? `/track-${teamMember.team.trackId}` : "";
+      const uploadPath = `submissions/event-${dto.eventId}/round-${dto.roundId}${trackPath}/team-${teamId}`;
+      const uploaded = await this.storageService.uploadFile(file, uploadPath);
+      fileUrl = uploaded.fileUrl;
+      fileKey = uploaded.fileKey;
+    }
+
+    if (!fileUrl && !dto.githubUrl) {
+      throw new BadRequestException("You must provide either a file or a Github URL");
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    let history: any[] = [];
+    if (existingSubmission?.history) {
+      history = existingSubmission.history as any[];
+    }
+    history.push({
+      action: existingSubmission ? "updated" : "created",
+      timestamp: new Date().toISOString(),
+      userName: user?.name,
+      userEmail: user?.email,
+      fileName: file ? file.originalname : null,
+    });
+
+    return this.prisma.submission.upsert({
+      where: { teamId_roundId: { teamId, roundId: dto.roundId } },
+      update: {
+        fileUrl,
+        fileKey,
+        githubUrl: dto.githubUrl,
+        description: dto.description,
+        history,
+        submittedById: userId,
+        status: "submitted",
+        updatedAt: new Date(),
+      },
+      create: {
+        teamId,
+        roundId: dto.roundId,
+        fileUrl,
+        fileKey,
+        githubUrl: dto.githubUrl,
+        description: dto.description,
+        history,
+        submittedById: userId,
+        status: "submitted",
+      },
     });
   }
 }

@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -224,6 +224,8 @@ model Round {
   status             RoundStatus    @default(not_started)
   submissionType     SubmissionType @map("submission_type")
   submissionDeadline DateTime?      @map("submission_deadline")
+  maxFileSizeMb      Int            @default(20) @map("max_file_size_mb")
+  isTrackSpecific    Boolean        @default(true) @map("is_track_specific")
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @default(now()) @updatedAt @map("updated_at")
 
@@ -340,7 +342,10 @@ model Submission {
   roundId          Int              @map("round_id")
   status           SubmissionStatus @default(submitted)
   fileUrl          String?          @map("file_url")
+  fileKey          String?          @map("file_key")
   githubUrl        String?          @map("github_url")
+  description      String?          @db.Text
+  history          Json?
   submittedById    Int              @map("submitted_by")
   submittedAt      DateTime         @default(now()) @map("submitted_at")
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at")

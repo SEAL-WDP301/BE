@@ -7,8 +7,12 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Query,
+  UseInterceptors,
+  UploadedFile,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
@@ -17,6 +21,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
 import { RegisterTeamDto } from "../dto/register-team.dto";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
+import { SubmitProjectDto } from "../dto/submit-project.dto";
 
 @ApiTags("Student/Teams")
 @ApiBearerAuth()
@@ -122,5 +127,35 @@ export class TeamStudentController {
       false,
     );
     return { message: "Invitation rejected", data: updated };
+  }
+
+  @Get("my-team/workspace")
+  @ApiOperation({ summary: "Get workspace overview for team" })
+  async getWorkspaceOverview(
+    @Query("eventId", ParseIntPipe) eventId: number,
+    @CurrentUser("id") userId: string,
+  ) {
+    const data = await this.teamStudentService.getWorkspaceOverview(
+      Number(userId),
+      eventId,
+    );
+    return { message: "Workspace overview fetched", data };
+  }
+
+  @Post("my-team/submissions")
+  @ApiOperation({ summary: "Submit project for a round" })
+  @ApiConsumes("multipart/form-data")
+  @UseInterceptors(FileInterceptor("file"))
+  async submitProject(
+    @CurrentUser("id") userId: string,
+    @Body() dto: SubmitProjectDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const submission = await this.teamStudentService.submitProject(
+      Number(userId),
+      dto,
+      file,
+    );
+    return { message: "Project submitted successfully", data: submission };
   }
 }
