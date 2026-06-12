@@ -158,4 +158,19 @@ export class TeamStudentController {
     );
     return { message: "Project submitted successfully", data: submission };
   }
+
+  @Post(":teamId/transfer-leadership/:newLeaderId")
+  @ApiOperation({ summary: "Transfer team leadership to another member" })
+  async transferLeadership(
+    @Param("teamId", ParseIntPipe) teamId: number,
+    @Param("newLeaderId", ParseIntPipe) newLeaderId: number,
+    @CurrentUser("id") userId: string,
+  ) {
+    const updatedTeam = await this.teamStudentService.transferLeadership(
+      Number(userId),
+      teamId,
+      newLeaderId,
+    );
+    return { message: "Leadership transferred successfully", data: updatedTeam };
+  }
 }

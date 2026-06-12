@@ -47,6 +47,7 @@ export class TeamStudentService {
       include: {
         team: {
           include: {
+            track: true,
             members: {
               include: {
                 user: {
@@ -63,7 +64,6 @@ export class TeamStudentService {
     });
 
     return {
-      registrationStatus: registration ? registration.status : null,
       individualRegistration: registration,
       teamInfo: teamMember
         ? {
@@ -240,8 +240,11 @@ export class TeamStudentService {
 
     if (!team)
       throw new NotFoundException("Team not found or you are not the leader");
-    if (team.status !== TeamStatus.pending)
-      throw new BadRequestException("Only pending teams can be updated");
+    
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (event?.status !== "active") {
+      throw new BadRequestException("Team roster is locked because the event is no longer in the active registration phase.");
+    }
 
     const track = await this.prisma.track.findUnique({
       where: { id: dto.trackId },
@@ -374,7 +377,7 @@ export class TeamStudentService {
   async respondToInvitation(userId: number, teamId: number, accept: boolean) {
     const membership = await this.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId } },
-      include: { team: true },
+      include: { team: { include: { members: { include: { user: true } } } }, user: true },
     });
 
     if (!membership || membership.status !== TeamMemberStatus.pending) {
@@ -402,14 +405,28 @@ export class TeamStudentService {
       }
     }
 
-    if (!accept) {
-      return this.prisma.teamMember.update({
-        where: { id: membership.id },
-        data: { status: TeamMemberStatus.rejected },
-      });
-    }
-
     return this.prisma.$transaction(async (prisma) => {
+      if (!accept) {
+        const rejected = await prisma.teamMember.update({
+          where: { id: membership.id },
+          data: { status: TeamMemberStatus.rejected },
+        });
+
+        // Notify team leader or entire team
+        await prisma.notification.create({
+          data: {
+            userId: membership.team.members.find(m => m.role === TeamMemberRole.leader)?.userId || membership.team.members[0].userId,
+            eventId: membership.team.eventId,
+            type: 'team_invite_rejected' as any,
+            title: "Invitation Rejected",
+            content: `${membership.user.name} has rejected the invitation to join ${membership.team.name}.`,
+          }
+        });
+
+        return rejected;
+      }
+
+      // If accepted
       const updated = await prisma.teamMember.update({
         where: { id: membership.id },
         data: { status: TeamMemberStatus.accepted },
@@ -438,6 +455,30 @@ export class TeamStudentService {
         },
       });
 
+      // Send Notification to existing members
+      const notifyMembers = membership.team.members.filter(m => m.status === TeamMemberStatus.accepted).map((m) => ({
+        userId: m.userId,
+        eventId: membership.team.eventId,
+        type: 'team_invite_accepted' as any,
+        title: "New Team Member",
+        content: `${membership.user.name} has joined the team!`,
+      }));
+
+      // Send Welcome Notification to the user who accepted
+      notifyMembers.push({
+        userId,
+        eventId: membership.team.eventId,
+        type: 'team_invite_accepted' as any,
+        title: "Welcome to the Team",
+        content: `You have successfully joined ${membership.team.name}.`,
+      });
+
+      if (notifyMembers.length > 0) {
+        await prisma.notification.createMany({
+          data: notifyMembers,
+        });
+      }
+
       return updated;
     });
   }
@@ -449,7 +490,7 @@ export class TeamStudentService {
         status: TeamMemberStatus.accepted,
         team: { eventId, status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] } },
       },
-      include: { team: true },
+      include: { team: { include: { event: { select: { id: true, name: true } }, track: true } } },
     });
 
     if (!teamMember) {
@@ -490,10 +531,66 @@ export class TeamStudentService {
 
     return {
       team: teamMember.team,
+      role: teamMember.role,
       rounds,
       currentActiveRound,
       latestSubmission,
     };
+  }
+
+  async transferLeadership(userId: number, teamId: number, newLeaderUserId: number) {
+    const currentMembership = await this.prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      include: { team: { include: { members: { include: { user: true } } } }, user: true },
+    });
+
+    if (!currentMembership || currentMembership.role !== TeamMemberRole.leader) {
+      throw new ForbiddenException("Only the team leader can transfer leadership.");
+    }
+
+    const newLeaderMembership = await this.prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId: newLeaderUserId } },
+      include: { user: true },
+    });
+
+    if (!newLeaderMembership || newLeaderMembership.status !== TeamMemberStatus.accepted) {
+      throw new BadRequestException("The designated new leader must be an accepted team member.");
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      // 1. Demote current leader
+      await prisma.teamMember.update({
+        where: { id: currentMembership.id },
+        data: { role: TeamMemberRole.member },
+      });
+
+      // 2. Promote new leader
+      const updatedNewLeader = await prisma.teamMember.update({
+        where: { id: newLeaderMembership.id },
+        data: { role: TeamMemberRole.leader },
+      });
+
+      // 3. Update team.leaderId
+      await prisma.team.update({
+        where: { id: teamId },
+        data: { leaderId: newLeaderUserId },
+      });
+
+      // 4. Create notifications for all team members
+      const notifications = currentMembership.team.members.map((member) => ({
+        userId: member.userId,
+        eventId: currentMembership.team.eventId,
+        type: 'team_leadership_transfer' as any, // Using the new enum
+        title: "Team Leadership Transferred",
+        content: `${currentMembership.user.name} has transferred team leadership to ${newLeaderMembership.user.name}.`,
+      }));
+
+      await prisma.notification.createMany({
+        data: notifications,
+      });
+
+      return updatedNewLeader;
+    });
   }
 
   async submitProject(userId: number, dto: SubmitProjectDto, file?: Express.Multer.File) {
