@@ -6,6 +6,7 @@ import {
   IsInt,
   Min,
   IsDateString,
+  IsBoolean,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { SubmissionType } from "@prisma/client";
@@ -34,4 +35,14 @@ export class CreateRoundDto {
   @IsDateString()
   @IsOptional()
   submissionDeadline?: string;
+
+  @ApiPropertyOptional()
+  @IsInt()
+  @IsOptional()
+  maxFileSizeMb?: number;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  isTrackSpecific?: boolean;
 }

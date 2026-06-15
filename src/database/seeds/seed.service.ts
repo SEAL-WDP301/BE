@@ -78,7 +78,7 @@ export class SeedService {
           {
             roundNumber: 1,
             name: "Idea Proposal",
-            submissionType: SubmissionType.pdf,
+            submissionType: SubmissionType.file,
           },
           {
             roundNumber: 2,
@@ -154,7 +154,7 @@ export class SeedService {
           {
             roundNumber: 1,
             name: "Design Document",
-            submissionType: SubmissionType.pdf,
+            submissionType: SubmissionType.file,
           },
           {
             roundNumber: 2,
@@ -190,7 +190,7 @@ export class SeedService {
           {
             roundNumber: 1,
             name: "Model Pitch",
-            submissionType: SubmissionType.pdf,
+            submissionType: SubmissionType.file,
           },
           {
             roundNumber: 2,
@@ -226,7 +226,7 @@ export class SeedService {
           {
             roundNumber: 1,
             name: "System Architecture",
-            submissionType: SubmissionType.pdf,
+            submissionType: SubmissionType.file,
           },
           {
             roundNumber: 2,

@@ -20,6 +20,29 @@ export class TeamOrganizerService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  async getTeamsByEvent(eventId: number, trackId?: number, roundId?: number, hasMentor?: string) {
+    return this.prisma.team.findMany({
+      where: {
+        eventId,
+        ...(trackId && { trackId }),
+        ...(roundId && {
+          teamRounds: {
+            some: { roundId }
+          }
+        }),
+        ...(hasMentor === "true" && { mentorAssignments: { some: {} } }),
+        ...(hasMentor === "false" && { mentorAssignments: { none: {} } }),
+      },
+      include: {
+        track: true,
+        leader: { select: { id: true, name: true, email: true, studentProfile: true } },
+        members: { include: { user: { select: { id: true, name: true, email: true, studentProfile: true } } } },
+        mentorAssignments: { include: { mentor: { select: { id: true, name: true, email: true } } } },
+        teamRounds: { include: { round: true } },
+      },
+    });
+  }
+
   async getTeamsByTrack(eventId: number, trackId: number) {
     return this.prisma.team.findMany({
       where: {
@@ -128,6 +151,37 @@ export class TeamOrganizerService {
 
     emailsToNotify.forEach((email) => {
       this.logger.log(`[MOCK MAIL] Sending email to ${email}: ${title}`);
+    });
+  }
+  async assignMentor(teamId: number, stakeholderId: number, adminId: number) {
+    return this.prisma.mentorAssignment.create({
+      data: {
+        teamId,
+        mentorId: stakeholderId,
+        assignedById: adminId,
+      },
+      include: { mentor: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  async unassignMentor(teamId: number, stakeholderId: number) {
+    return this.prisma.mentorAssignment.delete({
+      where: {
+        mentorId_teamId: {
+          mentorId: stakeholderId,
+          teamId,
+        },
+      },
+    });
+  }
+
+  async bulkDeleteTeams(teamIds: number[]) {
+    return this.prisma.team.deleteMany({
+      where: {
+        id: {
+          in: teamIds,
+        },
+      },
     });
   }
 }

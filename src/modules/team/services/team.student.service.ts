@@ -58,6 +58,18 @@ export class TeamStudentService {
                 },
               },
             },
+            mentorAssignments: {
+              include: {
+                mentor: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatarUrl: true,
+                  }
+                }
+              }
+            }
           },
         },
       },

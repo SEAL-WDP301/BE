@@ -10,8 +10,6 @@ datasource db {
 enum Role {
   student
   stakeholder
-  judge
-  mentor
   organizer
   admin
 }
@@ -42,7 +40,7 @@ enum RoundStatus {
 }
 
 enum SubmissionType {
-  pdf
+  file
   github_link
 }
 

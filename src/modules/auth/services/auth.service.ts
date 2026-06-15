@@ -72,6 +72,9 @@ export class AuthService {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    this.logger.log("info", `[DEV] MOCK OTP for ${user.email}: ${otp}`, {
+      context: "AuthService"
+    });
 
     // Store in Redis with 5 minutes expiration (300 seconds)
     await this.redisService.set(`auth:otp:${user.email}`, otp, 300);

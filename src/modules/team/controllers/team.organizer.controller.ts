@@ -1,9 +1,12 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
+  Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
@@ -15,6 +18,7 @@ import { TeamOrganizerService } from "../services/team.organizer.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
+import { AssignMentorDto } from "../dto/assign-mentor.dto";
 
 @ApiTags("Organizer/Teams")
 @ApiBearerAuth()
@@ -23,6 +27,23 @@ import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 @Controller("organizer/teams")
 export class TeamOrganizerController {
   constructor(private readonly teamOrganizerService: TeamOrganizerService) {}
+
+  @Get("events/:eventId")
+  @ApiOperation({ summary: "Get all teams for an event with filters" })
+  async getTeamsByEvent(
+    @Param("eventId", ParseIntPipe) eventId: number,
+    @Query("trackId") trackId?: string,
+    @Query("roundId") roundId?: string,
+    @Query("hasMentor") hasMentor?: string,
+  ) {
+    const teams = await this.teamOrganizerService.getTeamsByEvent(
+      eventId,
+      trackId ? Number(trackId) : undefined,
+      roundId ? Number(roundId) : undefined,
+      hasMentor,
+    );
+    return { message: "Teams fetched", data: teams };
+  }
 
   @Get("events/:eventId/tracks/:trackId")
   @ApiOperation({ summary: "Get all teams for a specific track" })
@@ -50,5 +71,37 @@ export class TeamOrganizerController {
       Number(adminId),
     );
     return { message: "Team status updated", data: updated };
+  }
+
+  @Post(":teamId/mentors")
+  @ApiOperation({ summary: "Assign a mentor to a team" })
+  async assignMentor(
+    @Param("teamId", ParseIntPipe) teamId: number,
+    @CurrentUser("id") adminId: string,
+    @Body() dto: AssignMentorDto,
+  ) {
+    const assignment = await this.teamOrganizerService.assignMentor(
+      teamId,
+      dto.stakeholderId,
+      Number(adminId),
+    );
+    return { message: "Mentor assigned successfully", data: assignment };
+  }
+
+  @Delete(":teamId/mentors/:stakeholderId")
+  @ApiOperation({ summary: "Unassign a mentor from a team" })
+  async unassignMentor(
+    @Param("teamId", ParseIntPipe) teamId: number,
+    @Param("stakeholderId", ParseIntPipe) stakeholderId: number,
+  ) {
+    await this.teamOrganizerService.unassignMentor(teamId, stakeholderId);
+    return { message: "Mentor unassigned successfully" };
+  }
+
+  @Post("bulk-delete")
+  @ApiOperation({ summary: "Bulk delete teams" })
+  async bulkDeleteTeams(@Body() dto: { teamIds: number[] }) {
+    await this.teamOrganizerService.bulkDeleteTeams(dto.teamIds);
+    return { message: "Teams deleted successfully" };
   }
 }

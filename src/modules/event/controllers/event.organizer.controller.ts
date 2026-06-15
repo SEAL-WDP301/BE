@@ -3,9 +3,11 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
@@ -17,6 +19,9 @@ import { EventOrganizerService } from "../services/event.organizer.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
+import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
+import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
+import { AssignJudgeDto } from "../dto/assign-judge.dto";
 import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
 
 
@@ -56,6 +61,73 @@ export class EventOrganizerController {
   ) {
     const event = await this.eventOrganizerService.updateEvent(id, dto);
     return { message: "Event updated successfully", data: event };
+  }
+
+  @Patch(":id/status")
+  @ApiOperation({ summary: "Update event status" })
+  async updateEventStatus(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateEventStatusDto,
+  ) {
+    const event = await this.eventOrganizerService.updateEventStatus(id, dto.status);
+    return { message: "Event status updated successfully", data: event };
+  }
+
+  @Patch(":id/rounds/:roundId/status")
+  @ApiOperation({ summary: "Update round status" })
+  async updateRoundStatus(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Param("roundId", ParseIntPipe) roundId: number,
+    @Body() dto: UpdateRoundStatusDto,
+  ) {
+    const round = await this.eventOrganizerService.updateRoundStatus(eventId, roundId, dto.status);
+    return { message: "Round status updated successfully", data: round };
+  }
+
+  @Get(":id/submissions")
+  @ApiOperation({ summary: "Get all submissions for an event" })
+  async getSubmissionsByEvent(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Query("trackId") trackId?: string,
+    @Query("roundId") roundId?: string,
+  ) {
+    const submissions = await this.eventOrganizerService.getSubmissionsByEvent(
+      eventId,
+      trackId ? Number(trackId) : undefined,
+      roundId ? Number(roundId) : undefined,
+    );
+    return { message: "Submissions fetched", data: submissions };
+  }
+
+  @Get(":id/staff")
+  @ApiOperation({ summary: "Get all staff (mentors & judges) for an event" })
+  async getStaffByEvent(@Param("id", ParseIntPipe) eventId: number) {
+    const staff = await this.eventOrganizerService.getStaffByEvent(eventId);
+    return { message: "Staff fetched", data: staff };
+  }
+
+  @Post(":id/judges")
+  @ApiOperation({ summary: "Assign a judge to a round/track" })
+  async assignJudge(
+    @Param("id", ParseIntPipe) eventId: number,
+    @CurrentUser("id") adminId: string,
+    @Body() dto: AssignJudgeDto,
+  ) {
+    const assignment = await this.eventOrganizerService.assignJudge(
+      eventId,
+      dto.stakeholderId,
+      dto.roundId,
+      dto.trackId,
+      Number(adminId),
+    );
+    return { message: "Judge assigned successfully", data: assignment };
+  }
+
+  @Delete(":id/judges/:assignmentId")
+  @ApiOperation({ summary: "Unassign a judge" })
+  async unassignJudge(@Param("assignmentId", ParseIntPipe) assignmentId: number) {
+    await this.eventOrganizerService.unassignJudge(assignmentId);
+    return { message: "Judge unassigned successfully" };
   }
 
   @Delete(":id")

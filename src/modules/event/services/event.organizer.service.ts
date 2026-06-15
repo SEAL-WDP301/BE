@@ -7,6 +7,7 @@ import {
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
+import { EventStatus, RoundStatus } from "@prisma/client";
 
 
 @Injectable()
@@ -63,7 +64,12 @@ export class EventOrganizerService {
   }
 
   async updateEvent(id: number, dto: UpdateEventDto) {
-    await this.getEventById(id); // Check existence
+    const event = await this.getEventById(id); // Check existence
+    
+    if (event.status !== EventStatus.draft) {
+      throw new BadRequestException("Only draft events can be edited. Please change the status to draft first.");
+    }
+
     const { tracks, rounds, ...eventData } = dto;
 
     const tracksUpdate = tracks ? {
@@ -113,6 +119,98 @@ export class EventOrganizerService {
       },
       include: { tracks: true, rounds: true },
     });
+  }
+
+  async updateEventStatus(id: number, status: EventStatus) {
+    await this.getEventById(id);
+    return this.prisma.event.update({
+      where: { id },
+      data: { status },
+    });
+  }
+
+  async updateRoundStatus(eventId: number, roundId: number, status: RoundStatus) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { rounds: { orderBy: { roundNumber: "asc" } } },
+    });
+    if (!event) throw new NotFoundException("Event not found");
+
+    const targetRound = event.rounds.find(r => r.id === roundId);
+    if (!targetRound) throw new NotFoundException("Round not found in this event");
+
+    if (status === RoundStatus.open) {
+      // Check if any other round is open
+      const otherOpenRound = event.rounds.find(r => r.id !== roundId && r.status === RoundStatus.open);
+      if (otherOpenRound) {
+        throw new BadRequestException(`Cannot open this round because Round ${otherOpenRound.roundNumber} is currently open.`);
+      }
+
+      // Check previous round status
+      const prevRound = event.rounds.find(r => r.roundNumber === targetRound.roundNumber - 1);
+      if (prevRound && prevRound.status !== RoundStatus.results_published) {
+        throw new BadRequestException(`Cannot open this round because previous Round ${prevRound.roundNumber} has not published results.`);
+      }
+    }
+
+    return this.prisma.round.update({
+      where: { id: roundId },
+      data: { status },
+    });
+  }
+
+  async getSubmissionsByEvent(eventId: number, trackId?: number, roundId?: number) {
+    return this.prisma.submission.findMany({
+      where: {
+        round: { eventId },
+        ...(roundId && { roundId }),
+        ...(trackId && { team: { trackId } }),
+      },
+      include: {
+        team: { include: { track: true } },
+        round: true,
+        submittedBy: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { submittedAt: "desc" },
+    });
+  }
+
+  async getStaffByEvent(eventId: number) {
+    const mentorAssignments = await this.prisma.mentorAssignment.findMany({
+      where: { team: { eventId } },
+      include: { mentor: { select: { id: true, name: true, email: true } }, team: true }
+    });
+    
+    const judgeAssignments = await this.prisma.judgeAssignment.findMany({
+      where: { round: { eventId } },
+      include: { judge: { select: { id: true, name: true, email: true } }, round: true, track: true }
+    });
+
+    return { mentors: mentorAssignments, judges: judgeAssignments };
+  }
+
+  async assignJudge(eventId: number, stakeholderId: number, roundId: number, trackId: number | undefined, adminId: number) {
+    const round = await this.prisma.round.findUnique({ where: { id: roundId } });
+    if (!round || round.eventId !== eventId) throw new BadRequestException("Round does not belong to this event");
+
+    if (trackId) {
+      const track = await this.prisma.track.findUnique({ where: { id: trackId } });
+      if (!track || track.eventId !== eventId) throw new BadRequestException("Track does not belong to this event");
+    }
+
+    return this.prisma.judgeAssignment.create({
+      data: {
+        judgeId: stakeholderId,
+        roundId,
+        trackId,
+        assignedById: adminId,
+      },
+      include: { judge: { select: { id: true, name: true, email: true } } }
+    });
+  }
+
+  async unassignJudge(assignmentId: number) {
+    return this.prisma.judgeAssignment.delete({ where: { id: assignmentId } });
   }
 
   async deleteEvent(id: number) {

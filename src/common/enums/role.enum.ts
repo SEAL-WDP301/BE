@@ -6,8 +6,6 @@
  */
 export enum Role {
   STUDENT = "student",
-  MENTOR = "mentor",
-  JUDGE = "judge",
   ADMIN = "admin",
   ORGANIZER = "organizer",
   STAKEHOLDER = "stakeholder",
