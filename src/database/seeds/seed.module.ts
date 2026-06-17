@@ -4,6 +4,8 @@ import appConfig from "../../config/app.config";
 import databaseConfig from "../../config/database.config";
 import { PrismaModule } from "../prisma/prisma.module";
 import { SeedService } from "./seed.service";
+import { MockEventService } from "./mock-event.service";
+import { MockTeamsService } from "./mock-teams.service";
 
 @Module({
   imports: [
@@ -15,6 +17,6 @@ import { SeedService } from "./seed.service";
     }),
     PrismaModule,
   ],
-  providers: [SeedService],
+  providers: [SeedService, MockEventService, MockTeamsService],
 })
 export class SeedModule {}

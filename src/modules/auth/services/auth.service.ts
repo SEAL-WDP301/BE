@@ -23,7 +23,7 @@ import { Provider } from "../../../common/enums/provider.enum";
 import { User } from "@prisma/client";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
-import { APP_CONSTANTS } from "../../../common/constants/app.constant";
+import { APP_CONSTANTS } from "@common/constants/app.constant";
 
 @Injectable()
 export class AuthService {
@@ -62,19 +62,13 @@ export class AuthService {
     });
 
     this.logger.log(
-      "info",
-      `New user registered: ${user.email}, awaiting OTP`,
-      {
-        context: "AuthService",
-        userId: user.id,
-      },
+      `New user registered: ${user.email}, awaiting OTP (UserId: ${user.id})`,
+      "AuthService",
     );
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    this.logger.log("info", `[DEV] MOCK OTP for ${user.email}: ${otp}`, {
-      context: "AuthService"
-    });
+    this.logger.log(`[DEV] MOCK OTP for ${user.email}: ${otp}`, "AuthService");
 
     // Store in Redis with 5 minutes expiration (300 seconds)
     await this.redisService.set(`auth:otp:${user.email}`, otp, 300);
@@ -287,10 +281,7 @@ export class AuthService {
         avatarUrl: googleUser.picture,
       });
 
-      this.logger.log("info", `New Google user created: ${user.email}`, {
-        context: "AuthService",
-        userId: user.id,
-      });
+      this.logger.log(`New Google user created: ${user.email} (UserId: ${user.id})`, "AuthService");
     } else if (!user.googleId || !user.isActive) {
       // User exists but might have registered locally first.
       // Update with Google ID, avatar, and activate them.
@@ -300,15 +291,12 @@ export class AuthService {
         isActive: true,
       });
 
-      this.logger.log("info", `Google account linked for user: ${user.email}`, {
-        context: "AuthService",
-        userId: user.id,
-      });
+      this.logger.log(`Google account linked for user: ${user.email} (UserId: ${user.id})`, "AuthService");
     }
 
     const tokens = await this.generateTokens(user);
     // log access token
-    this.logger.log("info", `Access token: ${tokens.accessToken}`);
+    this.logger.log(`Access token: ${tokens.accessToken}`, "AuthService");
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
     this.setRefreshTokenCookie(res, tokens.refreshToken);
 
