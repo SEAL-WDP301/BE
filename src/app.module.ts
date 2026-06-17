@@ -24,6 +24,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { RedisModule } from "./modules/redis/redis.module";
 import { MailModule } from "./modules/mail/mail.module";
 import { EventModule } from "./modules/event/event.module";
+import { RubricModule } from "./modules/rubric/rubric.module";
 import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
 
@@ -55,6 +56,7 @@ import { Logger } from "winston";
     UserModule,
     HealthModule,
     EventModule,
+    RubricModule,
     TeamModule,
     StorageModule,
   ],
