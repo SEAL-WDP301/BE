@@ -22,6 +22,8 @@ import { UpdateEventDto } from "../dto/update-event.dto";
 import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
 import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
 import { AssignJudgeDto } from "../dto/assign-judge.dto";
+import { CreateRubricDto } from "../dto/create-rubric.dto";
+import { UpdateRubricDto } from "../dto/update-rubric.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 
@@ -82,6 +84,61 @@ export class EventOrganizerController {
   ) {
     const round = await this.eventOrganizerService.updateRoundStatus(eventId, roundId, dto.status);
     return { message: "Round status updated successfully", data: round };
+  }
+
+  @Get(":id/rubrics")
+  @ApiOperation({ summary: "Get rubrics for an event" })
+  async getRubricsByEvent(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Query("roundId") roundId?: string,
+    @Query("trackId") trackId?: string,
+  ) {
+    const rubrics = await this.eventOrganizerService.getRubricsByEvent(
+      eventId,
+      roundId ? Number(roundId) : undefined,
+      trackId ? Number(trackId) : undefined,
+    );
+    return { message: "Rubrics fetched", data: rubrics };
+  }
+
+  @Post(":id/rubrics")
+  @ApiOperation({ summary: "Create a rubric criterion" })
+  async createRubric(
+    @Param("id", ParseIntPipe) eventId: number,
+    @CurrentUser("id") userId: string,
+    @Body() dto: CreateRubricDto,
+  ) {
+    const rubric = await this.eventOrganizerService.createRubric(
+      eventId,
+      Number(userId),
+      dto,
+    );
+    return { message: "Rubric created successfully", data: rubric };
+  }
+
+  @Put(":id/rubrics/:rubricId")
+  @ApiOperation({ summary: "Update a rubric criterion" })
+  async updateRubric(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Param("rubricId", ParseIntPipe) rubricId: number,
+    @Body() dto: UpdateRubricDto,
+  ) {
+    const rubric = await this.eventOrganizerService.updateRubric(
+      eventId,
+      rubricId,
+      dto,
+    );
+    return { message: "Rubric updated successfully", data: rubric };
+  }
+
+  @Delete(":id/rubrics/:rubricId")
+  @ApiOperation({ summary: "Delete a rubric criterion" })
+  async deleteRubric(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Param("rubricId", ParseIntPipe) rubricId: number,
+  ) {
+    await this.eventOrganizerService.deleteRubric(eventId, rubricId);
+    return { message: "Rubric deleted successfully" };
   }
 
   @Get(":id/submissions")
