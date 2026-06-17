@@ -22,7 +22,7 @@ import { UpdateEventDto } from "../dto/update-event.dto";
 import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
 import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
 import { AssignJudgeDto } from "../dto/assign-judge.dto";
-import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 
 @ApiTags("Organizer/Events")

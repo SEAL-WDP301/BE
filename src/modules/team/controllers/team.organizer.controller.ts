@@ -16,7 +16,7 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { TeamOrganizerService } from "../services/team.organizer.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 import { AssignMentorDto } from "../dto/assign-mentor.dto";
 

@@ -18,7 +18,7 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { TeamStudentService } from "../services/team.student.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { JwtAuthGuard } from "@modules/auth/guards/jwt-auth.guard";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RegisterTeamDto } from "../dto/register-team.dto";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { SubmitProjectDto } from "../dto/submit-project.dto";

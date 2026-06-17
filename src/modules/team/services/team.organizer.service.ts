@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { TeamStatus, NotificationType } from "@prisma/client";
-import { MailService } from "@modules/mail/mail.service";
+import { MailService } from "../../mail/mail.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 

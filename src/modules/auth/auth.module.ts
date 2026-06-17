@@ -7,9 +7,9 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
-import { UserModule } from "@modules/user/user.module";
-import { RedisModule } from "@modules/redis/redis.module";
-import { MailModule } from "@modules/mail/mail.module";
+import { UserModule } from "../user/user.module";
+import { RedisModule } from "../redis/redis.module";
+import { MailModule } from "../mail/mail.module";
 
 /**
  * AuthModule — encapsulates authentication concerns.
