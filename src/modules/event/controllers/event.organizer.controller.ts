@@ -21,7 +21,7 @@ import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
 import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
 import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
-import { AssignJudgeDto } from "../dto/assign-judge.dto";
+
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 @ApiTags("Organizer/Events")
@@ -105,38 +105,7 @@ export class EventOrganizerController {
     return { message: "Submissions fetched", data: submissions };
   }
 
-  @Get(":id/stakeholders")
-  @ApiOperation({ summary: "Get all stakeholders (mentors, judges, and available) for an event" })
-  async getStakeholdersByEvent(@Param("id", ParseIntPipe) eventId: number) {
-    const stakeholders = await this.eventOrganizerService.getStakeholdersByEvent(eventId);
-    return { message: "Stakeholders fetched", data: stakeholders };
-  }
 
-  @Post(":id/judges")
-  @ApiOperation({ summary: "Assign a judge to a round/track" })
-  async assignJudge(
-    @Param("id", ParseIntPipe) eventId: number,
-    @CurrentUser("id") adminId: string,
-    @Body() dto: AssignJudgeDto,
-  ) {
-    const assignment = await this.eventOrganizerService.assignJudge(
-      eventId,
-      dto.stakeholderId,
-      dto.roundId,
-      dto.trackIds,
-      Number(adminId),
-    );
-    return { message: "Judge assigned successfully", data: assignment };
-  }
-
-  @Delete(":id/judges/:assignmentId")
-  @ApiOperation({ summary: "Unassign a judge" })
-  async unassignJudge(
-    @Param("assignmentId", ParseIntPipe) assignmentId: number,
-  ) {
-    await this.eventOrganizerService.unassignJudge(assignmentId);
-    return { message: "Judge unassigned successfully" };
-  }
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete an event" })

@@ -153,40 +153,7 @@ export class TeamOrganizerService {
       this.logger.log(`[MOCK MAIL] Sending email to ${email}: ${title}`);
     });
   }
-  async assignMentor(teamId: number, stakeholderId: number, adminId: number) {
-    return this.prisma.mentorAssignment.create({
-      data: {
-        teamId,
-        mentorId: stakeholderId,
-        assignedById: adminId,
-      },
-      include: { mentor: { select: { id: true, name: true, email: true } } },
-    });
-  }
 
-  async unassignMentor(teamId: number, stakeholderId: number) {
-    return this.prisma.mentorAssignment.delete({
-      where: {
-        mentorId_teamId: {
-          mentorId: stakeholderId,
-          teamId,
-        },
-      },
-    });
-  }
-
-  async bulkAssignMentor(stakeholderId: number, teamIds: number[], adminId: number) {
-    const data = teamIds.map(teamId => ({
-      mentorId: stakeholderId,
-      teamId,
-      assignedById: adminId,
-    }));
-    
-    return this.prisma.mentorAssignment.createMany({
-      data,
-      skipDuplicates: true,
-    });
-  }
 
   async bulkDeleteTeams(teamIds: number[]) {
     return this.prisma.team.deleteMany({

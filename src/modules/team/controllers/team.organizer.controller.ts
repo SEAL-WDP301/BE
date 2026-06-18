@@ -18,7 +18,7 @@ import { TeamOrganizerService } from "../services/team.organizer.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
-import { AssignMentorDto } from "../dto/assign-mentor.dto";
+
 
 @ApiTags("Organizer/Teams")
 @ApiBearerAuth()
@@ -73,45 +73,7 @@ export class TeamOrganizerController {
     return { message: "Team status updated", data: updated };
   }
 
-  @Post(":teamId/mentors")
-  @ApiOperation({ summary: "Assign a mentor to a team" })
-  async assignMentor(
-    @Param("teamId", ParseIntPipe) teamId: number,
-    @CurrentUser("id") adminId: string,
-    @Body() dto: AssignMentorDto,
-  ) {
-    const assignment = await this.teamOrganizerService.assignMentor(
-      teamId,
-      dto.stakeholderId,
-      Number(adminId),
-    );
-    return { message: "Mentor assigned successfully", data: assignment };
-  }
 
-  @Delete(":teamId/mentors/:stakeholderId")
-  @ApiOperation({ summary: "Unassign a mentor from a team" })
-  async unassignMentor(
-    @Param("teamId", ParseIntPipe) teamId: number,
-    @Param("stakeholderId", ParseIntPipe) stakeholderId: number,
-  ) {
-    await this.teamOrganizerService.unassignMentor(teamId, stakeholderId);
-    return { message: "Mentor unassigned successfully" };
-  }
-
-  @Post("events/:eventId/mentors/bulk-assign")
-  @ApiOperation({ summary: "Bulk assign a mentor to multiple teams" })
-  async bulkAssignMentor(
-    @Param("eventId", ParseIntPipe) eventId: number,
-    @CurrentUser("id") adminId: string,
-    @Body() dto: { stakeholderId: number; teamIds: number[] }
-  ) {
-    const result = await this.teamOrganizerService.bulkAssignMentor(
-      dto.stakeholderId,
-      dto.teamIds,
-      Number(adminId),
-    );
-    return { message: "Mentor assigned to teams successfully", data: result };
-  }
 
   @Post("bulk-delete")
   @ApiOperation({ summary: "Bulk delete teams" })
