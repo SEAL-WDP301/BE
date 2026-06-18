@@ -98,6 +98,21 @@ export class TeamOrganizerController {
     return { message: "Mentor unassigned successfully" };
   }
 
+  @Post("events/:eventId/mentors/bulk-assign")
+  @ApiOperation({ summary: "Bulk assign a mentor to multiple teams" })
+  async bulkAssignMentor(
+    @Param("eventId", ParseIntPipe) eventId: number,
+    @CurrentUser("id") adminId: string,
+    @Body() dto: { stakeholderId: number; teamIds: number[] }
+  ) {
+    const result = await this.teamOrganizerService.bulkAssignMentor(
+      dto.stakeholderId,
+      dto.teamIds,
+      Number(adminId),
+    );
+    return { message: "Mentor assigned to teams successfully", data: result };
+  }
+
   @Post("bulk-delete")
   @ApiOperation({ summary: "Bulk delete teams" })
   async bulkDeleteTeams(@Body() dto: { teamIds: number[] }) {

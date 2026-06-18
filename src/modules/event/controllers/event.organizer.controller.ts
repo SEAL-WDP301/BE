@@ -99,11 +99,11 @@ export class EventOrganizerController {
     return { message: "Submissions fetched", data: submissions };
   }
 
-  @Get(":id/staff")
-  @ApiOperation({ summary: "Get all staff (mentors & judges) for an event" })
-  async getStaffByEvent(@Param("id", ParseIntPipe) eventId: number) {
-    const staff = await this.eventOrganizerService.getStaffByEvent(eventId);
-    return { message: "Staff fetched", data: staff };
+  @Get(":id/stakeholders")
+  @ApiOperation({ summary: "Get all stakeholders (mentors, judges, and available) for an event" })
+  async getStakeholdersByEvent(@Param("id", ParseIntPipe) eventId: number) {
+    const stakeholders = await this.eventOrganizerService.getStakeholdersByEvent(eventId);
+    return { message: "Stakeholders fetched", data: stakeholders };
   }
 
   @Post(":id/judges")
@@ -117,7 +117,7 @@ export class EventOrganizerController {
       eventId,
       dto.stakeholderId,
       dto.roundId,
-      dto.trackId,
+      dto.trackIds,
       Number(adminId),
     );
     return { message: "Judge assigned successfully", data: assignment };

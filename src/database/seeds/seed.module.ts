@@ -6,6 +6,7 @@ import { PrismaModule } from "../prisma/prisma.module";
 import { SeedService } from "./seed.service";
 import { MockEventService } from "./mock-event.service";
 import { MockTeamsService } from "./mock-teams.service";
+import { MockStakeholdersService } from "./mock-stakeholders.service";
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { MockTeamsService } from "./mock-teams.service";
     }),
     PrismaModule,
   ],
-  providers: [SeedService, MockEventService, MockTeamsService],
+  providers: [SeedService, MockEventService, MockTeamsService, MockStakeholdersService],
 })
 export class SeedModule {}

@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsOptional } from "class-validator";
+import { IsInt, IsNotEmpty, IsOptional, IsArray } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class AssignJudgeDto {
@@ -12,8 +12,9 @@ export class AssignJudgeDto {
   @IsNotEmpty()
   roundId: number;
 
-  @ApiPropertyOptional()
-  @IsInt()
+  @ApiPropertyOptional({ type: [Number] })
+  @IsArray()
+  @IsInt({ each: true })
   @IsOptional()
-  trackId?: number;
+  trackIds?: number[];
 }

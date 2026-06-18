@@ -175,6 +175,19 @@ export class TeamOrganizerService {
     });
   }
 
+  async bulkAssignMentor(stakeholderId: number, teamIds: number[], adminId: number) {
+    const data = teamIds.map(teamId => ({
+      mentorId: stakeholderId,
+      teamId,
+      assignedById: adminId,
+    }));
+    
+    return this.prisma.mentorAssignment.createMany({
+      data,
+      skipDuplicates: true,
+    });
+  }
+
   async bulkDeleteTeams(teamIds: number[]) {
     return this.prisma.team.deleteMany({
       where: {

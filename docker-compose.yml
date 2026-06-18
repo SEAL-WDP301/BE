@@ -55,27 +55,11 @@ services:
     volumes:
       - redis_data:/data
 
-  # ==========================================
-  # Redis Insight (Giao diện web để xem Redis) hoặc dùng local
-  # ==========================================
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: seal_redisinsight
-    restart: unless-stopped
-    ports:
-      - '8001:8001'
-    volumes:
-      - redisinsight_data:/db
-    networks:
-      - seal_network
-
 # ==========================================
 # Volumes - Persist data between restarts
 # ==========================================
 volumes:
   redis_data:
-    driver: local
-  redisinsight_data:
     driver: local
 networks:
   seal_network:
