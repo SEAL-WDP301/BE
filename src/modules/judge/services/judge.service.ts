@@ -1,0 +1,465 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  RoundStatus,
+  SubmissionStatus,
+  TeamMemberStatus,
+  TeamStatus,
+} from "@prisma/client";
+import { PrismaService } from "../../../database/prisma/prisma.service";
+import { SubmitScoresDto } from "../dto/submit-scores.dto";
+
+type ScoringStatus = "pending" | "in_review" | "completed";
+
+@Injectable()
+export class JudgeService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getAssignedEvents(judgeId: number) {
+    const assignments = await this.prisma.judgeAssignment.findMany({
+      where: { judgeId },
+      include: {
+        round: {
+          include: {
+            event: {
+              select: {
+                id: true,
+                name: true,
+                season: true,
+                year: true,
+                status: true,
+              },
+            },
+          },
+        },
+        track: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: [{ round: { eventId: "desc" } }, { round: { roundNumber: "asc" } }],
+    });
+
+    const eventsMap = new Map<
+      number,
+      {
+        id: number;
+        name: string;
+        season: string;
+        year: number;
+        status: string;
+        rounds: Array<{
+          assignmentId: number;
+          roundId: number;
+          roundNumber: number;
+          roundName: string;
+          roundStatus: RoundStatus;
+          trackId: number | null;
+          trackName: string | null;
+        }>;
+      }
+    >();
+
+    for (const assignment of assignments) {
+      const event = assignment.round.event;
+      if (!eventsMap.has(event.id)) {
+        eventsMap.set(event.id, {
+          id: event.id,
+          name: event.name,
+          season: event.season,
+          year: event.year,
+          status: event.status,
+          rounds: [],
+        });
+      }
+
+      eventsMap.get(event.id)!.rounds.push({
+        assignmentId: assignment.id,
+        roundId: assignment.roundId,
+        roundNumber: assignment.round.roundNumber,
+        roundName: assignment.round.name,
+        roundStatus: assignment.round.status,
+        trackId: assignment.trackId,
+        trackName: assignment.track?.name ?? null,
+      });
+    }
+
+    return Array.from(eventsMap.values());
+  }
+
+  async getRoundSubmissions(judgeId: number, roundId: number) {
+    const assignment = await this.assertJudgeRoundAccess(judgeId, roundId);
+
+    const submissions = await this.prisma.submission.findMany({
+      where: {
+        roundId,
+        status: { not: SubmissionStatus.disqualified },
+        team: {
+          status: TeamStatus.approved,
+          ...(assignment.trackId != null && { trackId: assignment.trackId }),
+        },
+      },
+      include: {
+        team: {
+          include: {
+            track: { select: { id: true, name: true } },
+            leader: {
+              select: {
+                name: true,
+                studentProfile: {
+                  select: { universityName: true },
+                },
+              },
+            },
+          },
+        },
+        scores: {
+          where: { judgeId },
+          select: { criterionId: true, scoreValue: true },
+        },
+      },
+      orderBy: { submittedAt: "desc" },
+    });
+
+    const criteriaByTrack = new Map<number | null, number>();
+
+    return Promise.all(
+      submissions.map(async (submission) => {
+        const trackId = submission.team.trackId;
+        if (!criteriaByTrack.has(trackId)) {
+          const criteria = await this.getApplicableCriteria(
+            roundId,
+            trackId,
+          );
+          criteriaByTrack.set(trackId, criteria.length);
+        }
+
+        const criteriaCount = criteriaByTrack.get(trackId) ?? 0;
+        const scoredCount = submission.scores.length;
+        const weightedScore = await this.computeWeightedScoreForSubmission(
+          submission.id,
+          judgeId,
+          roundId,
+          trackId,
+        );
+
+        return {
+          id: submission.id,
+          teamId: submission.teamId,
+          teamName: submission.team.name,
+          track: submission.team.track,
+          university:
+            submission.team.leader.studentProfile?.universityName ?? null,
+          status: submission.status,
+          submittedAt: submission.submittedAt,
+          scoringStatus: this.resolveScoringStatus(scoredCount, criteriaCount),
+          scoredCriteria: scoredCount,
+          totalCriteria: criteriaCount,
+          weightedScore,
+        };
+      }),
+    );
+  }
+
+  async getSubmissionDetail(judgeId: number, submissionId: number) {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: {
+        team: {
+          include: {
+            track: true,
+            leader: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                studentProfile: true,
+              },
+            },
+            members: {
+              where: { status: TeamMemberStatus.accepted },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true },
+                },
+              },
+            },
+          },
+        },
+        round: {
+          include: {
+            event: {
+              select: { id: true, name: true, season: true, year: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!submission) {
+      throw new NotFoundException("Submission not found");
+    }
+
+    await this.assertJudgeRoundAccess(
+      judgeId,
+      submission.roundId,
+      submission.team.trackId,
+    );
+
+    const rubrics = await this.getApplicableCriteria(
+      submission.roundId,
+      submission.team.trackId,
+    );
+
+    const myScores = await this.prisma.score.findMany({
+      where: { submissionId, judgeId },
+      include: { criterion: true },
+      orderBy: { criterionId: "asc" },
+    });
+
+    const weightedScore = await this.computeWeightedScoreForSubmission(
+      submissionId,
+      judgeId,
+      submission.roundId,
+      submission.team.trackId,
+    );
+
+    return {
+      id: submission.id,
+      status: submission.status,
+      fileUrl: submission.fileUrl,
+      githubUrl: submission.githubUrl,
+      description: submission.description,
+      submittedAt: submission.submittedAt,
+      team: {
+        id: submission.team.id,
+        name: submission.team.name,
+        track: submission.team.track,
+        leader: submission.team.leader,
+        members: submission.team.members,
+      },
+      round: {
+        id: submission.round.id,
+        name: submission.round.name,
+        roundNumber: submission.round.roundNumber,
+        status: submission.round.status,
+        submissionDeadline: submission.round.submissionDeadline,
+      },
+      event: submission.round.event,
+      rubrics,
+      myScores,
+      scoringStatus: this.resolveScoringStatus(
+        myScores.length,
+        rubrics.length,
+      ),
+      weightedScore,
+    };
+  }
+
+  async submitScores(
+    judgeId: number,
+    submissionId: number,
+    dto: SubmitScoresDto,
+  ) {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: {
+        team: { select: { trackId: true, status: true } },
+        round: { select: { id: true, status: true } },
+      },
+    });
+
+    if (!submission) {
+      throw new NotFoundException("Submission not found");
+    }
+
+    if (submission.status === SubmissionStatus.disqualified) {
+      throw new BadRequestException("Cannot score a disqualified submission");
+    }
+
+    if (submission.team.status !== TeamStatus.approved) {
+      throw new BadRequestException("Cannot score a team that is not approved");
+    }
+
+    await this.assertJudgeRoundAccess(
+      judgeId,
+      submission.roundId,
+      submission.team.trackId,
+      true,
+    );
+
+    const rubrics = await this.getApplicableCriteria(
+      submission.roundId,
+      submission.team.trackId,
+    );
+    const rubricMap = new Map(rubrics.map((r) => [r.id, r]));
+
+    const criterionIds = new Set<number>();
+    for (const item of dto.scores) {
+      if (criterionIds.has(item.criterionId)) {
+        throw new BadRequestException(
+          `Duplicate score for criterion ${item.criterionId}`,
+        );
+      }
+      criterionIds.add(item.criterionId);
+
+      const rubric = rubricMap.get(item.criterionId);
+      if (!rubric) {
+        throw new BadRequestException(
+          `Criterion ${item.criterionId} does not apply to this submission`,
+        );
+      }
+
+      if (item.scoreValue > rubric.maxScore) {
+        throw new BadRequestException(
+          `Score for "${rubric.name}" cannot exceed ${rubric.maxScore}`,
+        );
+      }
+    }
+
+    const savedScores = await this.prisma.$transaction(
+      dto.scores.map((item) =>
+        this.prisma.score.upsert({
+          where: {
+            submissionId_judgeId_criterionId: {
+              submissionId,
+              judgeId,
+              criterionId: item.criterionId,
+            },
+          },
+          create: {
+            submissionId,
+            judgeId,
+            criterionId: item.criterionId,
+            scoreValue: item.scoreValue,
+            comment: item.comment,
+          },
+          update: {
+            scoreValue: item.scoreValue,
+            comment: item.comment,
+          },
+          include: { criterion: true },
+        }),
+      ),
+    );
+
+    const weightedScore = await this.computeWeightedScoreForSubmission(
+      submissionId,
+      judgeId,
+      submission.roundId,
+      submission.team.trackId,
+    );
+
+    return {
+      scores: savedScores,
+      scoringStatus: this.resolveScoringStatus(
+        savedScores.length,
+        rubrics.length,
+      ),
+      weightedScore,
+    };
+  }
+
+  private async assertJudgeRoundAccess(
+    judgeId: number,
+    roundId: number,
+    teamTrackId?: number,
+    requireOpenRound = false,
+  ) {
+    const round = await this.prisma.round.findUnique({
+      where: { id: roundId },
+      select: { id: true, status: true },
+    });
+
+    if (!round) {
+      throw new NotFoundException("Round not found");
+    }
+
+    if (requireOpenRound && round.status !== RoundStatus.open) {
+      throw new BadRequestException(
+        "Scores can only be submitted while the round is open",
+      );
+    }
+
+    const assignments = await this.prisma.judgeAssignment.findMany({
+      where: { judgeId, roundId },
+    });
+
+    if (assignments.length === 0) {
+      throw new ForbiddenException("You are not assigned to judge this round");
+    }
+
+    const hasAccess =
+      teamTrackId === undefined
+        ? true
+        : assignments.some(
+            (a) => a.trackId == null || a.trackId === teamTrackId,
+          );
+
+    if (!hasAccess) {
+      throw new ForbiddenException(
+        "You are not assigned to judge submissions for this track",
+      );
+    }
+
+    return assignments.find(
+      (a) => a.trackId == null || a.trackId === teamTrackId,
+    )!;
+  }
+
+  private async getApplicableCriteria(roundId: number, trackId: number) {
+    return this.prisma.criterion.findMany({
+      where: {
+        roundId,
+        OR: [{ trackId: null }, { trackId }],
+      },
+      orderBy: { id: "asc" },
+    });
+  }
+
+  private resolveScoringStatus(
+    scoredCount: number,
+    criteriaCount: number,
+  ): ScoringStatus {
+    if (criteriaCount === 0 || scoredCount === 0) return "pending";
+    if (scoredCount >= criteriaCount) return "completed";
+    return "in_review";
+  }
+
+  private async computeWeightedScoreForSubmission(
+    submissionId: number,
+    judgeId: number,
+    roundId: number,
+    trackId: number,
+  ) {
+    const rubrics = await this.getApplicableCriteria(roundId, trackId);
+    if (rubrics.length === 0) return null;
+
+    const scores = await this.prisma.score.findMany({
+      where: { submissionId, judgeId },
+    });
+    const scoreMap = new Map(
+      scores.map((s) => [s.criterionId, Number(s.scoreValue)]),
+    );
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    for (const rubric of rubrics) {
+      const value = scoreMap.get(rubric.id);
+      if (value === undefined) continue;
+
+      const weight = Number(rubric.weight);
+      const normalized = (value / rubric.maxScore) * 10;
+      weightedSum += normalized * weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight === 0) return null;
+
+    return Math.round((weightedSum / totalWeight) * 100) / 100;
+  }
+}
