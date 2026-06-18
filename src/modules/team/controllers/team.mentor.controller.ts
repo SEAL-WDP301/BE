@@ -11,15 +11,15 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
-import { MentorService } from "../services/mentor.service";
+import { TeamMentorService } from "../services/team.mentor.service";
 
 @ApiTags("Mentor")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STAKEHOLDER)
 @Controller("mentor")
-export class MentorController {
-  constructor(private readonly mentorService: MentorService) {}
+export class TeamMentorController {
+  constructor(private readonly mentorService: TeamMentorService) {}
 
   @Get("teams")
   @ApiOperation({ summary: "Get teams assigned to the current mentor" })
