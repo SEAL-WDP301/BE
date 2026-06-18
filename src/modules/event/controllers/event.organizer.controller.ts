@@ -17,6 +17,7 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { EventOrganizerService } from "../services/event.organizer.service";
 import { CriterionService } from "../services/criterion.service";
+import { RoundRankingService } from "../services/round-ranking.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
@@ -24,6 +25,7 @@ import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
 import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
 import { AssignJudgeDto } from "../dto/assign-judge.dto";
 import { CreateRubricDto } from "../dto/create-rubric.dto";
+import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 
@@ -36,6 +38,7 @@ export class EventOrganizerController {
   constructor(
     private readonly eventOrganizerService: EventOrganizerService,
     private readonly criterionService: CriterionService,
+    private readonly roundRankingService: RoundRankingService,
   ) {}
 
   @Post()
@@ -184,6 +187,36 @@ export class EventOrganizerController {
   ) {
     await this.criterionService.remove(eventId, rubricId);
     return { message: "Rubric deleted successfully" };
+  }
+
+  @Get(":id/rounds/:roundId/rankings")
+  @ApiOperation({ summary: "Get team rankings for a round by track" })
+  async getRoundRankings(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Param("roundId", ParseIntPipe) roundId: number,
+    @Query("trackId") trackId?: string,
+  ) {
+    const rankings = await this.roundRankingService.getRoundRankings(
+      eventId,
+      roundId,
+      trackId ? Number(trackId) : undefined,
+    );
+    return { message: "Round rankings fetched", data: rankings };
+  }
+
+  @Post(":id/rounds/:roundId/publish-results")
+  @ApiOperation({ summary: "Publish round results and advance top teams" })
+  async publishRoundResults(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Param("roundId", ParseIntPipe) roundId: number,
+    @Body() dto: PublishRoundResultsDto,
+  ) {
+    const result = await this.roundRankingService.publishRoundResults(
+      eventId,
+      roundId,
+      dto,
+    );
+    return { message: "Round results published successfully", data: result };
   }
 
   @Delete(":id")
