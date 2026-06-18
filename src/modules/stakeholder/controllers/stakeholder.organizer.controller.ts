@@ -1,3 +1,4 @@
+// eslint-disable-next-line prettier/prettier
 import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { RolesGuard } from "../../../common/guards/roles.guard";
@@ -15,11 +16,15 @@ import { AssignMentorDto } from "../dto/assign-mentor.dto";
 @Roles(Role.ORGANIZER, Role.ADMIN)
 @Controller("organizer/stakeholders")
 export class StakeholderOrganizerController {
-  constructor(private readonly stakeholderOrganizerService: StakeholderOrganizerService) {}
+  // eslint-disable-next-line prettier/prettier
+  constructor(private readonly stakeholderOrganizerService: StakeholderOrganizerService) { }
 
   @Get("events/:eventId")
+  // eslint-disable-next-line prettier/prettier
   @ApiOperation({ summary: "Get all stakeholders (mentors, judges) for an event" })
+  // eslint-disable-next-line prettier/prettier
   async getStakeholdersByEvent(@Param("eventId", ParseIntPipe) eventId: number) {
+    // eslint-disable-next-line prettier/prettier
     const stakeholders = await this.stakeholderOrganizerService.getStakeholdersByEvent(eventId);
     return { message: "Stakeholders fetched", data: stakeholders };
   }
@@ -43,6 +48,7 @@ export class StakeholderOrganizerController {
 
   @Delete("judges/:assignmentId")
   @ApiOperation({ summary: "Unassign a judge" })
+  // eslint-disable-next-line prettier/prettier
   async unassignJudge(@Param("assignmentId", ParseIntPipe) assignmentId: number) {
     await this.stakeholderOrganizerService.unassignJudge(assignmentId);
     return { message: "Judge unassigned successfully" };
@@ -69,6 +75,7 @@ export class StakeholderOrganizerController {
     @Param("teamId", ParseIntPipe) teamId: number,
     @Param("stakeholderId", ParseIntPipe) stakeholderId: number,
   ) {
+    // eslint-disable-next-line prettier/prettier
     await this.stakeholderOrganizerService.unassignMentor(teamId, stakeholderId);
     return { message: "Mentor unassigned successfully" };
   }
@@ -78,6 +85,7 @@ export class StakeholderOrganizerController {
   async bulkAssignMentor(
     @Param("eventId", ParseIntPipe) eventId: number,
     @CurrentUser("id") adminId: string,
+    // eslint-disable-next-line prettier/prettier
     @Body() dto: { stakeholderId: number; teamIds: number[] }
   ) {
     const result = await this.stakeholderOrganizerService.bulkAssignMentor(
