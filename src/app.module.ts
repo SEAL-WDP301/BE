@@ -26,6 +26,7 @@ import { MailModule } from "./modules/mail/mail.module";
 import { EventModule } from "./modules/event/event.module";
 import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
+import { JudgeModule } from "./modules/judge/judge.module";
 
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
@@ -57,6 +58,7 @@ import { Logger } from "winston";
     EventModule,
     TeamModule,
     StorageModule,
+    JudgeModule,
   ],
 })
 export class AppModule implements NestModule {
