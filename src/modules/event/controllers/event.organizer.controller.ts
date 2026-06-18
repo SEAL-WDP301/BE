@@ -24,7 +24,6 @@ import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
 import { AssignJudgeDto } from "../dto/assign-judge.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
-
 @ApiTags("Organizer/Events")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -69,7 +68,10 @@ export class EventOrganizerController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateEventStatusDto,
   ) {
-    const event = await this.eventOrganizerService.updateEventStatus(id, dto.status);
+    const event = await this.eventOrganizerService.updateEventStatus(
+      id,
+      dto.status,
+    );
     return { message: "Event status updated successfully", data: event };
   }
 
@@ -80,7 +82,11 @@ export class EventOrganizerController {
     @Param("roundId", ParseIntPipe) roundId: number,
     @Body() dto: UpdateRoundStatusDto,
   ) {
-    const round = await this.eventOrganizerService.updateRoundStatus(eventId, roundId, dto.status);
+    const round = await this.eventOrganizerService.updateRoundStatus(
+      eventId,
+      roundId,
+      dto.status,
+    );
     return { message: "Round status updated successfully", data: round };
   }
 
@@ -125,7 +131,9 @@ export class EventOrganizerController {
 
   @Delete(":id/judges/:assignmentId")
   @ApiOperation({ summary: "Unassign a judge" })
-  async unassignJudge(@Param("assignmentId", ParseIntPipe) assignmentId: number) {
+  async unassignJudge(
+    @Param("assignmentId", ParseIntPipe) assignmentId: number,
+  ) {
     await this.eventOrganizerService.unassignJudge(assignmentId);
     return { message: "Judge unassigned successfully" };
   }
@@ -136,5 +144,4 @@ export class EventOrganizerController {
     await this.eventOrganizerService.deleteEvent(id);
     return { message: "Event deleted successfully" };
   }
-
 }
