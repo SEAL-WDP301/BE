@@ -25,20 +25,20 @@ export class StakeholderOrganizerController {
   }
 
   @Post("events/:eventId/judges")
-  @ApiOperation({ summary: "Assign a judge to a round/track" })
-  async assignJudge(
+  @ApiOperation({ summary: "Assign judges to a round/track" })
+  async assignJudges(
     @Param("eventId", ParseIntPipe) eventId: number,
     @CurrentUser("id") adminId: string,
     @Body() dto: AssignJudgeDto,
   ) {
-    const assignment = await this.stakeholderOrganizerService.assignJudge(
+    const assignment = await this.stakeholderOrganizerService.assignJudges(
       eventId,
-      dto.stakeholderId,
+      dto.stakeholderIds,
       dto.roundId,
       dto.trackIds,
       Number(adminId),
     );
-    return { message: "Judge assigned successfully", data: assignment };
+    return { message: "Judges assigned successfully", data: assignment };
   }
 
   @Delete("judges/:assignmentId")

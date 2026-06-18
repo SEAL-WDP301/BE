@@ -2,10 +2,11 @@ import { IsInt, IsNotEmpty, IsOptional, IsArray } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class AssignJudgeDto {
-  @ApiProperty()
-  @IsInt()
+  @ApiProperty({ type: [Number] })
+  @IsArray()
+  @IsInt({ each: true })
   @IsNotEmpty()
-  stakeholderId: number;
+  stakeholderIds: number[];
 
   @ApiProperty()
   @IsInt()
