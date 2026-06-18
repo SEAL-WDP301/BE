@@ -179,10 +179,6 @@ export class TeamStudentService {
         where: {
           eventId,
           roundNumber: 1,
-          OR: [
-            { isTrackSpecific: false },
-            { trackId: dto.trackId }
-          ]
         }
       });
 
