@@ -12,6 +12,9 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { SubmitScoresDto } from "../dto/submit-scores.dto";
+import {
+  computeJudgeWeightedScore,
+} from "../../../common/utils/scoring.util";
 
 type ScoringStatus = "pending" | "in_review" | "completed";
 
@@ -436,30 +439,10 @@ export class JudgeService {
     trackId: number,
   ) {
     const rubrics = await this.getApplicableCriteria(roundId, trackId);
-    if (rubrics.length === 0) return null;
-
     const scores = await this.prisma.score.findMany({
       where: { submissionId, judgeId },
     });
-    const scoreMap = new Map(
-      scores.map((s) => [s.criterionId, Number(s.scoreValue)]),
-    );
 
-    let weightedSum = 0;
-    let totalWeight = 0;
-
-    for (const rubric of rubrics) {
-      const value = scoreMap.get(rubric.id);
-      if (value === undefined) continue;
-
-      const weight = Number(rubric.weight);
-      const normalized = (value / rubric.maxScore) * 10;
-      weightedSum += normalized * weight;
-      totalWeight += weight;
-    }
-
-    if (totalWeight === 0) return null;
-
-    return Math.round((weightedSum / totalWeight) * 100) / 100;
+    return computeJudgeWeightedScore(rubrics, scores);
   }
 }
