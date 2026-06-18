@@ -13,7 +13,7 @@ import { EventStatus, RoundStatus } from "@prisma/client";
 export class EventOrganizerService {
   private readonly logger = new Logger(EventOrganizerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createEvent(userId: number, dto: CreateEventDto) {
     const { tracks, rounds, ...eventData } = dto;
@@ -73,59 +73,63 @@ export class EventOrganizerService {
 
     const tracksUpdate = tracks
       ? {
-          deleteMany: {
-            id: { notIn: tracks.filter((t) => t.id).map((t) => t.id!) },
-          },
-          create: tracks
-            .filter((t) => !t.id)
-            .map((t) => ({
+        deleteMany: {
+          id: { notIn: tracks.filter((t) => t.id).map((t) => t.id!) },
+        },
+        create: tracks
+          .filter((t) => !t.id)
+          .map((t) => ({
+            name: t.name,
+            description: t.description,
+            maxTeams: t.maxTeams,
+            maxMembersPerTeam: t.maxMembersPerTeam,
+          })),
+        update: tracks
+          .filter((t) => t.id)
+          .map((t) => ({
+            where: { id: t.id },
+            data: {
               name: t.name,
               description: t.description,
               maxTeams: t.maxTeams,
               maxMembersPerTeam: t.maxMembersPerTeam,
-            })),
-          update: tracks
-            .filter((t) => t.id)
-            .map((t) => ({
-              where: { id: t.id },
-              data: {
-                name: t.name,
-                description: t.description,
-                maxTeams: t.maxTeams,
-                maxMembersPerTeam: t.maxMembersPerTeam,
-              },
-            })),
-        }
+            },
+          })),
+      }
       : undefined;
 
     const roundsUpdate = rounds
       ? {
-          deleteMany: {
-            id: { notIn: rounds.filter((r) => r.id).map((r) => r.id!) },
-          },
-          create: rounds
-            .filter((r) => !r.id)
-            .map((r) => ({
+        deleteMany: {
+          id: { notIn: rounds.filter((r) => r.id).map((r) => r.id!) },
+        },
+        create: rounds
+          .filter((r) => !r.id)
+          .map((r) => ({
+            roundNumber: r.roundNumber,
+            name: r.name,
+            submissionType: r.submissionType,
+            submissionDeadline: r.submissionDeadline,
+            maxFileSizeMb: r.maxFileSizeMb,
+            isTrackSpecific: r.isTrackSpecific,
+          })),
+        update: rounds
+          .filter((r) => r.id)
+          .map((r) => ({
+            where: { id: r.id },
+            data: {
               roundNumber: r.roundNumber,
               name: r.name,
               submissionType: r.submissionType,
               submissionDeadline: r.submissionDeadline,
-            })),
-          update: rounds
-            .filter((r) => r.id)
-            .map((r) => ({
-              where: { id: r.id },
-              data: {
-                roundNumber: r.roundNumber,
-                name: r.name,
-                submissionType: r.submissionType,
-                submissionDeadline: r.submissionDeadline,
-              },
-            })),
-        }
+              maxFileSizeMb: r.maxFileSizeMb,
+              isTrackSpecific: r.isTrackSpecific,
+            },
+          })),
+      }
       : undefined;
 
-    return this.prisma.event.update({
+    const updatedEvent = await this.prisma.event.update({
       where: { id },
       data: {
         ...eventData,
@@ -134,6 +138,31 @@ export class EventOrganizerService {
       },
       include: { tracks: true, rounds: true },
     });
+
+    // Auto-assign teams to Round 1 if it exists
+    const round1 = updatedEvent.rounds.find(r => r.roundNumber === 1);
+    if (round1) {
+      // Find all teams for this event that are not yet in round1
+      const teams = await this.prisma.team.findMany({
+        where: {
+          eventId: id,
+          teamRounds: {
+            none: { roundId: round1.id }
+          }
+        }
+      });
+      if (teams.length > 0) {
+        await this.prisma.teamRound.createMany({
+          data: teams.map(t => ({
+            teamId: t.id,
+            roundId: round1.id
+          })),
+          skipDuplicates: true
+        });
+      }
+    }
+
+    return updatedEvent;
   }
 
   async updateEventStatus(id: number, status: EventStatus) {

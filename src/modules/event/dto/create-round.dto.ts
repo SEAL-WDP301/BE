@@ -45,4 +45,9 @@ export class CreateRoundDto {
   @IsBoolean()
   @IsOptional()
   isTrackSpecific?: boolean;
+
+  @ApiPropertyOptional()
+  @IsInt()
+  @IsOptional()
+  trackId?: number | null;
 }

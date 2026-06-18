@@ -174,6 +174,27 @@ export class TeamStudentService {
         },
       });
 
+      // Auto-assign to Round 1 if it exists
+      const round1 = await prisma.round.findFirst({
+        where: {
+          eventId,
+          roundNumber: 1,
+          OR: [
+            { isTrackSpecific: false },
+            { trackId: dto.trackId }
+          ]
+        }
+      });
+
+      if (round1) {
+        await prisma.teamRound.create({
+          data: {
+            teamId: team.id,
+            roundId: round1.id,
+          }
+        });
+      }
+
       await prisma.teamMember.create({
         data: {
           teamId: team.id,
