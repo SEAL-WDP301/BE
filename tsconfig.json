@@ -35,5 +35,6 @@
         "src/logger/*"
       ]
     }
-  }
+  },
+  "exclude": ["scratch"]
 }
