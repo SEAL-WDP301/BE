@@ -7,7 +7,6 @@ import {
 import {
   RoundStatus,
   SubmissionStatus,
-  TeamMemberStatus,
   TeamStatus,
 } from "@prisma/client";
 import { PrismaService } from "../../../database/prisma/prisma.service";
@@ -94,7 +93,22 @@ export class JudgeService {
   }
 
   async getRoundSubmissions(judgeId: number, roundId: number) {
-    const assignment = await this.assertJudgeRoundAccess(judgeId, roundId);
+    const assignments = await this.prisma.judgeAssignment.findMany({
+      where: { judgeId, roundId },
+    });
+
+    if (assignments.length === 0) {
+      throw new ForbiddenException("You are not assigned to judge this round");
+    }
+
+    const hasGlobalAssignment = assignments.some((a) => a.trackId == null);
+    const assignedTrackIds = [
+      ...new Set(
+        assignments
+          .map((a) => a.trackId)
+          .filter((id): id is number => id != null),
+      ),
+    ];
 
     const submissions = await this.prisma.submission.findMany({
       where: {
@@ -102,21 +116,16 @@ export class JudgeService {
         status: { not: SubmissionStatus.disqualified },
         team: {
           status: TeamStatus.approved,
-          ...(assignment.trackId != null && { trackId: assignment.trackId }),
+          ...(!hasGlobalAssignment &&
+            assignedTrackIds.length > 0 && {
+              trackId: { in: assignedTrackIds },
+            }),
         },
       },
       include: {
         team: {
           include: {
             track: { select: { id: true, name: true } },
-            leader: {
-              select: {
-                name: true,
-                studentProfile: {
-                  select: { universityName: true },
-                },
-              },
-            },
           },
         },
         scores: {
@@ -124,10 +133,11 @@ export class JudgeService {
           select: { criterionId: true, scoreValue: true },
         },
       },
-      orderBy: { submittedAt: "desc" },
+      orderBy: { id: "asc" },
     });
 
     const criteriaByTrack = new Map<number | null, number>();
+    const anonymousLabels = this.buildAnonymousLabelMap(submissions);
 
     return Promise.all(
       submissions.map(async (submission) => {
@@ -149,16 +159,14 @@ export class JudgeService {
           trackId,
         );
 
+        const anonymous = anonymousLabels.get(submission.id)!;
+
         return {
           submissionId: submission.id,
           id: submission.id,
-          teamId: submission.teamId,
-          teamName: submission.team.name,
+          teamName: anonymous.label,
+          anonymousIndex: anonymous.index,
           track: submission.team.track,
-          githubUrl: submission.githubUrl ?? submission.team.githubRepoUrl,
-          assignedRepoUrl: submission.team.githubRepoUrl,
-          university:
-            submission.team.leader.studentProfile?.universityName ?? null,
           status: submission.status,
           submittedAt: submission.submittedAt,
           scoringStatus: this.resolveScoringStatus(scoredCount, criteriaCount),
@@ -177,22 +185,6 @@ export class JudgeService {
         team: {
           include: {
             track: true,
-            leader: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                studentProfile: true,
-              },
-            },
-            members: {
-              where: { status: TeamMemberStatus.accepted },
-              include: {
-                user: {
-                  select: { id: true, name: true, email: true },
-                },
-              },
-            },
           },
         },
         round: {
@@ -233,21 +225,25 @@ export class JudgeService {
       submission.team.trackId,
     );
 
+    const visibleSubmissions = await this.fetchJudgeVisibleSubmissions(
+      judgeId,
+      submission.roundId,
+    );
+    const anonymous = this.buildAnonymousLabelMap(visibleSubmissions).get(
+      submissionId,
+    ) ?? { label: "Team ?", index: 0 };
+
     return {
       id: submission.id,
       status: submission.status,
       fileUrl: submission.fileUrl,
       githubUrl: submission.githubUrl ?? submission.team.githubRepoUrl,
-      assignedRepoUrl: submission.team.githubRepoUrl,
       description: submission.description,
       submittedAt: submission.submittedAt,
       team: {
-        id: submission.team.id,
-        name: submission.team.name,
-        githubRepoUrl: submission.team.githubRepoUrl,
+        name: anonymous.label,
+        anonymousIndex: anonymous.index,
         track: submission.team.track,
-        leader: submission.team.leader,
-        members: submission.team.members,
       },
       round: {
         id: submission.round.id,
@@ -371,6 +367,60 @@ export class JudgeService {
     };
   }
 
+  private buildAnonymousLabelMap(
+    submissions: Array<{ id: number }>,
+  ): Map<number, { label: string; index: number }> {
+    const sorted = [...submissions].sort((a, b) => a.id - b.id);
+    const map = new Map<number, { label: string; index: number }>();
+
+    sorted.forEach((submission, index) => {
+      map.set(submission.id, {
+        label: `Team ${index + 1}`,
+        index: index + 1,
+      });
+    });
+
+    return map;
+  }
+
+  private async fetchJudgeVisibleSubmissions(
+    judgeId: number,
+    roundId: number,
+  ) {
+    const assignments = await this.prisma.judgeAssignment.findMany({
+      where: { judgeId, roundId },
+    });
+
+    if (assignments.length === 0) {
+      return [];
+    }
+
+    const hasGlobalAssignment = assignments.some((a) => a.trackId == null);
+    const assignedTrackIds = [
+      ...new Set(
+        assignments
+          .map((a) => a.trackId)
+          .filter((id): id is number => id != null),
+      ),
+    ];
+
+    return this.prisma.submission.findMany({
+      where: {
+        roundId,
+        status: { not: SubmissionStatus.disqualified },
+        team: {
+          status: TeamStatus.approved,
+          ...(!hasGlobalAssignment &&
+            assignedTrackIds.length > 0 && {
+              trackId: { in: assignedTrackIds },
+            }),
+        },
+      },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
+  }
+
   private async assertJudgeRoundAccess(
     judgeId: number,
     roundId: number,
@@ -413,9 +463,21 @@ export class JudgeService {
       );
     }
 
-    return assignments.find(
+    if (teamTrackId === undefined) {
+      return assignments[0];
+    }
+
+    const assignment = assignments.find(
       (a) => a.trackId == null || a.trackId === teamTrackId,
-    )!;
+    );
+
+    if (!assignment) {
+      throw new ForbiddenException(
+        "You are not assigned to judge submissions for this track",
+      );
+    }
+
+    return assignment;
   }
 
   private async getApplicableCriteria(roundId: number, trackId: number) {
