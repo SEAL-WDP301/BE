@@ -7,6 +7,7 @@ import appConfig from "./config/app.config";
 import databaseConfig from "./config/database.config";
 import jwtConfig from "./config/jwt.config";
 import redisConfig from "./config/redis.config";
+import githubConfig from "./config/github.config";
 
 // Logger config
 import { createWinstonConfig } from "./logger/winston.config";
@@ -38,7 +39,7 @@ import { Logger } from "winston";
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV || "development"}`, ".env"],
-      load: [appConfig, databaseConfig, jwtConfig, redisConfig],
+      load: [appConfig, databaseConfig, jwtConfig, redisConfig, githubConfig],
       cache: true,
     }),
 
