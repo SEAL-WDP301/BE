@@ -11,22 +11,33 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+<<<<<<<< HEAD:src/modules/stakeholder/controllers/stakeholder.mentor.controller.ts
+import { StakeholderMentorService } from "../services/stakeholder.mentor.service";
+========
 import { TeamMentorService } from "../services/team.mentor.service";
+>>>>>>>> origin/main:src/modules/team/controllers/team.mentor.controller.ts
 
 @ApiTags("Mentor")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STAKEHOLDER)
 @Controller("mentor")
+<<<<<<<< HEAD:src/modules/stakeholder/controllers/stakeholder.mentor.controller.ts
+export class StakeholderMentorController {
+  constructor(
+    private readonly stakeholderMentorService: StakeholderMentorService,
+  ) {}
+========
 export class TeamMentorController {
   constructor(private readonly mentorService: TeamMentorService) {}
+>>>>>>>> origin/main:src/modules/team/controllers/team.mentor.controller.ts
 
   @Get("teams")
   @ApiOperation({ summary: "Get teams assigned to the current mentor" })
   async getTeams(@CurrentUser("id") mentorId: number) {
     return {
       message: "Mentor teams fetched",
-      data: await this.mentorService.getTeams(mentorId),
+      data: await this.stakeholderMentorService.getTeams(mentorId),
     };
   }
 
@@ -38,7 +49,7 @@ export class TeamMentorController {
   ) {
     return {
       message: "Mentor team fetched",
-      data: await this.mentorService.getTeamById(mentorId, teamId),
+      data: await this.stakeholderMentorService.getTeamById(mentorId, teamId),
     };
   }
 
@@ -50,7 +61,10 @@ export class TeamMentorController {
   ) {
     return {
       message: "Team submissions fetched",
-      data: await this.mentorService.getTeamSubmissions(mentorId, teamId),
+      data: await this.stakeholderMentorService.getTeamSubmissions(
+        mentorId,
+        teamId,
+      ),
     };
   }
 
@@ -59,7 +73,7 @@ export class TeamMentorController {
   async getSubmissions(@CurrentUser("id") mentorId: number) {
     return {
       message: "Mentor submissions fetched",
-      data: await this.mentorService.getSubmissions(mentorId),
+      data: await this.stakeholderMentorService.getSubmissions(mentorId),
     };
   }
 
@@ -71,7 +85,10 @@ export class TeamMentorController {
   ) {
     return {
       message: "Mentor submission fetched",
-      data: await this.mentorService.getSubmissionById(mentorId, submissionId),
+      data: await this.stakeholderMentorService.getSubmissionById(
+        mentorId,
+        submissionId,
+      ),
     };
   }
 
@@ -80,7 +97,7 @@ export class TeamMentorController {
   async getFeedback(@CurrentUser("id") mentorId: number) {
     return {
       message: "Mentor feedback fetched",
-      data: await this.mentorService.getFeedback(mentorId),
+      data: await this.stakeholderMentorService.getFeedback(mentorId),
     };
   }
 }

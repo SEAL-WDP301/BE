@@ -29,7 +29,6 @@ import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { StakeholderModule } from "./modules/stakeholder/stakeholder.module";
 
-
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
