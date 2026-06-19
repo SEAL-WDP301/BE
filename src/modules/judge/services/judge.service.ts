@@ -150,10 +150,13 @@ export class JudgeService {
         );
 
         return {
+          submissionId: submission.id,
           id: submission.id,
           teamId: submission.teamId,
           teamName: submission.team.name,
           track: submission.team.track,
+          githubUrl: submission.githubUrl ?? submission.team.githubRepoUrl,
+          assignedRepoUrl: submission.team.githubRepoUrl,
           university:
             submission.team.leader.studentProfile?.universityName ?? null,
           status: submission.status,
@@ -234,12 +237,14 @@ export class JudgeService {
       id: submission.id,
       status: submission.status,
       fileUrl: submission.fileUrl,
-      githubUrl: submission.githubUrl,
+      githubUrl: submission.githubUrl ?? submission.team.githubRepoUrl,
+      assignedRepoUrl: submission.team.githubRepoUrl,
       description: submission.description,
       submittedAt: submission.submittedAt,
       team: {
         id: submission.team.id,
         name: submission.team.name,
+        githubRepoUrl: submission.team.githubRepoUrl,
         track: submission.team.track,
         leader: submission.team.leader,
         members: submission.team.members,
