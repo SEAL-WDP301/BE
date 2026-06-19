@@ -50,8 +50,15 @@ export async function bootstrap() {
 
   // CORS — restrict which origins can access this API
   const frontendUrl = configService.get<string>("app.frontendUrl");
+  const corsOrigins = [
+    frontendUrl,
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+  ].filter((url, index, arr) => url && arr.indexOf(url) === index);
+
   app.enableCors({
-    origin: [frontendUrl, "http://localhost:3000", "http://localhost:5173"],
+    origin: corsOrigins,
     credentials: true, // Allow cookies (for refresh token)
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
