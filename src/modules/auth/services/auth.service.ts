@@ -73,8 +73,15 @@ export class AuthService {
     // Store in Redis with 5 minutes expiration (300 seconds)
     await this.redisService.set(`auth:otp:${user.email}`, otp, 300);
 
-    // Send email
-    await this.mailService.sendOtpEmail(user.email, otp);
+    // Send email (non-blocking in dev — OTP is logged and stored in Redis)
+    try {
+      await this.mailService.sendOtpEmail(user.email, otp);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to send OTP email to ${user.email}. Use console/Redis OTP in development.`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
 
     return {
       message:

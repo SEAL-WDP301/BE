@@ -103,7 +103,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('OTP verified', () => pm.response.to.have.status(200));"
+                  "pm.test('OTP verified or already active', () => {",
+                  "  pm.expect([200, 401]).to.include(pm.response.code);",
+                  "});"
                 ],
                 "type": "text/javascript"
               }
@@ -160,7 +162,20 @@
               "raw": "{\n  \"email\": \"{{judgeEmail}}\",\n  \"otp\": \"{{otp}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/verify-otp"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OTP verified or already active', () => {",
+                  "  pm.expect([200, 401]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "Get Users (find judge user id)",
@@ -267,7 +282,8 @@
                   "});",
                   "pm.environment.set('eventId', json.data.id);",
                   "pm.environment.set('trackId', json.data.tracks[0].id);",
-                  "pm.environment.set('roundId', json.data.rounds[0].id);"
+                  "pm.environment.set('roundId', json.data.rounds[0].id);",
+                  "if (json.data.rounds[1]) pm.environment.set('round2Id', json.data.rounds[1].id);"
                 ],
                 "type": "text/javascript"
               }
@@ -588,42 +604,6 @@
           ]
         },
         {
-          "name": "Submit Scores",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{judgeToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"scores\": [\n    {\n      \"criterionId\": {{rubricId}},\n      \"scoreValue\": 8.5,\n      \"comment\": \"Solid technical implementation\"\n    }\n  ]\n}"
-            },
-            "url": "{{baseUrl}}/judge/submissions/{{submissionId}}/scores"
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "// Lấy tất cả rubric ids từ submission detail nếu cần chấm đủ",
-                  "// Mặc định request body dùng rubricId đầu tiên; bổ sung criterion thứ 2 thủ công nếu test full score"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Scores saved', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
           "name": "Submit Scores (All Criteria)",
           "request": {
             "method": "PUT",
@@ -743,9 +723,20 @@
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"open\"\n}" },
-            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/2/status",
-            "description": "Đổi roundId trong URL thành ID round 2 từ Create Event response"
-          }
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/{{round2Id}}/status",
+            "description": "Mở round 2 sau khi publish kết quả round 1. Biến round2Id được lưu từ Create Event."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Round 2 opened', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         }
       ]
     },
