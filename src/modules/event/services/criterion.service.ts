@@ -57,6 +57,41 @@ export class CriterionService {
     });
   }
 
+  async bulkCreate(eventId: number, createdById: number, dtos: CreateRubricDto[]) {
+    if (!dtos || dtos.length === 0) return [];
+
+    const roundIds = [...new Set(dtos.map(d => d.roundId))];
+    const trackIds = [...new Set(dtos.map(d => d.trackId).filter(id => id != null))];
+
+    for (const roundId of roundIds) {
+      await this.assertRoundBelongsToEvent(roundId, eventId);
+      await this.assertRoundNotStarted(roundId);
+    }
+
+    for (const trackId of trackIds) {
+      await this.assertTrackBelongsToEvent(trackId, eventId);
+    }
+
+    const createData = dtos.map(dto => ({
+      createdById,
+      name: dto.name,
+      description: dto.description,
+      maxScore: dto.maxScore,
+      weight: dto.weight,
+      roundId: dto.roundId,
+      trackId: dto.trackId ?? null,
+    }));
+
+    await this.prisma.criterion.createMany({
+      data: createData,
+    });
+
+    return this.prisma.criterion.findMany({
+      where: { roundId: { in: roundIds } },
+      include: { round: true, track: true }
+    });
+  }
+
   async update(eventId: number, rubricId: number, dto: CreateRubricDto) {
     const existing = await this.findRubricInEvent(eventId, rubricId);
     await this.assertRoundNotStarted(existing.roundId);
@@ -102,6 +137,44 @@ export class CriterionService {
     }
 
     await this.prisma.criterion.delete({ where: { id: rubricId } });
+  }
+
+  async bulkRemove(eventId: number, rubricIds: number[]) {
+    if (!rubricIds?.length) return;
+
+    const existing = await this.prisma.criterion.findMany({
+      where: { id: { in: rubricIds } },
+      include: { round: true },
+    });
+
+    if (existing.length !== rubricIds.length) {
+      throw new BadRequestException("Some criteria not found");
+    }
+
+    const eventIds = [...new Set(existing.map(e => e.round.eventId))];
+    if (eventIds.some(id => id !== eventId)) {
+      throw new BadRequestException("Criteria belong to different event");
+    }
+
+    for (const item of existing) {
+      if (item.round.status !== "not_started") {
+        throw new BadRequestException(`Round ${item.round.name} has already started`);
+      }
+    }
+
+    const scoreCount = await this.prisma.score.count({
+      where: { criterionId: { in: rubricIds } },
+    });
+
+    if (scoreCount > 0) {
+      throw new BadRequestException(
+        "Cannot delete criteria that already have scores"
+      );
+    }
+
+    await this.prisma.criterion.deleteMany({
+      where: { id: { in: rubricIds } },
+    });
   }
 
   private async assertEventExists(eventId: number) {

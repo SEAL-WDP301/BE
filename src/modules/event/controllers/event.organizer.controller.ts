@@ -145,6 +145,21 @@ export class EventOrganizerController {
     return { message: "Rubric created successfully", data: rubric };
   }
 
+  @Post(":id/rubrics/bulk")
+  @ApiOperation({ summary: "Bulk create scoring criteria (rubrics)" })
+  async bulkCreateRubrics(
+    @Param("id", ParseIntPipe) eventId: number,
+    @CurrentUser("id") userId: string,
+    @Body() dto: { rubrics: CreateRubricDto[] },
+  ) {
+    const result = await this.criterionService.bulkCreate(
+      eventId,
+      Number(userId),
+      dto.rubrics,
+    );
+    return { message: "Rubrics bulk created successfully", data: result };
+  }
+
   @Put(":id/rubrics/:rubricId")
   @ApiOperation({ summary: "Update a scoring criterion (rubric)" })
   async updateRubric(
@@ -154,6 +169,16 @@ export class EventOrganizerController {
   ) {
     const rubric = await this.criterionService.update(eventId, rubricId, dto);
     return { message: "Rubric updated successfully", data: rubric };
+  }
+
+  @Delete(":id/rubrics/bulk")
+  @ApiOperation({ summary: "Bulk delete scoring criteria (rubrics)" })
+  async bulkDeleteRubrics(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Body() dto: { rubricIds: number[] },
+  ) {
+    await this.criterionService.bulkRemove(eventId, dto.rubricIds);
+    return { message: "Rubrics deleted successfully" };
   }
 
   @Delete(":id/rubrics/:rubricId")
