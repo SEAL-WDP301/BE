@@ -7,6 +7,8 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
+import { GithubOAuthGuard } from "./guards/github-oauth.guard";
+import { GithubStrategy } from "./strategies/github.strategy";
 import { UserModule } from "../user/user.module";
 import { RedisModule } from "../redis/redis.module";
 import { MailModule } from "../mail/mail.module";
@@ -33,8 +35,10 @@ import { MailModule } from "../mail/mail.module";
     AuthService,
     JwtStrategy,
     GoogleStrategy,
+    GithubStrategy,
     JwtAuthGuard,
     GoogleOAuthGuard,
+    GithubOAuthGuard,
   ],
   exports: [AuthService, JwtAuthGuard],
 })

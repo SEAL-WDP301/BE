@@ -281,7 +281,10 @@ export class AuthService {
         avatarUrl: googleUser.picture,
       });
 
-      this.logger.log(`New Google user created: ${user.email} (UserId: ${user.id})`, "AuthService");
+      this.logger.log(
+        `New Google user created: ${user.email} (UserId: ${user.id})`,
+        "AuthService",
+      );
     } else if (!user.googleId || !user.isActive) {
       // User exists but might have registered locally first.
       // Update with Google ID, avatar, and activate them.
@@ -291,7 +294,10 @@ export class AuthService {
         isActive: true,
       });
 
-      this.logger.log(`Google account linked for user: ${user.email} (UserId: ${user.id})`, "AuthService");
+      this.logger.log(
+        `Google account linked for user: ${user.email} (UserId: ${user.id})`,
+        "AuthService",
+      );
     }
 
     const tokens = await this.generateTokens(user);
@@ -302,6 +308,56 @@ export class AuthService {
 
     // Redirect to frontend with access token in query param
     // (Alternative: use URL fragment #token=... for better security)
+    const frontendUrl = this.configService.get<string>("app.frontendUrl");
+    return res.redirect(
+      `${frontendUrl}/auth/callback?token=${tokens.accessToken}`,
+    );
+  }
+
+  async githubLogin(githubUser: any, res: Response) {
+    let user = await this.userService.findByGithubId(githubUser.githubId);
+
+    if (!user) {
+      user = await this.userService.findByEmail(githubUser.email);
+
+      if (user?.githubId && user.githubId !== githubUser.githubId) {
+        throw new ConflictException(
+          "This email is already linked to another GitHub account",
+        );
+      }
+    }
+
+    if (!user) {
+      user = await this.userService.createUser({
+        email: githubUser.email,
+        fullName: githubUser.fullName,
+        githubId: githubUser.githubId,
+        provider: Provider.GITHUB,
+        password: null,
+        avatarUrl: githubUser.picture,
+      });
+
+      this.logger.log(
+        `New GitHub user created: ${user.email} (UserId: ${user.id})`,
+        "AuthService",
+      );
+    } else if (!user.githubId || !user.isActive) {
+      user = await this.userService.updateGithubAuthInfo(user.id, {
+        githubId: githubUser.githubId,
+        avatarUrl: user.avatarUrl || githubUser.picture,
+        isActive: true,
+      });
+
+      this.logger.log(
+        `GitHub account linked for user: ${user.email} (UserId: ${user.id})`,
+        "AuthService",
+      );
+    }
+
+    const tokens = await this.generateTokens(user);
+    await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
+    this.setRefreshTokenCookie(res, tokens.refreshToken);
+
     const frontendUrl = this.configService.get<string>("app.frontendUrl");
     return res.redirect(
       `${frontendUrl}/auth/callback?token=${tokens.accessToken}`,

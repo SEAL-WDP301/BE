@@ -118,7 +118,7 @@ export async function bootstrap() {
         `### Authentication\n` +
         `- Use JWT Bearer token for protected endpoints\n` +
         `- Refresh token is stored in HttpOnly cookie (not visible in Swagger)\n` +
-        `- Google OAuth2 endpoints trigger browser redirect (not testable via Swagger)\n\n` +
+        `- Google and GitHub OAuth2 endpoints trigger browser redirects (not testable via Swagger)\n\n` +
         `### Response Format\n` +
         `All responses follow a unified envelope:\n` +
         `\`{ success, message, data, timestamp }\``,

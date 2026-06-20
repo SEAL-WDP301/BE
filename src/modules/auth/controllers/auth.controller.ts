@@ -24,6 +24,7 @@ import { ForgotPasswordDto } from "../dto/forgot-password.dto";
 import { ResetPasswordDto } from "../dto/reset-password.dto";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 import { GoogleOAuthGuard } from "../guards/google-oauth.guard";
+import { GithubOAuthGuard } from "../guards/github-oauth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { APP_CONSTANTS } from "../../../common/constants/app.constant";
 
@@ -133,5 +134,23 @@ export class AuthController {
   @UseGuards(GoogleOAuthGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     return this.authService.googleLogin(req.user, res);
+  }
+
+  /**
+   * Initiate GitHub OAuth2 login.
+   */
+  @Get("github")
+  @UseGuards(GithubOAuthGuard)
+  githubLogin() {
+    // Guard handles the redirect
+  }
+
+  /**
+   * GitHub OAuth2 callback.
+   */
+  @Get("github/callback")
+  @UseGuards(GithubOAuthGuard)
+  async githubCallback(@Req() req: Request, @Res() res: Response) {
+    return this.authService.githubLogin(req.user, res);
   }
 }
