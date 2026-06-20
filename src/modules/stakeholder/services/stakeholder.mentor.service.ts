@@ -2,11 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 
 @Injectable()
-<<<<<<<< HEAD:src/modules/stakeholder/services/stakeholder.mentor.service.ts
 export class StakeholderMentorService {
-========
-export class TeamMentorService {
->>>>>>>> origin/main:src/modules/team/services/team.mentor.service.ts
   constructor(private readonly prisma: PrismaService) {}
 
   async getTeams(mentorId: number) {

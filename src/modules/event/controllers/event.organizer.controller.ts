@@ -23,7 +23,7 @@ import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
 import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
 import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
-import { AssignJudgeDto } from "../dto/assign-judge.dto";
+
 import { CreateRubricDto } from "../dto/create-rubric.dto";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";

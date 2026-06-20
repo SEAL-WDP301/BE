@@ -11,26 +11,17 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
-<<<<<<<< HEAD:src/modules/stakeholder/controllers/stakeholder.mentor.controller.ts
 import { StakeholderMentorService } from "../services/stakeholder.mentor.service";
-========
-import { TeamMentorService } from "../services/team.mentor.service";
->>>>>>>> origin/main:src/modules/team/controllers/team.mentor.controller.ts
 
 @ApiTags("Mentor")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STAKEHOLDER)
 @Controller("mentor")
-<<<<<<<< HEAD:src/modules/stakeholder/controllers/stakeholder.mentor.controller.ts
 export class StakeholderMentorController {
   constructor(
     private readonly stakeholderMentorService: StakeholderMentorService,
   ) {}
-========
-export class TeamMentorController {
-  constructor(private readonly mentorService: TeamMentorService) {}
->>>>>>>> origin/main:src/modules/team/controllers/team.mentor.controller.ts
 
   @Get("teams")
   @ApiOperation({ summary: "Get teams assigned to the current mentor" })
