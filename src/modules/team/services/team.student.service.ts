@@ -695,9 +695,13 @@ export class TeamStudentService {
       fileKey = uploaded.fileKey;
     }
 
-    if (!fileUrl && !dto.githubUrl) {
-      throw new BadRequestException("You must provide either a file or a Github URL");
+    if (!fileUrl && !dto.githubUrl && !teamMember.team.githubRepoUrl) {
+      throw new BadRequestException(
+        "You must provide either a file, a Github URL, or use your assigned team repository",
+      );
     }
+
+    const githubUrl = dto.githubUrl ?? teamMember.team.githubRepoUrl ?? undefined;
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     let history: any[] = [];
@@ -717,7 +721,7 @@ export class TeamStudentService {
       update: {
         fileUrl,
         fileKey,
-        githubUrl: dto.githubUrl,
+        githubUrl,
         description: dto.description,
         history,
         submittedById: userId,
@@ -729,7 +733,7 @@ export class TeamStudentService {
         roundId: dto.roundId,
         fileUrl,
         fileKey,
-        githubUrl: dto.githubUrl,
+        githubUrl,
         description: dto.description,
         history,
         submittedById: userId,

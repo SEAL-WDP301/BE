@@ -9,6 +9,7 @@ import { TeamStatus, NotificationType } from "@prisma/client";
 import { MailService } from "../../mail/mail.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
+import { TeamGithubService } from "./team-github.service";
 
 @Injectable()
 export class TeamOrganizerService {
@@ -18,6 +19,7 @@ export class TeamOrganizerService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly teamGithubService: TeamGithubService,
   ) {}
 
   async getTeamsByEvent(eventId: number, trackId?: number, roundId?: number, hasMentor?: string) {
@@ -99,6 +101,24 @@ export class TeamOrganizerService {
       },
     });
 
+    if (dto.status === TeamStatus.approved) {
+      const githubResult =
+        await this.teamGithubService.provisionRepositoryForTeam(teamId);
+
+      if (githubResult.provisioned && githubResult.repoUrl) {
+        await this.notifyEntireTeam(
+          team,
+          NotificationType.team_assigned,
+          "GitHub Repository Ready",
+          `Your team repository has been created: ${githubResult.repoUrl}. Push your project code to this repository before the submission deadline.`,
+        );
+      } else if (githubResult.reason && !githubResult.skipped) {
+        this.logger.warn(
+          `Team ${teamId} approved but GitHub repo was not created: ${githubResult.reason}`,
+        );
+      }
+    }
+
     await this.notifyEntireTeam(
       team,
       NotificationType.team_assigned,
@@ -106,7 +126,9 @@ export class TeamOrganizerService {
       `Your team "${team.name}" status has been updated to ${dto.status}. ${dto.reason ? `Reason: ${dto.reason}` : ""}`,
     );
 
-    return updated;
+    return this.prisma.team.findUnique({
+      where: { id: teamId },
+    });
   }
 
   async notifyEntireTeam(

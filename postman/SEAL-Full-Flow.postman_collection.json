@@ -1,0 +1,770 @@
+{
+  "info": {
+    "_postman_id": "seal-full-flow-collection",
+    "name": "SEAL - Full API Flow (Rubrics + Judge + Ranking)",
+    "description": "Test đầy đủ luồng SEAL Hackathon BE.\n\n## Chuẩn bị\n1. Chạy Redis: `docker compose up -d`\n2. Chạy BE: `npm run start:dev`\n3. Import environment `SEAL-Local.postman_environment.json`\n4. Chọn environment **SEAL Local**\n\n## Thứ tự chạy (Collection Runner)\nChạy folder theo số thứ tự 00 → 07.\n\n## Tài khoản mặc định\n- Admin: `admin@admin.com` / `admin123` (auto-seed khi start BE)\n- Student/Judge: tạo qua folder 01 nếu chưa có\n\n## Lưu ý OTP\nSau Signup, xem OTP trong terminal BE (`[DEV] MOCK OTP`) rồi điền biến `otp` trong environment.\n\n## Response format\n```json\n{ \"success\": true, \"message\": \"...\", \"data\": {}, \"timestamp\": \"...\" }\n```",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Signin Admin (Organizer)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signin"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Signin success', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.success).to.eql(true);",
+                  "  pm.expect(json.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('organizerToken', json.data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Signup Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"fullName\": \"Test Student\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signup"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Signup OK or already exists', () => {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/verify-otp"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OTP verified or already active', () => {",
+                  "  pm.expect([200, 401]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Signin Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signin"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Student signin success', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('studentToken', json.data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Signup Judge (Stakeholder)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{judgeEmail}}\",\n  \"password\": \"{{judgePassword}}\",\n  \"fullName\": \"Test Judge\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signup"
+          }
+        },
+        {
+          "name": "Verify OTP Judge",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{judgeEmail}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/verify-otp"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OTP verified or already active', () => {",
+                  "  pm.expect([200, 401]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Users (find judge user id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" }
+            ],
+            "url": "{{baseUrl}}/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const judge = json.data.find(u => u.email === pm.environment.get('judgeEmail'));",
+                  "pm.test('Judge user found', () => pm.expect(judge).to.be.an('object'));",
+                  "if (judge) pm.environment.set('stakeholderId', judge.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Promote User to Stakeholder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"stakeholder\"\n}"
+            },
+            "url": "{{baseUrl}}/users/{{stakeholderId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Role updated', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Signin Judge (Stakeholder)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{judgeEmail}}\",\n  \"password\": \"{{judgePassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signin"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set('judgeToken', json.data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Organizer Event Setup",
+      "item": [
+        {
+          "name": "Create Event (draft)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SEAL Postman Test Event\",\n  \"description\": \"Event created from Postman full flow test\",\n  \"season\": \"Spring\",\n  \"year\": 2026,\n  \"status\": \"draft\",\n  \"tracks\": [\n    {\n      \"name\": \"Web Development\",\n      \"description\": \"Web track\",\n      \"maxTeams\": 20,\n      \"maxMembersPerTeam\": 5\n    }\n  ],\n  \"rounds\": [\n    {\n      \"roundNumber\": 1,\n      \"name\": \"Qualifier\",\n      \"submissionType\": \"github_link\",\n      \"maxFileSizeMb\": 20,\n      \"isTrackSpecific\": true\n    },\n    {\n      \"roundNumber\": 2,\n      \"name\": \"Final\",\n      \"submissionType\": \"github_link\",\n      \"maxFileSizeMb\": 20,\n      \"isTrackSpecific\": true\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/organizer/events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Event created', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(json.data.id).to.be.a('number');",
+                  "});",
+                  "pm.environment.set('eventId', json.data.id);",
+                  "pm.environment.set('trackId', json.data.tracks[0].id);",
+                  "pm.environment.set('roundId', json.data.rounds[0].id);",
+                  "if (json.data.rounds[1]) pm.environment.set('round2Id', json.data.rounds[1].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Activate Event",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Event active', () => pm.response.to.have.status(200));"],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Rubrics CRUD",
+      "item": [
+        {
+          "name": "Create Rubric - Technical",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Technical Implementation\",\n  \"description\": \"Code quality, architecture, best practices\",\n  \"maxScore\": 10,\n  \"weight\": 1,\n  \"roundId\": {{roundId}}\n}"
+            },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rubrics"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Rubric created', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('rubricId', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Rubric - Innovation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Innovation\",\n  \"description\": \"Creativity and novelty\",\n  \"maxScore\": 10,\n  \"weight\": 0.8,\n  \"roundId\": {{roundId}}\n}"
+            },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rubrics"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Rubric 2 created', () => pm.response.to.have.status(201));"],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Rubrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/events/{{eventId}}/rubrics?roundId={{roundId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["organizer", "events", "{{eventId}}", "rubrics"],
+              "query": [{ "key": "roundId", "value": "{{roundId}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Has rubrics', () => {",
+                  "  pm.expect(json.data.length).to.be.at.least(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Rubric",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Technical Implementation\",\n  \"description\": \"Updated description\",\n  \"maxScore\": 10,\n  \"weight\": 1.2,\n  \"roundId\": {{roundId}}\n}"
+            },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rubrics/{{rubricId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Teams & Judge Assignment",
+      "item": [
+        {
+          "name": "Assign Judge to Round",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stakeholderId\": {{stakeholderId}},\n  \"roundId\": {{roundId}},\n  \"trackId\": {{trackId}}\n}"
+            },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/judges"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Judge assigned', () => pm.response.to.have.status(201));"],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Open Round",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"open\"\n}" },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/{{roundId}}/status"
+          }
+        },
+        {
+          "name": "Register Team (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trackId\": {{trackId}},\n  \"teamName\": \"Postman Warriors\",\n  \"memberEmails\": []\n}"
+            },
+            "url": "{{baseUrl}}/student/teams/register/team/{{eventId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set('teamId', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve Team",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}" },
+            "url": "{{baseUrl}}/organizer/teams/{{teamId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Student Submission",
+      "item": [
+        {
+          "name": "Submit Project (Github)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": {{eventId}},\n  \"roundId\": {{roundId}},\n  \"githubUrl\": \"https://github.com/example/seal-project\",\n  \"description\": \"Postman test submission\"\n}"
+            },
+            "url": "{{baseUrl}}/student/teams/my-team/submissions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.environment.set('submissionId', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Judge Scoring",
+      "item": [
+        {
+          "name": "Get Assigned Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": "{{baseUrl}}/judge/events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Has assigned events', () => pm.expect(json.data.length).to.be.at.least(1));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Round Submissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": "{{baseUrl}}/judge/rounds/{{roundId}}/submissions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?.[0]?.submissionId) {",
+                  "  pm.environment.set('submissionId', json.data[0].submissionId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Submission Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": "{{baseUrl}}/judge/submissions/{{submissionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Has rubrics', () => pm.expect(json.data.rubrics.length).to.be.at.least(1));",
+                  "const scores = json.data.rubrics.map((r, i) => ({",
+                  "  criterionId: r.id,",
+                  "  scoreValue: 8 + (i * 0.5),",
+                  "  comment: `Score for ${r.name}`",
+                  "}));",
+                  "pm.environment.set('scoresPayload', JSON.stringify({ scores }));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Scores (All Criteria)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{scoresPayload}}"
+            },
+            "url": "{{baseUrl}}/judge/submissions/{{submissionId}}/scores",
+            "description": "Tự động dùng scoresPayload từ Get Submission Detail"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get('scoresPayload')) {",
+                  "  pm.environment.set('scoresPayload', JSON.stringify({",
+                  "    scores: [{ criterionId: Number(pm.environment.get('rubricId')), scoreValue: 8.5, comment: 'Fallback score' }]",
+                  "  }));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('All scores saved', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.data.scoringStatus).to.eql('completed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Rankings & Publish",
+      "item": [
+        {
+          "name": "Close Round",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"closed\"\n}" },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/{{roundId}}/status"
+          }
+        },
+        {
+          "name": "Get Round Rankings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" }
+            ],
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/{{roundId}}/rankings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Rankings returned', () => {",
+                  "  pm.expect(json.data.tracks).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish Round Results",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"topNPerTrack\": 1\n}" },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/{{roundId}}/publish-results"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Results published', () => {",
+                  "  pm.expect(json.data.status).to.eql('results_published');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Open Next Round (Round 2)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"open\"\n}" },
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rounds/{{round2Id}}/status",
+            "description": "Mở round 2 sau khi publish kết quả round 1. Biến round2Id được lưu từ Create Event."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Round 2 opened', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - Cleanup (Optional)",
+      "item": [
+        {
+          "name": "Delete Rubric",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" }
+            ],
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}/rubrics/{{rubricId}}"
+          }
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" }
+            ],
+            "url": "{{baseUrl}}/organizer/events/{{eventId}}",
+            "description": "Chỉ xóa được event draft. Đổi status về draft trước nếu cần."
+          }
+        }
+      ]
+    }
+  ]
+}

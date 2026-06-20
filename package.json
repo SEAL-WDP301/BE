@@ -24,7 +24,8 @@
     "seed:run": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
     "seed:mock-event": "ts-node -r tsconfig-paths/register src/database/seeds/run-mock-event.ts",
     "seed:mock-teams": "ts-node -r tsconfig-paths/register src/database/seeds/run-mock-teams.ts",
-    "seed:mock-stakeholders": "ts-node -r tsconfig-paths/register src/database/seeds/run-mock-stakeholders.ts"
+    "seed:mock-stakeholders": "ts-node -r tsconfig-paths/register src/database/seeds/run-mock-stakeholders.ts",
+    "test:flow": "node scripts/run-full-flow-test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",

@@ -261,6 +261,8 @@ model Team {
   name       String
   status     TeamStatus @default(pending)
   eliminationReason String? @map("elimination_reason")
+  githubRepoUrl  String? @map("github_repo_url")
+  githubRepoName String? @map("github_repo_name")
   leaderId   Int        @map("leader_id")
   award      AwardType?
   createdAt  DateTime   @default(now()) @map("created_at")

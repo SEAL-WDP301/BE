@@ -7,6 +7,7 @@ import appConfig from "./config/app.config";
 import databaseConfig from "./config/database.config";
 import jwtConfig from "./config/jwt.config";
 import redisConfig from "./config/redis.config";
+import githubConfig from "./config/github.config";
 
 // Logger config
 import { createWinstonConfig } from "./logger/winston.config";
@@ -28,6 +29,7 @@ import { RubricModule } from "./modules/rubric/rubric.module";
 import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { StakeholderModule } from "./modules/stakeholder/stakeholder.module";
+import { JudgeModule } from "./modules/judge/judge.module";
 
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
@@ -39,7 +41,7 @@ import { Logger } from "winston";
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV || "development"}`, ".env"],
-      load: [appConfig, databaseConfig, jwtConfig, redisConfig],
+      load: [appConfig, databaseConfig, jwtConfig, redisConfig, githubConfig],
       cache: true,
     }),
 
@@ -61,6 +63,7 @@ import { Logger } from "winston";
     TeamModule,
     StorageModule,
     StakeholderModule,
+    JudgeModule,
   ],
 })
 export class AppModule implements NestModule {
