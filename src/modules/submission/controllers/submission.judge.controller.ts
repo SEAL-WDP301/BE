@@ -13,23 +13,16 @@ import { RolesGuard } from "../../../common/guards/roles.guard";
 import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { JudgeService } from "../services/judge.service";
+import { SubmissionJudgeService } from "../services/submission.judge.service";
 import { SubmitScoresDto } from "../dto/submit-scores.dto";
 
-@ApiTags("Judge")
+@ApiTags("Judge/Submissions")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STAKEHOLDER, Role.ADMIN)
 @Controller("judge")
-export class JudgeController {
-  constructor(private readonly judgeService: JudgeService) {}
-
-  @Get("events")
-  @ApiOperation({ summary: "Get events and rounds assigned to the judge" })
-  async getAssignedEvents(@CurrentUser("id") userId: string) {
-    const events = await this.judgeService.getAssignedEvents(Number(userId));
-    return { message: "Assigned events fetched", data: events };
-  }
+export class SubmissionJudgeController {
+  constructor(private readonly judgeService: SubmissionJudgeService) {}
 
   @Get("rounds/:roundId/submissions")
   @ApiOperation({ summary: "List submissions to evaluate in a round" })

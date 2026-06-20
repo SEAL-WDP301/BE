@@ -29,7 +29,7 @@ import { RubricModule } from "./modules/rubric/rubric.module";
 import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { StakeholderModule } from "./modules/stakeholder/stakeholder.module";
-import { JudgeModule } from "./modules/judge/judge.module";
+import { SubmissionModule } from "./modules/submission/submission.module";
 
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
@@ -63,7 +63,7 @@ import { Logger } from "winston";
     TeamModule,
     StorageModule,
     StakeholderModule,
-    JudgeModule,
+    SubmissionModule,
   ],
 })
 export class AppModule implements NestModule {
