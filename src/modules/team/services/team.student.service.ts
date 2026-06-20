@@ -66,10 +66,10 @@ export class TeamStudentService {
                     name: true,
                     email: true,
                     avatarUrl: true,
-                  }
-                }
-              }
-            }
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -179,7 +179,7 @@ export class TeamStudentService {
         where: {
           eventId,
           roundNumber: 1,
-        }
+        },
       });
 
       if (round1) {
@@ -187,7 +187,7 @@ export class TeamStudentService {
           data: {
             teamId: team.id,
             roundId: round1.id,
-          }
+          },
         });
       }
 
@@ -269,10 +269,14 @@ export class TeamStudentService {
 
     if (!team)
       throw new NotFoundException("Team not found or you are not the leader");
-    
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
     if (event?.status !== "active") {
-      throw new BadRequestException("Team roster is locked because the event is no longer in the active registration phase.");
+      throw new BadRequestException(
+        "Team roster is locked because the event is no longer in the active registration phase.",
+      );
     }
 
     const track = await this.prisma.track.findUnique({
@@ -406,7 +410,10 @@ export class TeamStudentService {
   async respondToInvitation(userId: number, teamId: number, accept: boolean) {
     const membership = await this.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId } },
-      include: { team: { include: { members: { include: { user: true } } } }, user: true },
+      include: {
+        team: { include: { members: { include: { user: true } } } },
+        user: true,
+      },
     });
 
     if (!membership || membership.status !== TeamMemberStatus.pending) {
@@ -444,12 +451,15 @@ export class TeamStudentService {
         // Notify team leader or entire team
         await prisma.notification.create({
           data: {
-            userId: membership.team.members.find(m => m.role === TeamMemberRole.leader)?.userId || membership.team.members[0].userId,
+            userId:
+              membership.team.members.find(
+                (m) => m.role === TeamMemberRole.leader,
+              )?.userId || membership.team.members[0].userId,
             eventId: membership.team.eventId,
-            type: 'team_invite_rejected' as any,
+            type: "team_invite_rejected" as any,
             title: "Invitation Rejected",
             content: `${membership.user.name} has rejected the invitation to join ${membership.team.name}.`,
-          }
+          },
         });
 
         return rejected;
@@ -485,19 +495,21 @@ export class TeamStudentService {
       });
 
       // Send Notification to existing members
-      const notifyMembers = membership.team.members.filter(m => m.status === TeamMemberStatus.accepted).map((m) => ({
-        userId: m.userId,
-        eventId: membership.team.eventId,
-        type: 'team_invite_accepted' as any,
-        title: "New Team Member",
-        content: `${membership.user.name} has joined the team!`,
-      }));
+      const notifyMembers = membership.team.members
+        .filter((m) => m.status === TeamMemberStatus.accepted)
+        .map((m) => ({
+          userId: m.userId,
+          eventId: membership.team.eventId,
+          type: "team_invite_accepted" as any,
+          title: "New Team Member",
+          content: `${membership.user.name} has joined the team!`,
+        }));
 
       // Send Welcome Notification to the user who accepted
       notifyMembers.push({
         userId,
         eventId: membership.team.eventId,
-        type: 'team_invite_accepted' as any,
+        type: "team_invite_accepted" as any,
         title: "Welcome to the Team",
         content: `You have successfully joined ${membership.team.name}.`,
       });
@@ -517,13 +529,22 @@ export class TeamStudentService {
       where: {
         userId,
         status: TeamMemberStatus.accepted,
-        team: { eventId, status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] } },
+        team: {
+          eventId,
+          status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] },
+        },
       },
-      include: { team: { include: { event: { select: { id: true, name: true } }, track: true } } },
+      include: {
+        team: {
+          include: { event: { select: { id: true, name: true } }, track: true },
+        },
+      },
     });
 
     if (!teamMember) {
-      throw new NotFoundException("You don't have an active team for this event");
+      throw new NotFoundException(
+        "You don't have an active team for this event",
+      );
     }
 
     const teamId = teamMember.team.id;
@@ -542,7 +563,9 @@ export class TeamStudentService {
     const now = new Date();
     // Vòng đang diễn ra (nếu có)
     const currentActiveRound = rounds.find(
-      (r) => r.status === "open" || (r.submissionDeadline && r.submissionDeadline > now)
+      (r) =>
+        r.status === "open" ||
+        (r.submissionDeadline && r.submissionDeadline > now),
     );
 
     // Bài nộp gần nhất nếu có vòng đang diễn ra
@@ -555,8 +578,24 @@ export class TeamStudentService {
             roundId: currentActiveRound.id,
           },
         },
+        include: {
+          mentorFeedbacks: {
+            include: {
+              mentor: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
       });
     }
+
+    const mentorFeedbacks = await this.findTeamMentorFeedback(teamId);
 
     return {
       team: teamMember.team,
@@ -564,17 +603,75 @@ export class TeamStudentService {
       rounds,
       currentActiveRound,
       latestSubmission,
+      mentorFeedbacks,
     };
   }
 
-  async transferLeadership(userId: number, teamId: number, newLeaderUserId: number) {
-    const currentMembership = await this.prisma.teamMember.findUnique({
-      where: { teamId_userId: { teamId, userId } },
-      include: { team: { include: { members: { include: { user: true } } } }, user: true },
+  async getMentorFeedback(userId: number, eventId: number) {
+    const teamMember = await this.prisma.teamMember.findFirst({
+      where: {
+        userId,
+        status: TeamMemberStatus.accepted,
+        team: {
+          eventId,
+          status: {
+            notIn: [TeamStatus.rejected, TeamStatus.disqualified],
+          },
+        },
+      },
+      select: { teamId: true },
     });
 
-    if (!currentMembership || currentMembership.role !== TeamMemberRole.leader) {
-      throw new ForbiddenException("Only the team leader can transfer leadership.");
+    if (!teamMember) {
+      throw new NotFoundException(
+        "You don't have an active team for this event",
+      );
+    }
+
+    return this.findTeamMentorFeedback(teamMember.teamId);
+  }
+
+  private findTeamMentorFeedback(teamId: number) {
+    return this.prisma.mentorFeedback.findMany({
+      where: { teamId },
+      include: {
+        mentor: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+        submission: {
+          include: {
+            round: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async transferLeadership(
+    userId: number,
+    teamId: number,
+    newLeaderUserId: number,
+  ) {
+    const currentMembership = await this.prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      include: {
+        team: { include: { members: { include: { user: true } } } },
+        user: true,
+      },
+    });
+
+    if (
+      !currentMembership ||
+      currentMembership.role !== TeamMemberRole.leader
+    ) {
+      throw new ForbiddenException(
+        "Only the team leader can transfer leadership.",
+      );
     }
 
     const newLeaderMembership = await this.prisma.teamMember.findUnique({
@@ -582,8 +679,13 @@ export class TeamStudentService {
       include: { user: true },
     });
 
-    if (!newLeaderMembership || newLeaderMembership.status !== TeamMemberStatus.accepted) {
-      throw new BadRequestException("The designated new leader must be an accepted team member.");
+    if (
+      !newLeaderMembership ||
+      newLeaderMembership.status !== TeamMemberStatus.accepted
+    ) {
+      throw new BadRequestException(
+        "The designated new leader must be an accepted team member.",
+      );
     }
 
     return this.prisma.$transaction(async (prisma) => {
@@ -609,7 +711,7 @@ export class TeamStudentService {
       const notifications = currentMembership.team.members.map((member) => ({
         userId: member.userId,
         eventId: currentMembership.team.eventId,
-        type: 'team_leadership_transfer' as any, // Using the new enum
+        type: "team_leadership_transfer" as any, // Using the new enum
         title: "Team Leadership Transferred",
         content: `${currentMembership.user.name} has transferred team leadership to ${newLeaderMembership.user.name}.`,
       }));
@@ -622,22 +724,33 @@ export class TeamStudentService {
     });
   }
 
-  async submitProject(userId: number, dto: SubmitProjectDto, file?: Express.Multer.File) {
+  async submitProject(
+    userId: number,
+    dto: SubmitProjectDto,
+    file?: Express.Multer.File,
+  ) {
     const teamMember = await this.prisma.teamMember.findFirst({
       where: {
         userId,
         status: TeamMemberStatus.accepted,
-        team: { eventId: dto.eventId, status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] } },
+        team: {
+          eventId: dto.eventId,
+          status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] },
+        },
       },
       include: { team: true },
     });
 
     if (!teamMember) {
-      throw new NotFoundException("You do not belong to an active team in this event");
+      throw new NotFoundException(
+        "You do not belong to an active team in this event",
+      );
     }
 
     if (teamMember.team.leaderId !== userId) {
-      throw new ForbiddenException("Only the team leader can submit the project");
+      throw new ForbiddenException(
+        "Only the team leader can submit the project",
+      );
     }
 
     const teamId = teamMember.team.id;
@@ -651,10 +764,15 @@ export class TeamStudentService {
     }
 
     if (file && file.size > round.maxFileSizeMb * 1024 * 1024) {
-      throw new BadRequestException(`File size exceeds the limit of ${round.maxFileSizeMb}MB`);
+      throw new BadRequestException(
+        `File size exceeds the limit of ${round.maxFileSizeMb}MB`,
+      );
     }
 
-    if (round.status !== "open" && (!round.submissionDeadline || round.submissionDeadline < new Date())) {
+    if (
+      round.status !== "open" &&
+      (!round.submissionDeadline || round.submissionDeadline < new Date())
+    ) {
       throw new BadRequestException("Submission for this round is closed");
     }
 
@@ -688,7 +806,9 @@ export class TeamStudentService {
       if (existingSubmission?.fileKey) {
         await this.storageService.deleteFile(existingSubmission.fileKey);
       }
-      const trackPath = (round as any).isTrackSpecific ? `/track-${teamMember.team.trackId}` : "";
+      const trackPath = (round as any).isTrackSpecific
+        ? `/track-${teamMember.team.trackId}`
+        : "";
       const uploadPath = `submissions/event-${dto.eventId}/round-${dto.roundId}${trackPath}/team-${teamId}`;
       const uploaded = await this.storageService.uploadFile(file, uploadPath);
       fileUrl = uploaded.fileUrl;
@@ -696,7 +816,9 @@ export class TeamStudentService {
     }
 
     if (!fileUrl && !dto.githubUrl) {
-      throw new BadRequestException("You must provide either a file or a Github URL");
+      throw new BadRequestException(
+        "You must provide either a file or a Github URL",
+      );
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

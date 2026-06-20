@@ -12,7 +12,12 @@ import {
   UploadedFile,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiConsumes,
+} from "@nestjs/swagger";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
@@ -142,6 +147,19 @@ export class TeamStudentController {
     return { message: "Workspace overview fetched", data };
   }
 
+  @Get("my-team/feedback")
+  @ApiOperation({ summary: "Get mentor feedback for the student's team" })
+  async getMentorFeedback(
+    @Query("eventId", ParseIntPipe) eventId: number,
+    @CurrentUser("id") userId: string,
+  ) {
+    const data = await this.teamStudentService.getMentorFeedback(
+      Number(userId),
+      eventId,
+    );
+    return { message: "Mentor feedback fetched", data };
+  }
+
   @Post("my-team/submissions")
   @ApiOperation({ summary: "Submit project for a round" })
   @ApiConsumes("multipart/form-data")
@@ -171,6 +189,9 @@ export class TeamStudentController {
       teamId,
       newLeaderId,
     );
-    return { message: "Leadership transferred successfully", data: updatedTeam };
+    return {
+      message: "Leadership transferred successfully",
+      data: updatedTeam,
+    };
   }
 }
