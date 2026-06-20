@@ -9,7 +9,7 @@ import { CreateRubricDto } from "../dto/create-rubric.dto";
 
 @Injectable()
 export class CriterionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAll(
     eventId: number,
@@ -33,8 +33,8 @@ export class CriterionService {
   }
 
   async create(eventId: number, userId: number, dto: CreateRubricDto) {
-    await this.assertEventDraft(eventId);
     await this.assertRoundBelongsToEvent(dto.roundId, eventId);
+    await this.assertRoundNotStarted(dto.roundId);
 
     if (dto.trackId != null) {
       await this.assertTrackBelongsToEvent(dto.trackId, eventId);
@@ -58,11 +58,12 @@ export class CriterionService {
   }
 
   async update(eventId: number, rubricId: number, dto: CreateRubricDto) {
-    await this.assertEventDraft(eventId);
     const existing = await this.findRubricInEvent(eventId, rubricId);
+    await this.assertRoundNotStarted(existing.roundId);
 
     if (dto.roundId !== existing.roundId) {
       await this.assertRoundBelongsToEvent(dto.roundId, eventId);
+      await this.assertRoundNotStarted(dto.roundId);
     }
 
     if (dto.trackId != null) {
@@ -87,8 +88,8 @@ export class CriterionService {
   }
 
   async remove(eventId: number, rubricId: number) {
-    await this.assertEventDraft(eventId);
-    await this.findRubricInEvent(eventId, rubricId);
+    const existing = await this.findRubricInEvent(eventId, rubricId);
+    await this.assertRoundNotStarted(existing.roundId);
 
     const scoreCount = await this.prisma.score.count({
       where: { criterionId: rubricId },
@@ -114,19 +115,25 @@ export class CriterionService {
     }
   }
 
-  private async assertEventDraft(eventId: number) {
-    const event = await this.prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, status: true },
+  private async assertRoundNotStarted(roundId: number) {
+    const round = await this.prisma.round.findUnique({
+      where: { id: roundId },
+      include: { event: { select: { status: true } } },
     });
 
-    if (!event) {
-      throw new NotFoundException("Event not found");
+    if (!round) {
+      throw new NotFoundException("Round not found");
     }
 
-    if (event.status !== EventStatus.draft) {
+    if (round.event.status === "closed") {
       throw new BadRequestException(
-        "Only draft events can be edited. Please change the status to draft first.",
+        "Cannot manage grading criteria for closed events.",
+      );
+    }
+
+    if (round.status !== "not_started") {
+      throw new BadRequestException(
+        "Can only manage grading criteria for rounds that have not started yet.",
       );
     }
   }
