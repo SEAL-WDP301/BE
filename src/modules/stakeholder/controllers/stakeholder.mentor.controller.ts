@@ -1,12 +1,8 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
   Param,
-  Patch,
   ParseIntPipe,
-  Post,
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
@@ -15,7 +11,6 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
-import { CreateMentorFeedbackDto } from "../dto/create-mentor-feedback.dto";
 import { StakeholderMentorService } from "../services/stakeholder.mentor.service";
 
 @ApiTags("Mentor")
@@ -86,60 +81,5 @@ export class StakeholderMentorController {
         submissionId,
       ),
     };
-  }
-
-  @Get("feedback")
-  @ApiOperation({ summary: "Get feedback created by the current mentor" })
-  async getFeedback(@CurrentUser("id") mentorId: number) {
-    return {
-      message: "Mentor feedback fetched",
-      data: await this.stakeholderMentorService.getFeedback(mentorId),
-    };
-  }
-
-  @Post("submissions/:submissionId/feedback")
-  @ApiOperation({
-    summary: "Create feedback for an assigned team's submission",
-  })
-  async createFeedback(
-    @CurrentUser("id") mentorId: number,
-    @Param("submissionId", ParseIntPipe) submissionId: number,
-    @Body() dto: CreateMentorFeedbackDto,
-  ) {
-    return {
-      message: "Mentor feedback created",
-      data: await this.stakeholderMentorService.createFeedback(
-        mentorId,
-        submissionId,
-        dto,
-      ),
-    };
-  }
-
-  @Patch("feedback/:feedbackId")
-  @ApiOperation({ summary: "Update feedback created by the current mentor" })
-  async updateFeedback(
-    @CurrentUser("id") mentorId: number,
-    @Param("feedbackId", ParseIntPipe) feedbackId: number,
-    @Body() dto: CreateMentorFeedbackDto,
-  ) {
-    return {
-      message: "Mentor feedback updated",
-      data: await this.stakeholderMentorService.updateFeedback(
-        mentorId,
-        feedbackId,
-        dto,
-      ),
-    };
-  }
-
-  @Delete("feedback/:feedbackId")
-  @ApiOperation({ summary: "Delete feedback created by the current mentor" })
-  async deleteFeedback(
-    @CurrentUser("id") mentorId: number,
-    @Param("feedbackId", ParseIntPipe) feedbackId: number,
-  ) {
-    await this.stakeholderMentorService.deleteFeedback(mentorId, feedbackId);
-    return { message: "Mentor feedback deleted", data: null };
   }
 }
