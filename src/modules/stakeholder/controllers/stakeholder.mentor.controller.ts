@@ -82,13 +82,4 @@ export class StakeholderMentorController {
       ),
     };
   }
-
-  @Get("feedback")
-  @ApiOperation({ summary: "Get feedback created by the current mentor" })
-  async getFeedback(@CurrentUser("id") mentorId: number) {
-    return {
-      message: "Mentor feedback fetched",
-      data: await this.stakeholderMentorService.getFeedback(mentorId),
-    };
-  }
 }
