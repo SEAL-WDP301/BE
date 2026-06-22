@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { TeamMemberRole, TeamMemberStatus, TeamStatus } from "@prisma/client";
+import { TeamMemberRole, TeamMemberStatus, TeamStatus, SubmissionType, RoundResultStatus } from "@prisma/client";
 import { MailService } from "../../mail/mail.service";
 import { StorageService } from "../../storage/storage.service";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
@@ -523,10 +523,24 @@ export class TeamStudentService {
     });
 
     const now = new Date();
-    // Vòng đang diễn ra (nếu có)
-    const currentActiveRound = rounds.find(
-      (r) => r.status === "open" || (r.submissionDeadline && r.submissionDeadline > now)
-    );
+    const teamStatus = teamMember.team.status;
+
+    const currentActiveRound = rounds.find((round) => {
+      if (round.status !== "open") return false;
+      if (round.submissionDeadline && round.submissionDeadline <= now) {
+        return false;
+      }
+
+      const teamRound = round.teamRounds[0];
+      if (teamRound?.status === RoundResultStatus.eliminated) {
+        return false;
+      }
+      if (round.roundNumber > 1 && !teamRound) {
+        return false;
+      }
+
+      return true;
+    });
 
     // Bài nộp gần nhất nếu có vòng đang diễn ra
     let latestSubmission = null;
@@ -544,6 +558,7 @@ export class TeamStudentService {
     return {
       team: teamMember.team,
       role: teamMember.role,
+      canSubmit: teamStatus === TeamStatus.approved,
       rounds,
       currentActiveRound,
       latestSubmission,
@@ -610,20 +625,30 @@ export class TeamStudentService {
       where: {
         userId,
         status: TeamMemberStatus.accepted,
-        team: { eventId: dto.eventId, status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] } },
+        team: { eventId: dto.eventId },
       },
       include: { team: true },
     });
 
     if (!teamMember) {
-      throw new NotFoundException("You do not belong to an active team in this event");
+      throw new NotFoundException("You do not belong to a team in this event");
     }
 
-    if (teamMember.team.leaderId !== userId) {
+    const team = teamMember.team;
+
+    if (team.status !== TeamStatus.approved) {
+      throw new BadRequestException(
+        team.status === TeamStatus.pending
+          ? "Your team must be approved by the organizer before submitting"
+          : "Your team cannot submit in its current status",
+      );
+    }
+
+    if (team.leaderId !== userId) {
       throw new ForbiddenException("Only the team leader can submit the project");
     }
 
-    const teamId = teamMember.team.id;
+    const teamId = team.id;
 
     const round = await this.prisma.round.findUnique({
       where: { id: dto.roundId },
@@ -633,58 +658,71 @@ export class TeamStudentService {
       throw new BadRequestException("Invalid round");
     }
 
-    if (file && file.size > round.maxFileSizeMb * 1024 * 1024) {
-      throw new BadRequestException(`File size exceeds the limit of ${round.maxFileSizeMb}MB`);
+    if (round.status !== "open") {
+      throw new BadRequestException("Submission for this round is not open");
     }
 
-    if (round.status !== "open" && (!round.submissionDeadline || round.submissionDeadline < new Date())) {
-      throw new BadRequestException("Submission for this round is closed");
+    if (round.submissionDeadline && round.submissionDeadline < new Date()) {
+      throw new BadRequestException("Submission deadline has passed");
     }
 
-    // Check if team is in this round
-    const teamRound = await this.prisma.teamRound.findUnique({
-      where: { teamId_roundId: { teamId, roundId: dto.roundId } },
-    });
-
-    // If there's no team round, it means the team hasn't been advanced to this round
-    if (!teamRound && round.roundNumber > 1) {
-      throw new BadRequestException("Your team is not competing in this round");
-    } else if (!teamRound && round.roundNumber === 1) {
-      // Auto create team round for round 1 if it doesn't exist yet
-      await this.prisma.teamRound.create({
-        data: {
-          teamId,
-          roundId: dto.roundId,
-        },
-      });
-    }
+    await this.assertTeamCanSubmitInRound(teamId, round.id, round.roundNumber);
 
     const existingSubmission = await this.prisma.submission.findUnique({
       where: { teamId_roundId: { teamId, roundId: dto.roundId } },
     });
 
-    let fileUrl = existingSubmission?.fileUrl;
-    let fileKey = existingSubmission?.fileKey;
+    if (round.submissionType === SubmissionType.github_link) {
+      if (file) {
+        throw new BadRequestException(
+          "This round only accepts a GitHub repository link, not file uploads",
+        );
+      }
+      if (!team.githubRepoUrl) {
+        throw new BadRequestException(
+          "No GitHub repository has been assigned to your team yet. Please wait for organizer approval.",
+        );
+      }
+      if (dto.githubUrl && dto.githubUrl !== team.githubRepoUrl) {
+        throw new BadRequestException(
+          "You must use your assigned team repository URL for this submission",
+        );
+      }
+    }
+
+    if (round.submissionType === SubmissionType.file) {
+      if (dto.githubUrl) {
+        throw new BadRequestException(
+          "This round only accepts file uploads, not GitHub links",
+        );
+      }
+      if (!file && !existingSubmission?.fileUrl) {
+        throw new BadRequestException("You must upload a file for this round");
+      }
+    }
+
+    if (file && file.size > round.maxFileSizeMb * 1024 * 1024) {
+      throw new BadRequestException(`File size exceeds the limit of ${round.maxFileSizeMb}MB`);
+    }
+
+    let fileUrl = existingSubmission?.fileUrl ?? null;
+    let fileKey = existingSubmission?.fileKey ?? null;
 
     if (file) {
-      // Delete old file if exists
       if (existingSubmission?.fileKey) {
         await this.storageService.deleteFile(existingSubmission.fileKey);
       }
-      const trackPath = (round as any).isTrackSpecific ? `/track-${teamMember.team.trackId}` : "";
+      const trackPath = round.isTrackSpecific ? `/track-${team.trackId}` : "";
       const uploadPath = `submissions/event-${dto.eventId}/round-${dto.roundId}${trackPath}/team-${teamId}`;
       const uploaded = await this.storageService.uploadFile(file, uploadPath);
       fileUrl = uploaded.fileUrl;
       fileKey = uploaded.fileKey;
     }
 
-    if (!fileUrl && !dto.githubUrl && !teamMember.team.githubRepoUrl) {
-      throw new BadRequestException(
-        "You must provide either a file, a Github URL, or use your assigned team repository",
-      );
-    }
-
-    const githubUrl = dto.githubUrl ?? teamMember.team.githubRepoUrl ?? undefined;
+    const githubUrl =
+      round.submissionType === SubmissionType.github_link
+        ? team.githubRepoUrl
+        : null;
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     let history: any[] = [];
@@ -723,5 +761,33 @@ export class TeamStudentService {
         status: "submitted",
       },
     });
+  }
+
+  private async assertTeamCanSubmitInRound(
+    teamId: number,
+    roundId: number,
+    roundNumber: number,
+  ) {
+    let teamRound = await this.prisma.teamRound.findUnique({
+      where: { teamId_roundId: { teamId, roundId } },
+    });
+
+    if (!teamRound && roundNumber === 1) {
+      teamRound = await this.prisma.teamRound.create({
+        data: { teamId, roundId, status: RoundResultStatus.competing },
+      });
+    }
+
+    if (!teamRound) {
+      throw new BadRequestException("Your team is not competing in this round");
+    }
+
+    if (teamRound.status === RoundResultStatus.eliminated) {
+      throw new BadRequestException(
+        "Your team has been eliminated from this round and cannot submit",
+      );
+    }
+
+    return teamRound;
   }
 }

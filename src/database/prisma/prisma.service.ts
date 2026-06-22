@@ -21,8 +21,23 @@ export class PrismaService
 
   async onModuleInit() {
     this.logger.log("Connecting to Prisma Client...");
-    await this.$connect();
-    this.logger.log("Prisma Client connected.");
+    const maxAttempts = 5;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await this.$connect();
+        this.logger.log("Prisma Client connected.");
+        return;
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        this.logger.warn(
+          `Prisma connect attempt ${attempt}/${maxAttempts} failed, retrying...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
   }
 
   async onModuleDestroy() {
