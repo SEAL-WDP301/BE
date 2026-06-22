@@ -290,20 +290,52 @@ async function run() {
     approvedTeam?.githubRepoUrl || "no repo (check GITHUB_TOKEN in .env.development)",
   );
 
-  // 05 Submission
+  state.githubRepoUrl = approvedTeam?.githubRepoUrl;
+
+  // 05 Submission (github_link round uses assigned team repo)
   res = await api("POST", "/student/teams/my-team/submissions", {
     token: state.studentToken,
     body: {
       eventId: state.eventId,
       roundId: state.roundId,
-      githubUrl: "https://github.com/example/seal-project",
+      ...(state.githubRepoUrl ? { githubUrl: state.githubRepoUrl } : {}),
       description: "Flow test submission",
     },
   });
   log("05 Submit project", res.ok);
   state.submissionId = res.json?.data?.id;
 
-  // 06 Judge scoring
+  // Judge cannot score while round is still open for submissions
+  if (state.submissionId) {
+    const rubricRes = await api("GET", `/judge/submissions/${state.submissionId}`, {
+      token: state.judgeToken,
+    });
+    const earlyRubrics = rubricRes.json?.data?.rubrics || [];
+    if (earlyRubrics.length > 0) {
+      res = await api("PUT", `/judge/submissions/${state.submissionId}/scores`, {
+        token: state.judgeToken,
+        body: {
+          scores: [
+            {
+              criterionId: earlyRubrics[0].id,
+              scoreValue: 7,
+              comment: "Should fail while round open",
+            },
+          ],
+        },
+      });
+      log("05 Judge blocked while round open", res.status === 400);
+    }
+  }
+
+  // 06 Judge scoring (after round closed — students can no longer edit submissions)
+  res = await api(
+    "PATCH",
+    `/organizer/events/${state.eventId}/rounds/${state.roundId}/status`,
+    { token: state.organizerToken, body: { status: "closed" } },
+  );
+  log("06 Close round for judging", res.ok);
+
   res = await api("GET", "/judge/events", { token: state.judgeToken });
   log("06 Judge events", res.ok && res.json?.data?.length >= 1);
 
@@ -323,12 +355,30 @@ async function run() {
     !!githubUrl,
     githubUrl || "missing githubUrl",
   );
+  log(
+    "06 Submission uses team repo",
+    !githubUrl || githubUrl === state.githubRepoUrl,
+    githubUrl || "n/a",
+  );
 
   const scores = rubrics.map((r, i) => ({
     criterionId: r.id,
     scoreValue: 8 + i * 0.5,
     comment: `Score for ${r.name}`,
   }));
+
+  if (scores.length > 1) {
+    res = await api("PUT", `/judge/submissions/${state.submissionId}/scores`, {
+      token: state.judgeToken,
+      body: { scores: [scores[0]] },
+    });
+    const partialStatus = res.json?.data?.scoringStatus;
+    log(
+      "06 Partial score status",
+      res.ok && partialStatus === "in_review",
+      `scoringStatus=${partialStatus}`,
+    );
+  }
 
   res = await api("PUT", `/judge/submissions/${state.submissionId}/scores`, {
     token: state.judgeToken,
@@ -342,13 +392,6 @@ async function run() {
   );
 
   // 07 Rankings & publish
-  res = await api(
-    "PATCH",
-    `/organizer/events/${state.eventId}/rounds/${state.roundId}/status`,
-    { token: state.organizerToken, body: { status: "closed" } },
-  );
-  log("07 Close round", res.ok);
-
   res = await api(
     "GET",
     `/organizer/events/${state.eventId}/rounds/${state.roundId}/rankings`,

@@ -707,14 +707,14 @@ export class TeamStudentService {
 
     let fileUrl = existingSubmission?.fileUrl ?? null;
     let fileKey = existingSubmission?.fileKey ?? null;
+    const previousFileKey = existingSubmission?.fileKey ?? null;
+    let uploadedFileKey: string | null = null;
 
     if (file) {
-      if (existingSubmission?.fileKey) {
-        await this.storageService.deleteFile(existingSubmission.fileKey);
-      }
       const trackPath = round.isTrackSpecific ? `/track-${team.trackId}` : "";
       const uploadPath = `submissions/event-${dto.eventId}/round-${dto.roundId}${trackPath}/team-${teamId}`;
       const uploaded = await this.storageService.uploadFile(file, uploadPath);
+      uploadedFileKey = uploaded.fileKey;
       fileUrl = uploaded.fileUrl;
       fileKey = uploaded.fileKey;
     }
@@ -737,30 +737,51 @@ export class TeamStudentService {
       fileName: file ? file.originalname : null,
     });
 
-    return this.prisma.submission.upsert({
-      where: { teamId_roundId: { teamId, roundId: dto.roundId } },
-      update: {
-        fileUrl,
-        fileKey,
-        githubUrl,
-        description: dto.description,
-        history,
-        submittedById: userId,
-        status: "submitted",
-        updatedAt: new Date(),
-      },
-      create: {
-        teamId,
-        roundId: dto.roundId,
-        fileUrl,
-        fileKey,
-        githubUrl,
-        description: dto.description,
-        history,
-        submittedById: userId,
-        status: "submitted",
-      },
-    });
+    const now = new Date();
+
+    try {
+      const submission = await this.prisma.submission.upsert({
+        where: { teamId_roundId: { teamId, roundId: dto.roundId } },
+        update: {
+          fileUrl,
+          fileKey,
+          githubUrl,
+          description: dto.description,
+          history,
+          submittedById: userId,
+          status: "submitted",
+          submittedAt: now,
+          updatedAt: now,
+        },
+        create: {
+          teamId,
+          roundId: dto.roundId,
+          fileUrl,
+          fileKey,
+          githubUrl,
+          description: dto.description,
+          history,
+          submittedById: userId,
+          status: "submitted",
+          submittedAt: now,
+        },
+      });
+
+      if (
+        uploadedFileKey &&
+        previousFileKey &&
+        previousFileKey !== uploadedFileKey
+      ) {
+        await this.storageService.deleteFile(previousFileKey);
+      }
+
+      return submission;
+    } catch (error) {
+      if (uploadedFileKey) {
+        await this.storageService.deleteFile(uploadedFileKey).catch(() => undefined);
+      }
+      throw error;
+    }
   }
 
   private async assertTeamCanSubmitInRound(
