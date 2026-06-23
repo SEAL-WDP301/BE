@@ -30,6 +30,7 @@ import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { StakeholderModule } from "./modules/stakeholder/stakeholder.module";
 import { SubmissionModule } from "./modules/submission/submission.module";
+import { FeedbackModule } from "./modules/feedback/feedback.module";
 
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
@@ -64,6 +65,7 @@ import { Logger } from "winston";
     StorageModule,
     StakeholderModule,
     SubmissionModule,
+    FeedbackModule,
   ],
 })
 export class AppModule implements NestModule {

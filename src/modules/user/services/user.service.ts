@@ -28,6 +28,7 @@ export interface CreateUserData {
   password: string | null;
   provider: Provider;
   googleId?: string;
+  githubId?: string;
   role?: Role;
   code?: string;
   phone?: string;
@@ -124,6 +125,13 @@ export class UserService implements OnApplicationBootstrap {
     return this.prisma.user.findUnique({ where: { googleId } });
   }
 
+  /**
+   * Find user by GitHub ID.
+   */
+  async findByGithubId(githubId: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { githubId } });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // WRITE operations
   // ─────────────────────────────────────────────────────────────────────────────
@@ -138,6 +146,7 @@ export class UserService implements OnApplicationBootstrap {
         name: data.fullName,
         passwordHash: data.password,
         googleId: data.googleId,
+        githubId: data.githubId,
         role: data.role ?? Role.student,
         avatarUrl: data.avatarUrl,
         isActive: data.isActive ?? true,
@@ -357,6 +366,23 @@ export class UserService implements OnApplicationBootstrap {
       where: { id },
       data: {
         googleId: data.googleId,
+        avatarUrl: data.avatarUrl,
+        isActive: data.isActive,
+      },
+    });
+  }
+
+  /**
+   * Update a user's GitHub info if they logged in with GitHub after another registration method.
+   */
+  async updateGithubAuthInfo(
+    id: number,
+    data: { githubId: string; avatarUrl?: string; isActive: boolean },
+  ): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        githubId: data.githubId,
         avatarUrl: data.avatarUrl,
         isActive: data.isActive,
       },

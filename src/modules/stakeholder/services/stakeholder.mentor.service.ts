@@ -71,31 +71,6 @@ export class StakeholderMentorService {
     return submission;
   }
 
-  async getFeedback(mentorId: number) {
-    return this.prisma.mentorFeedback.findMany({
-      where: {
-        mentorId,
-        team: {
-          mentorAssignments: { some: { mentorId } },
-        },
-      },
-      include: {
-        team: {
-          include: {
-            event: true,
-            track: true,
-          },
-        },
-        submission: {
-          include: {
-            round: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-  }
-
   private async ensureAssignedTeam(mentorId: number, teamId: number) {
     const assignment = await this.prisma.mentorAssignment.findUnique({
       where: {
