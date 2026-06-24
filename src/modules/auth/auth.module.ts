@@ -12,6 +12,7 @@ import { GithubStrategy } from "./strategies/github.strategy";
 import { UserModule } from "../user/user.module";
 import { RedisModule } from "../redis/redis.module";
 import { MailModule } from "../mail/mail.module";
+import { WsJwtGuard } from "./guards/ws-jwt.guard";
 
 /**
  * AuthModule — encapsulates authentication concerns.
@@ -39,7 +40,8 @@ import { MailModule } from "../mail/mail.module";
     JwtAuthGuard,
     GoogleOAuthGuard,
     GithubOAuthGuard,
+    WsJwtGuard,
   ],
-  exports: [AuthService, JwtAuthGuard],
+  exports: [AuthService, JwtAuthGuard, WsJwtGuard],
 })
 export class AuthModule {}

@@ -66,6 +66,7 @@ export class TeamStudentService {
                     name: true,
                     email: true,
                     avatarUrl: true,
+                    stakeholderProfile: true,
                   },
                 },
               },
@@ -585,7 +586,9 @@ export class TeamStudentService {
                 select: {
                   id: true,
                   name: true,
+                  email: true,
                   avatarUrl: true,
+                  stakeholderProfile: true,
                 },
               },
             },
@@ -639,7 +642,9 @@ export class TeamStudentService {
           select: {
             id: true,
             name: true,
+            email: true,
             avatarUrl: true,
+            stakeholderProfile: true,
           },
         },
         submission: {
