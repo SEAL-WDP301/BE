@@ -157,8 +157,8 @@ export class CriterionService {
     }
 
     for (const item of existing) {
-      if (item.round.status !== "not_started") {
-        throw new BadRequestException(`Round ${item.round.name} has already started`);
+      if (item.round.status !== "not_started" && item.round.status !== "open") {
+        throw new BadRequestException(`Round ${item.round.name} has already ended`);
       }
     }
 
@@ -204,9 +204,9 @@ export class CriterionService {
       );
     }
 
-    if (round.status !== "not_started") {
+    if (round.status !== "not_started" && round.status !== "open") {
       throw new BadRequestException(
-        "Can only manage grading criteria for rounds that have not started yet.",
+        "Can only manage grading criteria for rounds that have not started or are currently open.",
       );
     }
   }
