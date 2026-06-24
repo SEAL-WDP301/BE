@@ -201,7 +201,9 @@ export class SubmissionJudgeService {
       where: { id: submissionId },
       include: {
         team: { select: { trackId: true, status: true } },
-        round: { select: { id: true, status: true } },
+        round: {
+          select: { id: true, status: true, submissionDeadline: true },
+        },
       },
     });
 
@@ -221,8 +223,8 @@ export class SubmissionJudgeService {
       judgeId,
       submission.roundId,
       submission.team.trackId,
-      true,
     );
+    this.assertRoundAllowsScoring(submission.round);
 
     const rubrics = await this.getApplicableCriteria(
       submission.roundId,
@@ -286,14 +288,45 @@ export class SubmissionJudgeService {
       submission.team.trackId,
     );
 
+    const scoredCount = await this.prisma.score.count({
+      where: { submissionId, judgeId },
+    });
+
     return {
       scores: savedScores,
-      scoringStatus: this.resolveScoringStatus(
-        savedScores.length,
-        rubrics.length,
-      ),
+      scoringStatus: this.resolveScoringStatus(scoredCount, rubrics.length),
       weightedScore,
     };
+  }
+
+  private assertRoundAllowsScoring(round: {
+    status: RoundStatus;
+    submissionDeadline: Date | null;
+  }) {
+    if (round.status === RoundStatus.not_started) {
+      throw new BadRequestException("This round has not started yet");
+    }
+
+    if (round.status === RoundStatus.results_published) {
+      throw new BadRequestException(
+        "Results have been published; scoring is locked",
+      );
+    }
+
+    if (round.status === RoundStatus.closed) {
+      return;
+    }
+
+    if (
+      round.submissionDeadline &&
+      round.submissionDeadline <= new Date()
+    ) {
+      return;
+    }
+
+    throw new BadRequestException(
+      "Scores can be submitted after the round is closed or the submission deadline has passed",
+    );
   }
 
   private buildAnonymousLabelMap(
@@ -354,7 +387,6 @@ export class SubmissionJudgeService {
     judgeId: number,
     roundId: number,
     teamTrackId?: number,
-    requireOpenRound = false,
   ) {
     const round = await this.prisma.round.findUnique({
       where: { id: roundId },
@@ -363,12 +395,6 @@ export class SubmissionJudgeService {
 
     if (!round) {
       throw new NotFoundException("Round not found");
-    }
-
-    if (requireOpenRound && round.status !== RoundStatus.open) {
-      throw new BadRequestException(
-        "Scores can only be submitted while the round is open",
-      );
     }
 
     const assignments = await this.prisma.judgeAssignment.findMany({
