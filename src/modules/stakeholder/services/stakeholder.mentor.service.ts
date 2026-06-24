@@ -71,6 +71,36 @@ export class StakeholderMentorService {
     return submission;
   }
 
+  async createFeedback(mentorId: number, submissionId: number, content: string) {
+    const submission = await this.prisma.submission.findUnique({ where: { id: submissionId } });
+    if (!submission) throw new NotFoundException("Submission not found");
+    await this.ensureAssignedTeam(mentorId, submission.teamId);
+    return this.prisma.mentorFeedback.create({
+      data: {
+        mentorId,
+        teamId: submission.teamId,
+        submissionId,
+        content,
+        status: "unread",
+      }
+    });
+  }
+
+  async updateFeedback(mentorId: number, feedbackId: number, content: string) {
+    const feedback = await this.prisma.mentorFeedback.findFirst({ where: { id: feedbackId, mentorId } });
+    if (!feedback) throw new NotFoundException("Feedback not found");
+    return this.prisma.mentorFeedback.update({
+      where: { id: feedbackId },
+      data: { content }
+    });
+  }
+
+  async deleteFeedback(mentorId: number, feedbackId: number) {
+    const feedback = await this.prisma.mentorFeedback.findFirst({ where: { id: feedbackId, mentorId } });
+    if (!feedback) throw new NotFoundException("Feedback not found");
+    return this.prisma.mentorFeedback.delete({ where: { id: feedbackId } });
+  }
+
   private async ensureAssignedTeam(mentorId: number, teamId: number) {
     const assignment = await this.prisma.mentorAssignment.findUnique({
       where: {

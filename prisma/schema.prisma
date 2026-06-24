@@ -418,6 +418,7 @@ model MentorFeedback {
   teamId       Int      @map("team_id")
   submissionId Int      @map("submission_id")
   content      String
+  status       FeedbackStatus @default(unread)
   createdAt    DateTime @default(now()) @map("created_at")
 
   mentor     User       @relation(fields: [mentorId], references: [id], onDelete: Cascade)
@@ -443,4 +444,11 @@ model Notification {
   event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@map("notifications")
+}
+
+
+enum FeedbackStatus {
+  unread
+  acknowledged
+  completed
 }

@@ -1,6 +1,10 @@
 import {
   Controller,
   Get,
+  Post,
+  Put,
+  Delete,
+  Body,
   Param,
   ParseIntPipe,
   UseGuards,
@@ -80,6 +84,44 @@ export class StakeholderMentorController {
         mentorId,
         submissionId,
       ),
+    };
+  }
+
+  @Post("submissions/:submissionId/feedback")
+  @ApiOperation({ summary: "Create feedback for a submission" })
+  async createFeedback(
+    @CurrentUser("id") mentorId: number,
+    @Param("submissionId", ParseIntPipe) submissionId: number,
+    @Body("content") content: string,
+  ) {
+    return {
+      message: "Feedback created successfully",
+      data: await this.stakeholderMentorService.createFeedback(mentorId, submissionId, content),
+    };
+  }
+
+  @Put("submissions/:submissionId/feedback/:feedbackId")
+  @ApiOperation({ summary: "Update feedback for a submission" })
+  async updateFeedback(
+    @CurrentUser("id") mentorId: number,
+    @Param("feedbackId", ParseIntPipe) feedbackId: number,
+    @Body("content") content: string,
+  ) {
+    return {
+      message: "Feedback updated successfully",
+      data: await this.stakeholderMentorService.updateFeedback(mentorId, feedbackId, content),
+    };
+  }
+
+  @Delete("submissions/:submissionId/feedback/:feedbackId")
+  @ApiOperation({ summary: "Delete feedback for a submission" })
+  async deleteFeedback(
+    @CurrentUser("id") mentorId: number,
+    @Param("feedbackId", ParseIntPipe) feedbackId: number,
+  ) {
+    return {
+      message: "Feedback deleted successfully",
+      data: await this.stakeholderMentorService.deleteFeedback(mentorId, feedbackId),
     };
   }
 }
