@@ -26,7 +26,6 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RegisterTeamDto } from "../dto/register-team.dto";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
-import { SubmitProjectDto } from "../dto/submit-project.dto";
 
 @ApiTags("Student/Teams")
 @ApiBearerAuth()
@@ -158,23 +157,6 @@ export class TeamStudentController {
       eventId,
     );
     return { message: "Mentor feedback fetched", data };
-  }
-
-  @Post("my-team/submissions")
-  @ApiOperation({ summary: "Submit project for a round" })
-  @ApiConsumes("multipart/form-data")
-  @UseInterceptors(FileInterceptor("file"))
-  async submitProject(
-    @CurrentUser("id") userId: string,
-    @Body() dto: SubmitProjectDto,
-    @UploadedFile() file?: Express.Multer.File,
-  ) {
-    const submission = await this.teamStudentService.submitProject(
-      Number(userId),
-      dto,
-      file,
-    );
-    return { message: "Project submitted successfully", data: submission };
   }
 
   @Post(":teamId/transfer-leadership/:newLeaderId")
