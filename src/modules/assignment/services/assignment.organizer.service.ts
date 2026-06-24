@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 
 @Injectable()
-export class StakeholderOrganizerService {
+export class AssignmentOrganizerService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStakeholdersByEvent(eventId: number) {

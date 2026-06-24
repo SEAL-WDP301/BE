@@ -28,7 +28,7 @@ import { EventModule } from "./modules/event/event.module";
 import { RubricModule } from "./modules/rubric/rubric.module";
 import { TeamModule } from "./modules/team/team.module";
 import { StorageModule } from "./modules/storage/storage.module";
-import { StakeholderModule } from "./modules/stakeholder/stakeholder.module";
+import { AssignmentModule } from "./modules/assignment/assignment.module";
 import { SubmissionModule } from "./modules/submission/submission.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
 
@@ -63,7 +63,7 @@ import { Logger } from "winston";
     RubricModule,
     TeamModule,
     StorageModule,
-    StakeholderModule,
+    AssignmentModule,
     SubmissionModule,
     FeedbackModule,
   ],

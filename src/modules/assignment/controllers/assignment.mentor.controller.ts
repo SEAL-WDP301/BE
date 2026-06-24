@@ -15,16 +15,16 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
-import { StakeholderMentorService } from "../services/stakeholder.mentor.service";
+import { AssignmentMentorService } from "../services/assignment.mentor.service";
 
 @ApiTags("Mentor")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STAKEHOLDER)
 @Controller("mentor")
-export class StakeholderMentorController {
+export class AssignmentMentorController {
   constructor(
-    private readonly stakeholderMentorService: StakeholderMentorService,
+    private readonly assignmentMentorService: AssignmentMentorService,
   ) {}
 
   @Get("teams")
@@ -32,7 +32,7 @@ export class StakeholderMentorController {
   async getTeams(@CurrentUser("id") mentorId: number) {
     return {
       message: "Mentor teams fetched",
-      data: await this.stakeholderMentorService.getTeams(mentorId),
+      data: await this.assignmentMentorService.getTeams(mentorId),
     };
   }
 
@@ -44,7 +44,7 @@ export class StakeholderMentorController {
   ) {
     return {
       message: "Mentor team fetched",
-      data: await this.stakeholderMentorService.getTeamById(mentorId, teamId),
+      data: await this.assignmentMentorService.getTeamById(mentorId, teamId),
     };
   }
 
@@ -56,7 +56,7 @@ export class StakeholderMentorController {
   ) {
     return {
       message: "Team submissions fetched",
-      data: await this.stakeholderMentorService.getTeamSubmissions(
+      data: await this.assignmentMentorService.getTeamSubmissions(
         mentorId,
         teamId,
       ),
@@ -68,7 +68,7 @@ export class StakeholderMentorController {
   async getSubmissions(@CurrentUser("id") mentorId: number) {
     return {
       message: "Mentor submissions fetched",
-      data: await this.stakeholderMentorService.getSubmissions(mentorId),
+      data: await this.assignmentMentorService.getSubmissions(mentorId),
     };
   }
 
@@ -80,48 +80,10 @@ export class StakeholderMentorController {
   ) {
     return {
       message: "Mentor submission fetched",
-      data: await this.stakeholderMentorService.getSubmissionById(
+      data: await this.assignmentMentorService.getSubmissionById(
         mentorId,
         submissionId,
       ),
-    };
-  }
-
-  @Post("submissions/:submissionId/feedback")
-  @ApiOperation({ summary: "Create feedback for a submission" })
-  async createFeedback(
-    @CurrentUser("id") mentorId: number,
-    @Param("submissionId", ParseIntPipe) submissionId: number,
-    @Body("content") content: string,
-  ) {
-    return {
-      message: "Feedback created successfully",
-      data: await this.stakeholderMentorService.createFeedback(mentorId, submissionId, content),
-    };
-  }
-
-  @Put("submissions/:submissionId/feedback/:feedbackId")
-  @ApiOperation({ summary: "Update feedback for a submission" })
-  async updateFeedback(
-    @CurrentUser("id") mentorId: number,
-    @Param("feedbackId", ParseIntPipe) feedbackId: number,
-    @Body("content") content: string,
-  ) {
-    return {
-      message: "Feedback updated successfully",
-      data: await this.stakeholderMentorService.updateFeedback(mentorId, feedbackId, content),
-    };
-  }
-
-  @Delete("submissions/:submissionId/feedback/:feedbackId")
-  @ApiOperation({ summary: "Delete feedback for a submission" })
-  async deleteFeedback(
-    @CurrentUser("id") mentorId: number,
-    @Param("feedbackId", ParseIntPipe) feedbackId: number,
-  ) {
-    return {
-      message: "Feedback deleted successfully",
-      data: await this.stakeholderMentorService.deleteFeedback(mentorId, feedbackId),
     };
   }
 }

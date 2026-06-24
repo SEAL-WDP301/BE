@@ -42,6 +42,6 @@ import { WsJwtGuard } from "./guards/ws-jwt.guard";
     GithubOAuthGuard,
     WsJwtGuard,
   ],
-  exports: [AuthService, JwtAuthGuard, WsJwtGuard],
+  exports: [AuthService, JwtAuthGuard, WsJwtGuard, JwtModule],
 })
 export class AuthModule {}

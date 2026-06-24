@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { CreateMentorFeedbackDto } from "../dto/create-mentor-feedback.dto";
+import { FeedbackGateway } from "../gateways/feedback.gateway";
 
 @Injectable()
 export class MentorFeedbackService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly feedbackGateway: FeedbackGateway
+  ) {}
 
   async findAllByMentor(mentorId: number) {
     return this.prisma.mentorFeedback.findMany({
@@ -38,15 +42,19 @@ export class MentorFeedbackService {
       throw new NotFoundException("Assigned team submission not found");
     }
 
-    return this.prisma.mentorFeedback.create({
+    const feedback = await this.prisma.mentorFeedback.create({
       data: {
         mentorId,
         teamId: submission.teamId,
         submissionId: submission.id,
         content: dto.content.trim(),
+        status: "unread",
       },
       include: this.feedbackInclude(),
     });
+    
+    this.feedbackGateway.notifyFeedbackUpdated(submission.teamId);
+    return feedback;
   }
 
   async update(
@@ -54,18 +62,23 @@ export class MentorFeedbackService {
     feedbackId: number,
     dto: CreateMentorFeedbackDto,
   ) {
-    await this.ensureOwnedFeedback(mentorId, feedbackId);
+    const feedback = await this.ensureOwnedFeedback(mentorId, feedbackId);
 
-    return this.prisma.mentorFeedback.update({
+    const updated = await this.prisma.mentorFeedback.update({
       where: { id: feedbackId },
       data: { content: dto.content.trim() },
       include: this.feedbackInclude(),
     });
+
+    this.feedbackGateway.notifyFeedbackUpdated(feedback.teamId);
+    return updated;
   }
 
   async remove(mentorId: number, feedbackId: number) {
-    await this.ensureOwnedFeedback(mentorId, feedbackId);
-    return this.prisma.mentorFeedback.delete({ where: { id: feedbackId } });
+    const feedback = await this.ensureOwnedFeedback(mentorId, feedbackId);
+    const deleted = await this.prisma.mentorFeedback.delete({ where: { id: feedbackId } });
+    this.feedbackGateway.notifyFeedbackUpdated(feedback.teamId);
+    return deleted;
   }
 
   private async ensureOwnedFeedback(mentorId: number, feedbackId: number) {
@@ -77,12 +90,14 @@ export class MentorFeedbackService {
           mentorAssignments: { some: { mentorId } },
         },
       },
-      select: { id: true },
+      select: { id: true, teamId: true },
     });
 
     if (!feedback) {
       throw new NotFoundException("Mentor feedback not found");
     }
+    
+    return feedback;
   }
 
   private feedbackInclude() {

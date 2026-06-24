@@ -6,18 +6,18 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { StakeholderOrganizerService } from "../services/stakeholder.organizer.service";
+import { AssignmentOrganizerService } from "../services/Assignment.organizer.service";
 import { AssignJudgeDto } from "../dto/assign-judge.dto";
 import { AssignMentorDto } from "../dto/assign-mentor.dto";
 
-@ApiTags("Organizer/Stakeholders")
+@ApiTags("Organizer/stakeholders")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ORGANIZER, Role.ADMIN)
 @Controller("organizer/stakeholders")
-export class StakeholderOrganizerController {
+export class AssignmentOrganizerController {
   // eslint-disable-next-line prettier/prettier
-  constructor(private readonly stakeholderOrganizerService: StakeholderOrganizerService) { }
+  constructor(private readonly AssignmentOrganizerService: AssignmentOrganizerService) { }
 
   @Get("events/:eventId")
   // eslint-disable-next-line prettier/prettier
@@ -25,8 +25,8 @@ export class StakeholderOrganizerController {
   // eslint-disable-next-line prettier/prettier
   async getStakeholdersByEvent(@Param("eventId", ParseIntPipe) eventId: number) {
     // eslint-disable-next-line prettier/prettier
-    const stakeholders = await this.stakeholderOrganizerService.getStakeholdersByEvent(eventId);
-    return { message: "Stakeholders fetched", data: stakeholders };
+    const stakeholders = await this.AssignmentOrganizerService.getStakeholdersByEvent(eventId);
+    return { message: "stakeholders fetched", data: stakeholders };
   }
 
   @Post("events/:eventId/judges")
@@ -36,7 +36,7 @@ export class StakeholderOrganizerController {
     @CurrentUser("id") adminId: string,
     @Body() dto: AssignJudgeDto,
   ) {
-    const assignment = await this.stakeholderOrganizerService.assignJudges(
+    const assignment = await this.AssignmentOrganizerService.assignJudges(
       eventId,
       dto.stakeholderIds,
       dto.roundId,
@@ -46,11 +46,11 @@ export class StakeholderOrganizerController {
     return { message: "Judges assigned successfully", data: assignment };
   }
 
-  @Delete("judges/:assignmentId")
+  @Delete("judges/:stakeholderId")
   @ApiOperation({ summary: "Unassign a judge" })
   // eslint-disable-next-line prettier/prettier
-  async unassignJudge(@Param("assignmentId", ParseIntPipe) assignmentId: number) {
-    await this.stakeholderOrganizerService.unassignJudge(assignmentId);
+  async unassignJudge(@Param("stakeholderId", ParseIntPipe) stakeholderId: number) {
+    await this.AssignmentOrganizerService.unassignJudge(stakeholderId);
     return { message: "Judge unassigned successfully" };
   }
 
@@ -61,7 +61,7 @@ export class StakeholderOrganizerController {
     @CurrentUser("id") adminId: string,
     @Body() dto: AssignMentorDto,
   ) {
-    const assignment = await this.stakeholderOrganizerService.assignMentor(
+    const assignment = await this.AssignmentOrganizerService.assignMentor(
       teamId,
       dto.stakeholderId,
       Number(adminId),
@@ -76,7 +76,7 @@ export class StakeholderOrganizerController {
     @Param("stakeholderId", ParseIntPipe) stakeholderId: number,
   ) {
     // eslint-disable-next-line prettier/prettier
-    await this.stakeholderOrganizerService.unassignMentor(teamId, stakeholderId);
+    await this.AssignmentOrganizerService.unassignMentor(teamId, stakeholderId);
     return { message: "Mentor unassigned successfully" };
   }
 
@@ -88,7 +88,7 @@ export class StakeholderOrganizerController {
     // eslint-disable-next-line prettier/prettier
     @Body() dto: { stakeholderId: number; teamIds: number[] }
   ) {
-    const result = await this.stakeholderOrganizerService.bulkAssignMentor(
+    const result = await this.AssignmentOrganizerService.bulkAssignMentor(
       dto.stakeholderId,
       dto.teamIds,
       Number(adminId),
