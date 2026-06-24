@@ -23,7 +23,7 @@ import { Provider } from "../../../common/enums/provider.enum";
 import { User } from "@prisma/client";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
-import { APP_CONSTANTS } from "@common/constants/app.constant";
+import { APP_CONSTANTS } from "../../../common/constants/app.constant";
 
 @Injectable()
 export class AuthService {

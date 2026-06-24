@@ -6,15 +6,15 @@ import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { AssignmentOrganizerService } from "../services/Assignment.organizer.service";
+import { AssignmentOrganizerService } from "../services/assignment.organizer.service";
 import { AssignJudgeDto } from "../dto/assign-judge.dto";
 import { AssignMentorDto } from "../dto/assign-mentor.dto";
 
-@ApiTags("Organizer/stakeholders")
+@ApiTags("Organizer/assignments")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ORGANIZER, Role.ADMIN)
-@Controller("organizer/stakeholders")
+@Controller("organizer/assignments")
 export class AssignmentOrganizerController {
   // eslint-disable-next-line prettier/prettier
   constructor(private readonly AssignmentOrganizerService: AssignmentOrganizerService) { }
