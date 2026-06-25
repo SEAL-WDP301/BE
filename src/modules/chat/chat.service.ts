@@ -172,4 +172,58 @@ export class ChatService {
       }
     }));
   }
+
+  async editMessage(userId: number, role: string, messageId: number, content: string) {
+    const message = await this.prisma.teamMessage.findUnique({ where: { id: messageId } });
+    if (!message) throw new NotFoundException('Message not found');
+
+    if (message.senderId !== userId && role !== 'admin' && role !== 'organizer') {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+
+    const updated = await this.prisma.teamMessage.update({
+      where: { id: messageId },
+      data: { content, isEdited: true },
+      include: {
+        sender: { select: { id: true, name: true, avatarUrl: true, role: true } },
+        reads: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } }
+      }
+    });
+
+    const team = await this.prisma.team.findUnique({ where: { id: updated.teamId } });
+    return {
+      ...updated,
+      sender: {
+        ...updated.sender,
+        role: updated.sender.id === team?.leaderId ? 'Leader' : updated.sender.role
+      }
+    };
+  }
+
+  async deleteMessage(userId: number, role: string, messageId: number) {
+    const message = await this.prisma.teamMessage.findUnique({ where: { id: messageId } });
+    if (!message) throw new NotFoundException('Message not found');
+
+    if (message.senderId !== userId && role !== 'admin' && role !== 'organizer') {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    const updated = await this.prisma.teamMessage.update({
+      where: { id: messageId },
+      data: { isDeleted: true },
+      include: {
+        sender: { select: { id: true, name: true, avatarUrl: true, role: true } },
+        reads: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } }
+      }
+    });
+
+    const team = await this.prisma.team.findUnique({ where: { id: updated.teamId } });
+    return {
+      ...updated,
+      sender: {
+        ...updated.sender,
+        role: updated.sender.id === team?.leaderId ? 'Leader' : updated.sender.role
+      }
+    };
+  }
 }

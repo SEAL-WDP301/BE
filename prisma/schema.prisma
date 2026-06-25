@@ -462,6 +462,9 @@ model TeamMessage {
   senderId  Int      @map("sender_id")
   content   String   @db.Text
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  isEdited  Boolean  @default(false) @map("is_edited")
+  isDeleted Boolean  @default(false) @map("is_deleted")
 
   team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)

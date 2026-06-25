@@ -106,4 +106,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(roomName).emit('messages_read_updated', updatedMessages);
     }
   }
+  @SubscribeMessage('edit_chat_message')
+  async handleEditMessage(
+    @MessageBody() data: { messageId: number; content: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!client.data.user) return;
+    const userId = Number(client.data.user.sub || client.data.user.id);
+    const role = client.data.user.role;
+    
+    try {
+      const updatedMessage = await this.chatService.editMessage(userId, role, data.messageId, data.content);
+      const roomName = `team_${updatedMessage.teamId}`;
+      this.server.to(roomName).emit('chat_message_edited', updatedMessage);
+      return updatedMessage;
+    } catch (e) {
+      console.error(e);
+      return { error: e.message };
+    }
+  }
+
+  @SubscribeMessage('delete_chat_message')
+  async handleDeleteMessage(
+    @MessageBody() data: { messageId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!client.data.user) return;
+    const userId = Number(client.data.user.sub || client.data.user.id);
+    const role = client.data.user.role;
+    
+    try {
+      const deletedMessage = await this.chatService.deleteMessage(userId, role, data.messageId);
+      const roomName = `team_${deletedMessage.teamId}`;
+      this.server.to(roomName).emit('chat_message_deleted', deletedMessage);
+      return deletedMessage;
+    } catch (e) {
+      console.error(e);
+      return { error: e.message };
+    }
+  }
 }

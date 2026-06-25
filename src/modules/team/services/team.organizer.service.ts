@@ -37,9 +37,9 @@ export class TeamOrganizerService {
       },
       include: {
         track: true,
-        leader: { select: { id: true, name: true, email: true, studentProfile: true } },
-        members: { include: { user: { select: { id: true, name: true, email: true, studentProfile: true } } } },
-        mentorAssignments: { include: { mentor: { select: { id: true, name: true, email: true } } } },
+        leader: { select: { id: true, name: true, email: true, avatarUrl: true, studentProfile: true } },
+        members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, studentProfile: true } } } },
+        mentorAssignments: { include: { mentor: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
         teamRounds: { include: { round: true } },
       },
     });
@@ -53,7 +53,7 @@ export class TeamOrganizerService {
       },
       include: {
         leader: {
-          select: { id: true, name: true, email: true, studentProfile: true },
+          select: { id: true, name: true, email: true, avatarUrl: true, studentProfile: true },
         },
         members: {
           include: {
@@ -62,6 +62,7 @@ export class TeamOrganizerService {
                 id: true,
                 name: true,
                 email: true,
+                avatarUrl: true,
                 studentProfile: true,
               },
             },

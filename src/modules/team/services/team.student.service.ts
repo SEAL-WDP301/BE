@@ -53,6 +53,7 @@ export class TeamStudentService {
                   select: {
                     email: true,
                     name: true,
+                    avatarUrl: true,
                   },
                 },
               },
