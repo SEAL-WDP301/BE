@@ -132,6 +132,8 @@ model User {
   mentorFeedbacks              MentorFeedback[]
   notifications                Notification[]
   studentRegistrationsReviewed StudentRegistration[] @relation("RegistrationReviewedBy")
+  sentMessages                 TeamMessage[]
+  readMessages                 TeamMessageRead[]
 
   @@map("users")
 }
@@ -277,6 +279,7 @@ model Team {
   mentorAssignments MentorAssignment[]
   mentorFeedbacks   MentorFeedback[]
   teamRounds        TeamRound[]
+  teamMessages      TeamMessage[]
 
   @@map("teams")
 }
@@ -451,4 +454,31 @@ enum FeedbackStatus {
   unread
   acknowledged
   completed
+}
+
+model TeamMessage {
+  id        Int      @id @default(autoincrement())
+  teamId    Int      @map("team_id")
+  senderId  Int      @map("sender_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reads  TeamMessageRead[]
+
+  @@map("team_messages")
+}
+
+model TeamMessageRead {
+  id        Int      @id @default(autoincrement())
+  messageId Int      @map("message_id")
+  userId    Int      @map("user_id")
+  readAt    DateTime @default(now()) @map("read_at")
+
+  message TeamMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("team_message_reads")
 }
