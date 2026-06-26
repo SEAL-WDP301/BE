@@ -15,12 +15,14 @@ import { MailModule } from "../mail/mail.module";
   controllers: [
     EventOrganizerController,
     EventPublicController,
+    EventJudgeController,
   ],
   providers: [
     EventOrganizerService,
     EventPublicService,
     CriterionService,
     RoundRankingService,
+    EventJudgeService,
   ],
   exports: [
     EventOrganizerService,

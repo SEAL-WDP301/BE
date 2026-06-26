@@ -64,16 +64,19 @@ export class EventJudgeService {
         });
       }
 
-      eventsMap.get(event.id)!.rounds.push({
-        assignmentId: assignment.id,
-        roundId: assignment.roundId,
-        roundNumber: assignment.round.roundNumber,
-        roundName: assignment.round.name,
-        roundStatus: assignment.round.status,
-        submissionDeadline: assignment.round.submissionDeadline,
-        trackId: assignment.trackId,
-        trackName: assignment.track?.name ?? null,
-      });
+      const currentRounds = eventsMap.get(event.id)!.rounds;
+      if (!currentRounds.some(r => r.roundId === assignment.roundId)) {
+        currentRounds.push({
+          assignmentId: assignment.id,
+          roundId: assignment.roundId,
+          roundNumber: assignment.round.roundNumber,
+          roundName: assignment.round.name,
+          roundStatus: assignment.round.status,
+          submissionDeadline: assignment.round.submissionDeadline,
+          trackId: assignment.trackId,
+          trackName: assignment.track?.name ?? null,
+        });
+      }
     }
 
     return Array.from(eventsMap.values());
