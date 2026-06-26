@@ -237,7 +237,6 @@ export class EventOrganizerService {
   }
 
 
-
   async deleteEvent(id: number) {
     await this.getEventById(id);
     return this.prisma.event.delete({ where: { id } });

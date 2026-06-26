@@ -44,6 +44,7 @@ export class EventJudgeService {
           roundNumber: number;
           roundName: string;
           roundStatus: RoundStatus;
+          submissionDeadline: Date | null;
           trackId: number | null;
           trackName: string | null;
         }>;
@@ -69,6 +70,7 @@ export class EventJudgeService {
         roundNumber: assignment.round.roundNumber,
         roundName: assignment.round.name,
         roundStatus: assignment.round.status,
+        submissionDeadline: assignment.round.submissionDeadline,
         trackId: assignment.trackId,
         trackName: assignment.track?.name ?? null,
       });
