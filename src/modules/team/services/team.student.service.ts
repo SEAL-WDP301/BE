@@ -6,7 +6,14 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { TeamMemberRole, TeamMemberStatus, TeamStatus, SubmissionType, RoundResultStatus } from "@prisma/client";
+import {
+  TeamMemberRole,
+  TeamMemberStatus,
+  TeamStatus,
+  SubmissionType,
+  RoundResultStatus,
+  RoundStatus,
+} from "@prisma/client";
 import { MailService } from "../../mail/mail.service";
 import { StorageService } from "../../storage/storage.service";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
@@ -21,6 +28,41 @@ export class TeamStudentService {
     private readonly mailService: MailService,
     private readonly storageService: StorageService,
   ) {}
+
+  async getMyEvents(userId: number) {
+    const teams = await this.prisma.team.findMany({
+      where: {
+        OR: [
+          { leaderId: userId },
+          {
+            members: {
+              some: { userId, status: TeamMemberStatus.accepted },
+            },
+          },
+        ],
+        status: { in: [TeamStatus.approved, TeamStatus.pending] },
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            season: true,
+            year: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return teams.map((team) => ({
+      teamId: team.id,
+      teamName: team.name,
+      teamStatus: team.status,
+      event: team.event,
+    }));
+  }
 
   async getRegistrationStatus(eventId: number, userId: number) {
     const registration = await this.prisma.studentRegistration.findUnique({
@@ -564,24 +606,50 @@ export class TeamStudentService {
     const now = new Date();
     const teamStatus = teamMember.team.status;
 
-    const currentActiveRound = rounds.find((round) => {
-      if (round.status !== "open") return false;
-      if (round.submissionDeadline && round.submissionDeadline <= now) {
-        return false;
-      }
+    const teamApproved = teamStatus === TeamStatus.approved;
 
-      const teamRound = round.teamRounds[0];
-      if (teamRound?.status === RoundResultStatus.eliminated) {
-        return false;
-      }
-      if (round.roundNumber > 1 && !teamRound) {
-        return false;
-      }
+    const submissions = await this.prisma.submission.findMany({
+      where: { teamId, round: { eventId } },
+      orderBy: { round: { roundNumber: "asc" } },
+    });
+    const submissionByRoundId = new Map(
+      submissions.map((submission) => [submission.roundId, submission]),
+    );
 
-      return true;
+    const roundSubmissions = rounds.map((round) => {
+      const teamRound = round.teamRounds[0] ?? null;
+      const submission = submissionByRoundId.get(round.id) ?? null;
+      const access = this.resolveRoundSubmissionAccess(
+        round,
+        teamRound,
+        teamApproved,
+        now,
+      );
+
+      return {
+        round: {
+          id: round.id,
+          roundNumber: round.roundNumber,
+          name: round.name,
+          status: round.status,
+          submissionType: round.submissionType,
+          submissionDeadline: round.submissionDeadline,
+          maxFileSizeMb: round.maxFileSizeMb,
+          isTrackSpecific: round.isTrackSpecific,
+        },
+        teamRound: teamRound
+          ? { status: teamRound.status, score: teamRound.score }
+          : null,
+        submission,
+        canSubmit: access.canSubmit,
+        canView: access.canView,
+        lockReason: access.lockReason,
+      };
     });
 
-    // Bài nộp gần nhất nếu có vòng đang diễn ra
+    const currentActiveRound =
+      roundSubmissions.find((entry) => entry.canSubmit)?.round ?? null;
+
     let latestSubmission = null;
     if (currentActiveRound) {
       latestSubmission = await this.prisma.submission.findUnique({
@@ -615,11 +683,88 @@ export class TeamStudentService {
     return {
       team: teamMember.team,
       role: teamMember.role,
-      canSubmit: teamStatus === TeamStatus.approved,
+      canSubmit: teamApproved,
       rounds,
+      roundSubmissions,
       currentActiveRound,
       latestSubmission,
       mentorFeedbacks,
+    };
+  }
+
+  private resolveRoundSubmissionAccess(
+    round: {
+      roundNumber: number;
+      status: RoundStatus;
+      submissionDeadline: Date | null;
+    },
+    teamRound: { status: RoundResultStatus } | null,
+    teamApproved: boolean,
+    now: Date,
+  ) {
+    if (!teamApproved) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "Your team must be approved before submitting",
+      };
+    }
+
+    if (teamRound?.status === RoundResultStatus.eliminated) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "Your team has been eliminated from this round",
+      };
+    }
+
+    if (round.roundNumber > 1 && !teamRound) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "Waiting for previous round results",
+      };
+    }
+
+    if (round.status === RoundStatus.not_started) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "This round has not started yet",
+      };
+    }
+
+    if (
+      round.status === RoundStatus.closed ||
+      round.status === RoundStatus.results_published
+    ) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "Submission for this round is closed",
+      };
+    }
+
+    if (round.submissionDeadline && round.submissionDeadline <= now) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "Submission deadline has passed",
+      };
+    }
+
+    if (round.status !== RoundStatus.open) {
+      return {
+        canView: true,
+        canSubmit: false,
+        lockReason: "Submission for this round is not open",
+      };
+    }
+
+    return {
+      canView: true,
+      canSubmit: true,
+      lockReason: null,
     };
   }
 

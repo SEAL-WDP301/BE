@@ -177,7 +177,6 @@ export class TeamOrganizerService {
     });
   }
 
-
   async bulkDeleteTeams(teamIds: number[]) {
     return this.prisma.team.deleteMany({
       where: {

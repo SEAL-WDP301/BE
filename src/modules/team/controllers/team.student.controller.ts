@@ -35,6 +35,13 @@ import { RegisterIndividualDto } from "../dto/register-individual.dto";
 export class TeamStudentController {
   constructor(private readonly teamStudentService: TeamStudentService) {}
 
+  @Get("my-events")
+  @ApiOperation({ summary: "List events where the student has a team" })
+  async getMyEvents(@CurrentUser("id") userId: string) {
+    const data = await this.teamStudentService.getMyEvents(Number(userId));
+    return { message: "Student events fetched", data };
+  }
+
   @Get("status/:eventId")
   @ApiOperation({ summary: "Get student registration status for an event" })
   async getRegistrationStatus(

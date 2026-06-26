@@ -98,6 +98,7 @@ export class SubmissionJudgeService {
           track: submission.team.track,
           status: submission.status,
           submittedAt: submission.submittedAt,
+          githubUrl: submission.githubUrl ?? submission.team.githubRepoUrl,
           scoringStatus: this.resolveScoringStatus(scoredCount, criteriaCount),
           scoredCriteria: scoredCount,
           totalCriteria: criteriaCount,
