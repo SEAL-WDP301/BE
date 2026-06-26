@@ -417,6 +417,57 @@ async function run() {
   );
   log("07 Open round 2", res.ok, `round2Id=${state.round2Id}`);
 
+  // 08 Multi-round submissions (workspace overview)
+  res = await api(
+    "GET",
+    `/student/teams/my-team/workspace?eventId=${state.eventId}`,
+    { token: state.studentToken },
+  );
+  const roundSubs = res.json?.data?.roundSubmissions || [];
+  const round1Entry = roundSubs.find((r) => r.round.id === state.roundId);
+  const round2Entry = roundSubs.find((r) => r.round.id === state.round2Id);
+  log("08 Round submissions list", roundSubs.length >= 2, `count=${roundSubs.length}`);
+  log(
+    "08 Round 1 has submission",
+    !!round1Entry?.submission,
+    round1Entry?.submission?.id ? `id=${round1Entry.submission.id}` : "missing",
+  );
+  log(
+    "08 Round 2 can submit",
+    round2Entry?.canSubmit === true,
+    `canSubmit=${round2Entry?.canSubmit}`,
+  );
+
+  res = await api("POST", "/student/teams/my-team/submissions", {
+    token: state.studentToken,
+    body: {
+      eventId: state.eventId,
+      roundId: state.round2Id,
+      ...(state.githubRepoUrl ? { githubUrl: state.githubRepoUrl } : {}),
+      description: "Flow test round 2 submission",
+    },
+  });
+  log("08 Submit round 2", res.ok);
+  state.submission2Id = res.json?.data?.id;
+
+  res = await api(
+    "GET",
+    `/student/teams/my-team/workspace?eventId=${state.eventId}`,
+    { token: state.studentToken },
+  );
+  const round2After = res.json?.data?.roundSubmissions?.find(
+    (r) => r.round.id === state.round2Id,
+  );
+  log(
+    "08 Round 2 has submission",
+    !!round2After?.submission,
+    round2After?.submission?.id ? `id=${round2After.submission.id}` : "missing",
+  );
+  log(
+    "08 Both rounds submitted",
+    !!round1Entry?.submission && !!round2After?.submission,
+  );
+
   const failed = results.filter((r) => !r.ok);
   console.log(`\n--- Summary: ${results.length - failed.length}/${results.length} passed ---`);
   if (failed.length) {
