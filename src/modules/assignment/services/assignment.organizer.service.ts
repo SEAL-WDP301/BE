@@ -1,9 +1,14 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { NotificationType } from "@prisma/client";
 
 @Injectable()
 export class AssignmentOrganizerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async getStakeholdersByEvent(eventId: number) {
     const stakeholders = await this.prisma.user.findMany({
@@ -67,6 +72,21 @@ export class AssignmentOrganizerService {
         }
       }
       await this.prisma.judgeAssignment.createMany({ data });
+
+      // Notify stakeholders
+      const notifications = stakeholderIds.map(id => ({
+        userId: id,
+        eventId,
+        type: NotificationType.judge_assigned,
+        title: "Assigned as Judge",
+        content: `You have been assigned as a judge for multiple tracks in round "${round.name}".`,
+        isEmailSent: false,
+      }));
+      await this.prisma.notification.createMany({ data: notifications });
+      notifications.forEach(notif => {
+        this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+      });
+
       return { message: "Judges assigned to multiple tracks." };
     } else {
       // Create single assignment without track
@@ -77,6 +97,21 @@ export class AssignmentOrganizerService {
         assignedById: adminId,
       }));
       await this.prisma.judgeAssignment.createMany({ data });
+
+      // Notify stakeholders
+      const notifications = stakeholderIds.map(id => ({
+        userId: id,
+        eventId,
+        type: NotificationType.judge_assigned,
+        title: "Assigned as Judge",
+        content: `You have been assigned as a judge for round "${round.name}".`,
+        isEmailSent: false,
+      }));
+      await this.prisma.notification.createMany({ data: notifications });
+      notifications.forEach(notif => {
+        this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+      });
+
       return { message: "Judges assigned successfully." };
     }
   }
@@ -102,7 +137,8 @@ export class AssignmentOrganizerService {
       throw new BadRequestException("Stakeholder cannot be a mentor because they are a judge in a round this team participates in.");
     }
 
-    return this.prisma.mentorAssignment.create({
+    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+    const assignment = await this.prisma.mentorAssignment.create({
       data: {
         teamId,
         mentorId: stakeholderId,
@@ -110,6 +146,21 @@ export class AssignmentOrganizerService {
       },
       include: { mentor: { select: { id: true, name: true, email: true } } },
     });
+
+    if (team) {
+      const notif = {
+        userId: stakeholderId,
+        eventId: team.eventId,
+        type: NotificationType.mentor_assigned,
+        title: "Assigned as Mentor",
+        content: `You have been assigned as a mentor for team "${team.name}".`,
+        isEmailSent: false,
+      };
+      await this.prisma.notification.create({ data: notif });
+      this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+    }
+
+    return assignment;
   }
 
   async unassignMentor(teamId: number, stakeholderId: number) {
@@ -146,9 +197,27 @@ export class AssignmentOrganizerService {
       assignedById: adminId,
     }));
     
-    return this.prisma.mentorAssignment.createMany({
+    const result = await this.prisma.mentorAssignment.createMany({
       data,
       skipDuplicates: true,
     });
+
+    const teams = await this.prisma.team.findMany({ where: { id: { in: teamIds } } });
+    if (teams.length > 0) {
+      const eventId = teams[0].eventId;
+      const teamNames = teams.map(t => t.name).join(", ");
+      const notif = {
+        userId: stakeholderId,
+        eventId,
+        type: NotificationType.mentor_assigned,
+        title: "Assigned as Mentor",
+        content: `You have been assigned as a mentor for teams: ${teamNames}.`,
+        isEmailSent: false,
+      };
+      await this.prisma.notification.create({ data: notif });
+      this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+    }
+
+    return result;
   }
 }
