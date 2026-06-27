@@ -13,7 +13,7 @@ import {
 } from "@prisma/client";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { computeSubmissionFinalScore } from "../../../common/utils/scoring.util";
+import { computeSubmissionFinalScore, computeJudgeWeightedScore } from "../../../common/utils/scoring.util";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 
 export interface RankedTeamEntry {
@@ -26,6 +26,7 @@ export interface RankedTeamEntry {
   finalScore: number | null;
   judgesScored: number;
   status: RoundResultStatus;
+  submittedAt: Date;
 }
 
 @Injectable()
@@ -56,6 +57,39 @@ export class RoundRankingService {
       tracks.map(async (track) => ({
         track: { id: track.id, name: track.name },
         entries: await this.buildTrackRanking(roundId, track.id),
+      })),
+    );
+
+    return {
+      round: {
+        id: round.id,
+        name: round.name,
+        roundNumber: round.roundNumber,
+        status: round.status,
+      },
+      tracks: rankingsByTrack,
+    };
+  }
+
+  async getDetailedRoundRankings(
+    eventId: number,
+    roundId: number,
+    trackId?: number,
+  ) {
+    const round = await this.assertRoundInEvent(eventId, roundId);
+
+    const tracks = await this.prisma.track.findMany({
+      where: {
+        eventId,
+        ...(trackId !== undefined && { id: trackId }),
+      },
+      orderBy: { id: "asc" },
+    });
+
+    const rankingsByTrack = await Promise.all(
+      tracks.map(async (track) => ({
+        track: { id: track.id, name: track.name },
+        entries: await this.buildDetailedTrackRanking(roundId, track.id),
       })),
     );
 
@@ -221,6 +255,7 @@ export class RoundRankingService {
         judgesScored,
         status: RoundResultStatus.competing,
         rank: 0,
+        submittedAt: submission.submittedAt,
       };
     });
 
@@ -228,6 +263,132 @@ export class RoundRankingService {
       if (a.finalScore === null && b.finalScore === null) return 0;
       if (a.finalScore === null) return 1;
       if (b.finalScore === null) return -1;
+      if (b.finalScore === a.finalScore) {
+        // Tie-breaker: earlier submission ranks higher
+        return a.submittedAt.getTime() - b.submittedAt.getTime();
+      }
+      return b.finalScore - a.finalScore;
+    });
+
+    return entries.map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+  }
+
+  private async buildDetailedTrackRanking(
+    roundId: number,
+    trackId: number,
+  ) {
+    const rubrics = await this.getApplicableCriteria(roundId, trackId);
+
+    const submissions = await this.prisma.submission.findMany({
+      where: {
+        roundId,
+        status: { not: SubmissionStatus.disqualified },
+        team: {
+          trackId,
+          status: TeamStatus.approved,
+        },
+      },
+      include: {
+        team: { include: { track: true } },
+        scores: { include: { judge: true } },
+      },
+    });
+
+    const entries = submissions.map((submission) => {
+      const judgeScoresMap = new Map<number, any>();
+      
+      for (const score of submission.scores) {
+        if (!judgeScoresMap.has(score.judgeId)) {
+          judgeScoresMap.set(score.judgeId, {
+            judgeId: score.judgeId,
+            judgeName: score.judge.name,
+            criteriaScores: [],
+            totalGivenScore: 0,
+            deviationFromAverage: 0,
+            comments: [],
+          });
+        }
+        
+        const j = judgeScoresMap.get(score.judgeId);
+        j.criteriaScores.push({
+          criterionId: score.criterionId,
+          scoreValue: score.scoreValue,
+        });
+        if (score.comment && score.comment.trim() !== "") {
+           const text = score.comment.trim();
+           if (!j.comments.includes(text)) {
+               j.comments.push(text);
+           }
+        }
+      }
+
+      const validJudges = [];
+      const criteriaAveragesMap = new Map<number, { sum: number; count: number }>();
+
+      for (const judgeData of judgeScoresMap.values()) {
+        judgeData.comment = judgeData.comments.length > 0 ? judgeData.comments.join(" | ") : undefined;
+        delete judgeData.comments;
+        const jScores = judgeData.criteriaScores;
+        const total = computeJudgeWeightedScore(rubrics, jScores);
+        if (total !== null) {
+          judgeData.totalGivenScore = total;
+          validJudges.push(judgeData);
+          
+          for (const s of jScores) {
+             const cv = criteriaAveragesMap.get(s.criterionId) || { sum: 0, count: 0 };
+             cv.sum += Number(s.scoreValue);
+             cv.count += 1;
+             criteriaAveragesMap.set(s.criterionId, cv);
+          }
+        }
+      }
+
+      const finalScore = computeSubmissionFinalScore(rubrics, submission.scores.map(s => ({
+        judgeId: s.judgeId, criterionId: s.criterionId, scoreValue: s.scoreValue
+      })));
+
+      if (finalScore !== null) {
+        for (const vj of validJudges) {
+          vj.deviationFromAverage = Number((vj.totalGivenScore - finalScore).toFixed(2));
+        }
+      }
+
+      const criteriaAverages = rubrics.map(r => {
+        const ag = criteriaAveragesMap.get(r.id);
+        return {
+           criterionId: r.id,
+           name: r.name,
+           maxScore: Number(r.maxScore),
+           weight: Number(r.weight),
+           averageScore: ag && ag.count > 0 ? Number((ag.sum / ag.count).toFixed(2)) : 0
+        };
+      });
+
+      return {
+        teamId: submission.teamId,
+        teamName: submission.team.name,
+        trackId: submission.team.trackId,
+        trackName: submission.team.track.name,
+        submissionId: submission.id,
+        finalScore,
+        criteriaAverages,
+        judges: validJudges,
+        status: RoundResultStatus.competing,
+        rank: 0,
+        submittedAt: submission.submittedAt,
+      };
+    });
+
+    entries.sort((a, b) => {
+      if (a.finalScore === null && b.finalScore === null) return 0;
+      if (a.finalScore === null) return 1;
+      if (b.finalScore === null) return -1;
+      if (b.finalScore === a.finalScore) {
+        return a.submittedAt.getTime() - b.submittedAt.getTime();
+      }
       return b.finalScore - a.finalScore;
     });
 

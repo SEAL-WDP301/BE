@@ -36,5 +36,5 @@
       ]
     }
   },
-  "exclude": ["scratch"]
+  "exclude": ["scratch", "scripts", "node_modules", "dist"]
 }

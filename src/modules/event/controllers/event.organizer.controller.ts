@@ -206,6 +206,21 @@ export class EventOrganizerController {
     return { message: "Round rankings fetched", data: rankings };
   }
 
+  @Get(":id/rounds/:roundId/rankings/detailed")
+  @ApiOperation({ summary: "Get detailed team rankings and analytics for a round by track" })
+  async getDetailedRoundRankings(
+    @Param("id", ParseIntPipe) eventId: number,
+    @Param("roundId", ParseIntPipe) roundId: number,
+    @Query("trackId") trackId?: string,
+  ) {
+    const rankings = await this.roundRankingService.getDetailedRoundRankings(
+      eventId,
+      roundId,
+      trackId ? Number(trackId) : undefined,
+    );
+    return { message: "Detailed round rankings fetched", data: rankings };
+  }
+
   @Post(":id/rounds/:roundId/publish-results")
   @ApiOperation({ summary: "Publish round results and advance top teams" })
   async publishRoundResults(
