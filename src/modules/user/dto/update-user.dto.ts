@@ -67,4 +67,13 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(20)
   phone?: string;
+
+  /**
+   * GitHub Username
+   * @example 'john_doe123'
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  githubUsername?: string;
 }

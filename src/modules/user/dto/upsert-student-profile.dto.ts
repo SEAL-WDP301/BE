@@ -22,4 +22,9 @@ export class UpsertStudentProfileDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @ApiPropertyOptional({ description: "GitHub Username" })
+  @IsString()
+  @IsOptional()
+  githubUsername?: string;
 }

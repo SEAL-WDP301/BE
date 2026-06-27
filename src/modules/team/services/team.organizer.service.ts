@@ -103,20 +103,27 @@ export class TeamOrganizerService {
     });
 
     if (dto.status === TeamStatus.approved) {
-      const githubResult =
-        await this.teamGithubService.provisionRepositoryForTeam(teamId);
+      // Check if there is an open round that requires github
+      const openGithubRound = await this.prisma.round.findFirst({
+        where: { eventId: team.eventId, status: "open", submissionType: "github_link" }
+      });
 
-      if (githubResult.provisioned && githubResult.repoUrl) {
-        await this.notifyEntireTeam(
-          team,
-          NotificationType.team_assigned,
-          "GitHub Repository Ready",
-          `Your team repository has been created: ${githubResult.repoUrl}. Push your project code to this repository before the submission deadline.`,
-        );
-      } else if (githubResult.reason && !githubResult.skipped) {
-        this.logger.warn(
-          `Team ${teamId} approved but GitHub repo was not created: ${githubResult.reason}`,
-        );
+      if (openGithubRound) {
+        const githubResult =
+          await this.teamGithubService.provisionRepositoryForTeam(teamId);
+
+        if (githubResult.provisioned && githubResult.repoUrl) {
+          await this.notifyEntireTeam(
+            team,
+            NotificationType.team_assigned,
+            "GitHub Repository Ready",
+            `Your team repository has been created: ${githubResult.repoUrl}. Push your project code to this repository before the submission deadline.`,
+          );
+        } else if (githubResult.reason && !githubResult.skipped) {
+          this.logger.warn(
+            `Team ${teamId} approved but GitHub repo was not created: ${githubResult.reason}`,
+          );
+        }
       }
     }
 

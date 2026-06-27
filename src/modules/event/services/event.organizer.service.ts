@@ -8,12 +8,16 @@ import { PrismaService } from "../../../database/prisma/prisma.service";
 import { CreateEventDto } from "../dto/create-event.dto";
 import { UpdateEventDto } from "../dto/update-event.dto";
 import { EventStatus, RoundStatus } from "@prisma/client";
+import { TeamGithubService } from "../../team/services/team-github.service";
 
 @Injectable()
 export class EventOrganizerService {
   private readonly logger = new Logger(EventOrganizerService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly teamGithubService: TeamGithubService,
+  ) { }
 
   async createEvent(userId: number, dto: CreateEventDto) {
     const { tracks, rounds, ...eventData } = dto;
@@ -210,10 +214,18 @@ export class EventOrganizerService {
       }
     }
 
-    return this.prisma.round.update({
+    const updatedRound = await this.prisma.round.update({
       where: { id: roundId },
       data: { status },
     });
+
+    if (status === RoundStatus.open && targetRound.submissionType === "github_link") {
+      this.teamGithubService.syncRepositoriesForRound(roundId).catch(err => {
+        this.logger.error(`Failed to sync github repositories for round ${roundId}`, err);
+      });
+    }
+
+    return updatedRound;
   }
 
   async getSubmissionsByEvent(

@@ -15,6 +15,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { computeSubmissionFinalScore, computeJudgeWeightedScore } from "../../../common/utils/scoring.util";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
+import { TeamGithubService } from "../../team/services/team-github.service";
 
 export interface RankedTeamEntry {
   rank: number;
@@ -36,6 +37,7 @@ export class RoundRankingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly teamGithubService: TeamGithubService,
   ) {}
 
   async getRoundRankings(
@@ -212,6 +214,12 @@ export class RoundRankingService {
     });
 
     await this.notifyRoundResults(eventId, round.name, summary);
+
+    if (nextRound && nextRound.submissionType === "github_link") {
+      this.teamGithubService.syncRepositoriesForRound(nextRound.id).catch(err => {
+        this.logger.error(`Failed to sync github repositories for next round ${nextRound.id}`, err);
+      });
+    }
 
     return {
       roundId,

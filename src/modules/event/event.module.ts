@@ -9,9 +9,10 @@ import { CriterionService } from "./services/criterion.service";
 import { RoundRankingService } from "./services/round-ranking.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
 import { MailModule } from "../mail/mail.module";
+import { TeamModule } from "../team/team.module";
 
 @Module({
-  imports: [PrismaModule, MailModule],
+  imports: [PrismaModule, MailModule, TeamModule],
   controllers: [
     EventOrganizerController,
     EventPublicController,

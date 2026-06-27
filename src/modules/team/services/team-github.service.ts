@@ -28,6 +28,8 @@ export class TeamGithubService {
       include: {
         event: true,
         track: true,
+        leader: { include: { studentProfile: true } },
+        members: { include: { user: { include: { studentProfile: true } } } },
       },
     });
 
@@ -86,6 +88,23 @@ export class TeamGithubService {
         },
       });
 
+      // Add collaborators
+      const githubUsernames = new Set<string>();
+      if (team.leader?.studentProfile?.githubUsername) {
+        githubUsernames.add(team.leader.studentProfile.githubUsername);
+      }
+      for (const member of team.members) {
+        if (member.user?.studentProfile?.githubUsername) {
+          githubUsernames.add(member.user.studentProfile.githubUsername);
+        }
+      }
+
+      for (const username of Array.from(githubUsernames)) {
+        await this.githubService.addCollaborator(org, repoName, username, "push").catch(err => {
+          this.logger.error(`Failed to add collaborator ${username} to ${repoName}`, err);
+        });
+      }
+
       this.logger.log(
         `GitHub repo created for team ${teamId}: ${created.htmlUrl}`,
       );
@@ -107,6 +126,30 @@ export class TeamGithubService {
         reason:
           error instanceof Error ? error.message : "GitHub repo creation failed",
       };
+    }
+  }
+
+  async syncRepositoriesForRound(roundId: number): Promise<void> {
+    const round = await this.prisma.round.findUnique({
+      where: { id: roundId },
+    });
+    if (!round || round.submissionType !== "github_link") {
+      return;
+    }
+
+    const teamRounds = await this.prisma.teamRound.findMany({
+      where: {
+        roundId,
+        status: { in: ["competing", "advanced"] },
+      },
+      include: { team: true },
+    });
+
+    const teamsWithoutRepo = teamRounds.filter((tr) => !tr.team.githubRepoUrl);
+    this.logger.log(`Found ${teamsWithoutRepo.length} teams needing GitHub repo provision for round ${roundId}`);
+
+    for (const tr of teamsWithoutRepo) {
+      await this.provisionRepositoryForTeam(tr.teamId);
     }
   }
 

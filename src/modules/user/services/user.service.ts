@@ -286,6 +286,7 @@ export class UserService implements OnApplicationBootstrap {
       studentCode: dto.studentCode,
       universityName: dto.universityName,
       phone: dto.phone,
+      githubUsername: dto.githubUsername,
     };
     const hasStudentProfileData = Object.values(studentProfileData).some(
       (value) => value !== undefined,
@@ -314,6 +315,7 @@ export class UserService implements OnApplicationBootstrap {
               studentCode: dto.studentCode!,
               universityName: dto.universityName,
               phone: dto.phone,
+              githubUsername: dto.githubUsername,
             },
           });
         }
@@ -420,6 +422,7 @@ export class UserService implements OnApplicationBootstrap {
         studentCode: data.studentCode,
         universityName: data.universityName,
         phone: data.phone,
+        githubUsername: data.githubUsername,
       },
       create: {
         userId,
@@ -427,6 +430,7 @@ export class UserService implements OnApplicationBootstrap {
         studentCode: data.studentCode,
         universityName: data.universityName,
         phone: data.phone,
+        githubUsername: data.githubUsername,
       },
     });
 

@@ -145,6 +145,7 @@ model StudentProfile {
   studentCode    String      @map("student_code")
   universityName String?     @map("university_name")
   phone          String?
+  githubUsername String?     @map("github_username")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
