@@ -186,6 +186,14 @@ export class RoundRankingService {
               },
               update: {},
             });
+          } else if (isEliminated && nextRound) {
+            // Delete next round teamRound if it exists, since they are eliminated
+            await tx.teamRound.deleteMany({
+              where: {
+                teamId: entry.teamId,
+                roundId: nextRound.id,
+              },
+            });
           }
         }
 
