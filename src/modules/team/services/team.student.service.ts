@@ -607,10 +607,23 @@ export class TeamStudentService {
     const teamStatus = teamMember.team.status;
 
     const teamApproved = teamStatus === TeamStatus.approved;
+    const isEliminated = rounds.some((r) => r.teamRounds[0]?.status === "eliminated");
 
     const submissions = await this.prisma.submission.findMany({
       where: { teamId, round: { eventId } },
       orderBy: { round: { roundNumber: "asc" } },
+      include: {
+        scores: {
+          include: {
+            criterion: {
+              select: { id: true, name: true, maxScore: true, weight: true }
+            },
+            judge: {
+              select: { id: true, name: true, avatarUrl: true }
+            }
+          }
+        }
+      }
     });
     const submissionByRoundId = new Map(
       submissions.map((submission) => [submission.roundId, submission]),
@@ -689,6 +702,7 @@ export class TeamStudentService {
       currentActiveRound,
       latestSubmission,
       mentorFeedbacks,
+      isEliminated,
     };
   }
 
