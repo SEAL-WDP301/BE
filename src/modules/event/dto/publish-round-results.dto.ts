@@ -1,15 +1,13 @@
-import { Type } from "class-transformer";
-import { IsInt, IsOptional, Min } from "class-validator";
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { IsInt, IsArray } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class PublishRoundResultsDto {
-  @ApiPropertyOptional({
-    example: 3,
-    description: "Number of top teams per track that advance to the next round",
+  @ApiProperty({
+    type: [Number],
+    example: [1, 2, 5],
+    description: "Array of team IDs that should advance to the next round",
   })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  topNPerTrack?: number;
+  @IsArray()
+  @IsInt({ each: true })
+  advancingTeamIds: number[];
 }

@@ -117,7 +117,8 @@ export class RoundRankingService {
       );
     }
 
-    const topNPerTrack = dto.topNPerTrack ?? 3;
+    const advancingSet = new Set(dto.advancingTeamIds);
+
     const tracks = await this.prisma.track.findMany({
       where: { eventId },
       orderBy: { id: "asc" },
@@ -142,10 +143,10 @@ export class RoundRankingService {
         );
 
         const advancedIds = competingEntries
-          .slice(0, topNPerTrack)
+          .filter((entry) => advancingSet.has(entry.teamId))
           .map((entry) => entry.teamId);
         const eliminatedIds = competingEntries
-          .slice(topNPerTrack)
+          .filter((entry) => !advancingSet.has(entry.teamId))
           .map((entry) => entry.teamId);
 
         for (const entry of entries) {
@@ -207,7 +208,7 @@ export class RoundRankingService {
     return {
       roundId,
       status: RoundStatus.results_published,
-      topNPerTrack,
+      advancingTeamIds: dto.advancingTeamIds,
       nextRoundId: nextRound?.id ?? null,
       summary,
       rankings: await this.getRoundRankings(eventId, roundId),
