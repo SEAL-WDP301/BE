@@ -125,7 +125,7 @@ export class AuthService {
    * Authenticate user with email and password.
    * @throws UnauthorizedException on invalid credentials or inactive account
    */
-  async signin(dto: SignInDto, res: Response) {
+  async signin(dto: SignInDto) {
     const user = await this.userService.findByEmailWithPassword(dto.email);
 
     if (!user || !user.passwordHash) {
@@ -147,13 +147,14 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
+    this.logger.log(`Access token for ${user.email}: ${tokens.accessToken}`, "AuthService");
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
 
     return {
       message: MESSAGES.SIGNIN_SUCCESS,
       data: {
         accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
         user: this.sanitizeUser(user),
       },
     };
@@ -229,7 +230,7 @@ export class AuthService {
    * Exchange a valid refresh token (from HttpOnly cookie) for new tokens.
    * @throws UnauthorizedException if cookie missing or token invalid
    */
-  async refreshTokens(refreshToken: string, res: Response) {
+  async refreshTokens(refreshToken: string) {
     if (!refreshToken) {
       throw new UnauthorizedException(MESSAGES.UNAUTHORIZED);
     }
@@ -259,17 +260,18 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user);
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
 
     return {
       message: MESSAGES.TOKEN_REFRESHED,
-      data: { accessToken: tokens.accessToken },
+      data: { 
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
     };
   }
 
-  async logout(userId: number, res: Response) {
+  async logout(userId: number) {
     await this.userService.updateRefreshToken(userId, null);
-    this.clearRefreshTokenCookie(res);
 
     return { message: MESSAGES.LOGOUT_SUCCESS, data: null };
   }
@@ -311,13 +313,11 @@ export class AuthService {
     // log access token
     this.logger.log(`Access token: ${tokens.accessToken}`, "AuthService");
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
 
-    // Redirect to frontend with access token in query param
-    // (Alternative: use URL fragment #token=... for better security)
+    // Redirect to frontend with both tokens in query param
     const frontendUrl = this.configService.get<string>("app.frontendUrl");
     return res.redirect(
-      `${frontendUrl}/auth/callback?token=${tokens.accessToken}`,
+      `${frontendUrl}/auth/callback?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     );
   }
 
@@ -363,11 +363,10 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user);
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
 
     const frontendUrl = this.configService.get<string>("app.frontendUrl");
     return res.redirect(
-      `${frontendUrl}/auth/callback?token=${tokens.accessToken}`,
+      `${frontendUrl}/auth/callback?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     );
   }
 
@@ -393,43 +392,6 @@ export class AuthService {
     ]);
 
     return { accessToken, refreshToken };
-  }
-
-  /**
-   * Set refresh token as a secure HttpOnly cookie.
-   *
-   * Security settings:
-   * - httpOnly: true → inaccessible to JavaScript (prevents XSS theft)
-   * - secure: true in production → HTTPS only
-   * - sameSite: 'strict' → prevents CSRF
-   * - path: /api/auth → only sent to auth endpoints
-   */
-  setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    const isProduction =
-      this.configService.get<string>("app.nodeEnv") === "production";
-    const expiresIn =
-      this.configService.get<string>("jwt.refreshExpiresIn") || "7d";
-
-    // Parse "7d" to ms
-    const maxAgeDays = parseInt(expiresIn.replace("d", ""), 10) || 7;
-
-    res.cookie(APP_CONSTANTS.REFRESH_TOKEN_COOKIE, refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
-      maxAge: maxAgeDays * 24 * 60 * 60 * 1000, // days to ms
-      path: "/",
-    });
-  }
-
-  /**
-   * Clear the refresh token cookie on logout.
-   */
-  private clearRefreshTokenCookie(res: Response): void {
-    res.clearCookie(APP_CONSTANTS.REFRESH_TOKEN_COOKIE, {
-      httpOnly: true,
-      path: "/",
-    });
   }
 
   private sanitizeUser(user: User) {

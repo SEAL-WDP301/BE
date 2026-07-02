@@ -62,9 +62,8 @@ export class AuthController {
   @ApiResponse({ status: 401, description: "Invalid credentials" })
   async signin(
     @Body() dto: SignInDto,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.signin(dto, res);
+    return this.authService.signin(dto);
   }
 
   /**
@@ -94,11 +93,9 @@ export class AuthController {
   @ApiCookieAuth("refresh_token")
   @ApiResponse({ status: 401, description: "Invalid or expired refresh token" })
   async refresh(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    @Body('refreshToken') refreshToken: string,
   ) {
-    const refreshToken = req.cookies?.[APP_CONSTANTS.REFRESH_TOKEN_COOKIE];
-    return this.authService.refreshTokens(refreshToken, res);
+    return this.authService.refreshTokens(refreshToken);
   }
 
   /**
@@ -111,9 +108,8 @@ export class AuthController {
   @ApiResponse({ status: 401, description: "Unauthorized" })
   async logout(
     @CurrentUser("id") userId: string,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.logout(Number(userId), res);
+    return this.authService.logout(Number(userId));
   }
 
   /**
