@@ -24,64 +24,7 @@ async function main() {
         return;
     }
 
-    // 1. Progress Event State
-    if (round1.status !== 'results_published') {
-        await prisma.round.update({
-            where: { id: round1.id },
-            data: { status: 'results_published' }
-        });
-        console.log("Round 1 status updated to 'results_published'.");
-    }
 
-    if (round2.status !== 'open') {
-        await prisma.round.update({
-            where: { id: round2.id },
-            data: { status: 'open' }
-        });
-        console.log("Round 2 status updated to 'open'.");
-    }
-
-    // 2. Promote all teams from Round 1 to Round 2 (mock behavior)
-    const teamsInRound1 = await prisma.teamRound.findMany({
-        where: { roundId: round1.id },
-        include: { team: true }
-    });
-
-    for (const teamRound of teamsInRound1) {
-        // Idempotency: is team already in Round 2?
-        const existingR2 = await prisma.teamRound.findFirst({
-            where: { teamId: teamRound.teamId, roundId: round2.id }
-        });
-
-        if (!existingR2) {
-            await prisma.teamRound.create({
-                data: {
-                    teamId: teamRound.teamId,
-                    roundId: round2.id,
-                    status: 'competing'
-                }
-            });
-            console.log(`Promoted Team ${teamRound.teamId} to Round 2.`);
-        }
-
-        // Also create submission for Round 2
-        const existingSub = await prisma.submission.findFirst({
-            where: { teamId: teamRound.teamId, roundId: round2.id }
-        });
-
-        if (!existingSub) {
-            await prisma.submission.create({
-                data: {
-                    teamId: teamRound.teamId,
-                    roundId: round2.id,
-                    status: 'submitted',
-                    githubUrl: 'https://github.com/dummy/repo',
-                    submittedById: teamRound.team.leaderId
-                }
-            });
-            console.log(`Created Submission for Team ${teamRound.teamId} in Round 2.`);
-        }
-    }
 
     // 3. Score Round 2 Submissions
     const assignments = await prisma.judgeAssignment.findMany({

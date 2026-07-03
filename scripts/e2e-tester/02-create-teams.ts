@@ -48,8 +48,8 @@ async function main() {
             continue;
         }
 
-        const assignedTrack = trackToggle ? track2 : track1; // Start filling track 2 first as requested, then track 1
-        trackToggle = !trackToggle; // Alternate tracks
+        const assignedTrack = trackToggle ? track2 : track1;
+        trackToggle = !trackToggle;
 
         // Create Team
         const teamName = `Team ${student.name.split(' ')[0] || 'X'} - E2E`;
@@ -58,7 +58,7 @@ async function main() {
                 name: teamName,
                 eventId: latestEvent.id,
                 trackId: assignedTrack.id,
-                status: 'approved', // Auto approve
+                status: 'pending', // Waiting for admin approval
                 leaderId: student.id,
                 members: {
                     create: {
@@ -70,7 +70,7 @@ async function main() {
             }
         });
 
-        // Register to Round 1
+        // Register to Round 1 so they show up in the Admin's Round Workspace Teams list
         await prisma.teamRound.create({
             data: {
                 teamId: team.id,
@@ -79,21 +79,10 @@ async function main() {
             }
         });
 
-        // Create Submission for Round 1
-        await prisma.submission.create({
-            data: {
-                teamId: team.id,
-                roundId: round1.id,
-                status: 'submitted',
-                fileUrl: 'https://example.com/dummy-submission.pdf',
-                submittedById: student.id
-            }
-        });
-
-        console.log(`Created Team '${teamName}' for Track '${assignedTrack.name}' and Auto-Submitted.`);
+        console.log(`Created Team '${teamName}' for Track '${assignedTrack.name}' in pending status.`);
     }
 
-    console.log("Successfully created teams and submissions.");
+    console.log("Successfully created teams in pending status.");
 }
 
 main()
