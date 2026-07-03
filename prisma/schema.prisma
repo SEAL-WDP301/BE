@@ -194,6 +194,7 @@ model Event {
   registrations StudentRegistration[]
   notifications Notification[]
 
+  @@index([status, createdAt(sort: Desc)])
   @@map("events")
 }
 
@@ -235,6 +236,8 @@ model Round {
   teamRounds       TeamRound[]
 
   @@unique([eventId, roundNumber])
+  @@index([eventId])
+  @@index([status])
   @@map("rounds")
 }
 
@@ -255,6 +258,8 @@ model Criterion {
   createdBy User    @relation("CriterionCreatedBy", fields: [createdById], references: [id])
   scores    Score[]
 
+  @@index([roundId])
+  @@index([roundId, trackId])
   @@map("criteria")
 }
 
@@ -282,6 +287,10 @@ model Team {
   teamRounds        TeamRound[]
   teamMessages      TeamMessage[]
 
+  @@index([eventId])
+  @@index([eventId, status])
+  @@index([trackId])
+  @@index([leaderId])
   @@map("teams")
 }
 
@@ -298,6 +307,8 @@ model TeamRound {
   round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, roundId])
+  @@index([roundId])
+  @@index([teamId])
   @@map("team_rounds")
 }
 
@@ -313,6 +324,8 @@ model TeamMember {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
+  @@index([userId, status])
+  @@index([teamId, status])
   @@map("team_members")
 }
 
@@ -363,6 +376,9 @@ model Submission {
   mentorFeedbacks MentorFeedback[]
 
   @@unique([teamId, roundId])
+  @@index([teamId])
+  @@index([roundId])
+  @@index([roundId, teamId])
   @@map("submissions")
 }
 
@@ -381,6 +397,8 @@ model Score {
   criterion  Criterion  @relation(fields: [criterionId], references: [id], onDelete: Cascade)
 
   @@unique([submissionId, judgeId, criterionId])
+  @@index([submissionId, judgeId])
+  @@index([judgeId])
   @@map("scores")
 }
 
@@ -398,6 +416,8 @@ model JudgeAssignment {
   assignedBy User   @relation("JudgeAssignedBy", fields: [assignedById], references: [id])
 
   @@unique([judgeId, roundId, trackId])
+  @@index([judgeId])
+  @@index([roundId])
   @@map("judge_assignments")
 }
 
@@ -413,6 +433,8 @@ model MentorAssignment {
   assignedBy User @relation("MentorAssignedBy", fields: [assignedById], references: [id])
 
   @@unique([mentorId, teamId])
+  @@index([mentorId])
+  @@index([teamId])
   @@map("mentor_assignments")
 }
 
@@ -447,6 +469,8 @@ model Notification {
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -471,6 +495,8 @@ model TeamMessage {
   sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
   reads  TeamMessageRead[]
 
+  @@index([teamId, createdAt(sort: Desc)])
+  @@index([senderId])
   @@map("team_messages")
 }
 

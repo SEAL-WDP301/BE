@@ -663,35 +663,20 @@ export class TeamStudentService {
     const currentActiveRound =
       roundSubmissions.find((entry) => entry.canSubmit)?.round ?? null;
 
+    const mentorFeedbacks = await this.findTeamMentorFeedback(teamId);
+
     let latestSubmission = null;
     if (currentActiveRound) {
-      latestSubmission = await this.prisma.submission.findUnique({
-        where: {
-          teamId_roundId: {
-            teamId,
-            roundId: currentActiveRound.id,
-          },
-        },
-        include: {
-          mentorFeedbacks: {
-            include: {
-              mentor: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  avatarUrl: true,
-                  stakeholderProfile: true,
-                },
-              },
-            },
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      });
+      const baseSubmission = submissionByRoundId.get(currentActiveRound.id);
+      if (baseSubmission) {
+        latestSubmission = {
+          ...baseSubmission,
+          mentorFeedbacks: mentorFeedbacks.filter(
+            (feedback) => feedback.submissionId === baseSubmission.id,
+          ),
+        };
+      }
     }
-
-    const mentorFeedbacks = await this.findTeamMentorFeedback(teamId);
 
     return {
       team: teamMember.team,

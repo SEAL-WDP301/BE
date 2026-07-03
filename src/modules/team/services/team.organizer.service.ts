@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { TeamStatus, NotificationType } from "@prisma/client";
+import { TeamStatus, NotificationType, Prisma } from "@prisma/client";
 import { MailService } from "../../mail/mail.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
@@ -44,24 +44,43 @@ export class TeamOrganizerService {
       },
     });
 
-    return Promise.all(teams.map(async (team) => {
-      const unreadCount = await this.prisma.teamMessage.count({
-        where: {
-          teamId: team.id,
-          senderId: { not: adminId },
-          reads: { none: { userId: adminId } }
-        }
-      });
-      const lastMessage = await this.prisma.teamMessage.findFirst({
-        where: { teamId: team.id },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true }
-      });
-      return {
-        ...team,
-        unreadCount,
-        lastMessageAt: lastMessage?.createdAt || null
-      };
+    if (teams.length === 0) {
+      return [];
+    }
+
+    const teamIds = teams.map((team) => team.id);
+
+    const [lastMessages, unreadRows] = await Promise.all([
+      this.prisma.teamMessage.groupBy({
+        by: ["teamId"],
+        where: { teamId: { in: teamIds } },
+        _max: { createdAt: true },
+      }),
+      this.prisma.$queryRaw<Array<{ teamId: number; count: number }>>`
+        SELECT m.team_id AS "teamId", COUNT(*)::int AS count
+        FROM team_messages m
+        WHERE m.team_id IN (${Prisma.join(teamIds)})
+          AND m.sender_id != ${adminId}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM team_message_reads r
+            WHERE r.message_id = m.id AND r.user_id = ${adminId}
+          )
+        GROUP BY m.team_id
+      `,
+    ]);
+
+    const lastMessageMap = new Map(
+      lastMessages.map((row) => [row.teamId, row._max.createdAt ?? null]),
+    );
+    const unreadMap = new Map(
+      unreadRows.map((row) => [row.teamId, row.count]),
+    );
+
+    return teams.map((team) => ({
+      ...team,
+      unreadCount: unreadMap.get(team.id) ?? 0,
+      lastMessageAt: lastMessageMap.get(team.id) ?? null,
     }));
   }
 

@@ -8,6 +8,7 @@ import {
   RoundStatus,
   SubmissionStatus,
   TeamStatus,
+  type Criterion,
 } from "@prisma/client";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { SubmitScoresDto } from "../dto/submit-scores.dto";
@@ -65,27 +66,34 @@ export class SubmissionJudgeService {
       orderBy: { id: "asc" },
     });
 
-    const criteriaByTrack = new Map<number | null, number>();
+    const criteriaByTrack = new Map<number, Criterion[]>();
     const anonymousLabels = this.buildAnonymousLabelMap(submissions);
+    const allRubrics = await this.prisma.criterion.findMany({
+      where: { roundId },
+      orderBy: { id: "asc" },
+    });
 
-    return Promise.all(
-      submissions.map(async (submission) => {
-        const trackId = submission.team.trackId;
-        if (!criteriaByTrack.has(trackId)) {
-          const criteria = await this.getApplicableCriteria(
-            roundId,
-            trackId,
-          );
-          criteriaByTrack.set(trackId, criteria.length);
-        }
-
-        const criteriaCount = criteriaByTrack.get(trackId) ?? 0;
-        const scoredCount = submission.scores.length;
-        const weightedScore = await this.computeWeightedScoreForSubmission(
-          submission.id,
-          judgeId,
-          roundId,
+    const getRubricsForTrack = (trackId: number) => {
+      if (!criteriaByTrack.has(trackId)) {
+        criteriaByTrack.set(
           trackId,
+          allRubrics.filter(
+            (criterion) =>
+              criterion.trackId === null || criterion.trackId === trackId,
+          ),
+        );
+      }
+      return criteriaByTrack.get(trackId)!;
+    };
+
+    return submissions.map((submission) => {
+        const trackId = submission.team.trackId;
+        const rubrics = getRubricsForTrack(trackId);
+        const criteriaCount = rubrics.length;
+        const scoredCount = submission.scores.length;
+        const weightedScore = computeJudgeWeightedScore(
+          rubrics,
+          submission.scores,
         );
 
         const anonymous = anonymousLabels.get(submission.id)!;
@@ -104,8 +112,7 @@ export class SubmissionJudgeService {
           totalCriteria: criteriaCount,
           weightedScore,
         };
-      }),
-    );
+      });
   }
 
   async getSubmissionDetail(judgeId: number, submissionId: number) {
