@@ -1,0 +1,106 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+    console.log("Starting 02-assign-teams-and-submissions.ts...");
+
+    // 1. Get the latest active event
+    const latestEvent = await prisma.event.findFirst({
+        where: { status: 'active' },
+        orderBy: { createdAt: 'desc' },
+        include: { tracks: true, rounds: { where: { roundNumber: 1 } } }
+    });
+
+    if (!latestEvent || latestEvent.tracks.length < 2) {
+        console.error("No active event with at least 2 tracks found. Run 01-create-event.ts first.");
+        return;
+    }
+
+    const track1 = latestEvent.tracks[0];
+    const track2 = latestEvent.tracks[1];
+    const round1 = latestEvent.rounds[0];
+
+    // 2. Find students
+    const students = await prisma.user.findMany({
+        where: { role: 'student' },
+        take: 10 // Take up to 10 students for testing
+    });
+
+    if (students.length === 0) {
+        console.error("No students found in the database.");
+        return;
+    }
+
+    let trackToggle = true;
+
+    for (const student of students) {
+        // Idempotency check: Does student already have a team in this event?
+        const existingMember = await prisma.teamMember.findFirst({
+            where: {
+                userId: student.id,
+                team: { eventId: latestEvent.id }
+            }
+        });
+
+        if (existingMember) {
+            console.log(`Student ${student.name} is already in a team for this event. Skipping.`);
+            continue;
+        }
+
+        const assignedTrack = trackToggle ? track2 : track1; // Start filling track 2 first as requested, then track 1
+        trackToggle = !trackToggle; // Alternate tracks
+
+        // Create Team
+        const teamName = `Team ${student.name.split(' ')[0] || 'X'} - E2E`;
+        const team = await prisma.team.create({
+            data: {
+                name: teamName,
+                eventId: latestEvent.id,
+                trackId: assignedTrack.id,
+                status: 'approved', // Auto approve
+                leaderId: student.id,
+                members: {
+                    create: {
+                        userId: student.id,
+                        role: 'leader',
+                        status: 'accepted'
+                    }
+                }
+            }
+        });
+
+        // Register to Round 1
+        await prisma.teamRound.create({
+            data: {
+                teamId: team.id,
+                roundId: round1.id,
+                status: 'competing'
+            }
+        });
+
+        // Create Submission for Round 1
+        await prisma.submission.create({
+            data: {
+                teamId: team.id,
+                roundId: round1.id,
+                status: 'submitted',
+                fileUrl: 'https://example.com/dummy-submission.pdf',
+                submittedById: student.id
+            }
+        });
+
+        console.log(`Created Team '${teamName}' for Track '${assignedTrack.name}' and Auto-Submitted.`);
+    }
+
+    console.log("Successfully created teams and submissions.");
+}
+
+main()
+    .catch(e => {
+        console.error(e);
+        process.exit(1);
+    })
+    .finally(async () => {
+        await prisma.$disconnect();
+    });

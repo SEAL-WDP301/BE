@@ -18,7 +18,7 @@ export class EventPublicService {
       include: {
         tracks: true,
       },
-      orderBy: { startDate: "desc" },
+      orderBy: { createdAt: "desc" },
     });
   }
 

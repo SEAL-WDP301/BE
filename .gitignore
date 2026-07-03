@@ -80,3 +80,5 @@ coverage/
 .agent_logs/
 # Added by code-review-graph
 .code-review-graph/
+scripts/e2e-tester/output/
+~$*.xlsx
