@@ -93,7 +93,7 @@ export class SubmissionJudgeService {
         return {
           submissionId: submission.id,
           id: submission.id,
-          teamName: anonymous.label,
+          teamName: submission.team.name,
           anonymousIndex: anonymous.index,
           track: submission.team.track,
           status: submission.status,
@@ -171,7 +171,7 @@ export class SubmissionJudgeService {
       description: submission.description,
       submittedAt: submission.submittedAt,
       team: {
-        name: anonymous.label,
+        name: submission.team.name,
         anonymousIndex: anonymous.index,
         track: submission.team.track,
       },

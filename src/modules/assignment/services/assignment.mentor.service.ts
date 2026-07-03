@@ -7,14 +7,35 @@ export class AssignmentMentorService {
     private readonly prisma: PrismaService
   ) {}
 
-  async getTeams(mentorId: number) {
-    return this.prisma.team.findMany({
+  async getTeams(mentorId: number, eventId?: number) {
+    const teams = await this.prisma.team.findMany({
       where: {
         mentorAssignments: { some: { mentorId } },
+        ...(eventId && { eventId }),
       },
       include: this.teamInclude(),
       orderBy: { createdAt: "desc" },
     });
+
+    return Promise.all(teams.map(async (team) => {
+      const unreadCount = await this.prisma.teamMessage.count({
+        where: {
+          teamId: team.id,
+          senderId: { not: mentorId },
+          reads: { none: { userId: mentorId } }
+        }
+      });
+      const lastMessage = await this.prisma.teamMessage.findFirst({
+        where: { teamId: team.id },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true }
+      });
+      return {
+        ...team,
+        unreadCount,
+        lastMessageAt: lastMessage?.createdAt || null
+      };
+    }));
   }
 
   async getTeamById(mentorId: number, teamId: number) {
@@ -43,11 +64,12 @@ export class AssignmentMentorService {
     });
   }
 
-  async getSubmissions(mentorId: number) {
+  async getSubmissions(mentorId: number, eventId?: number) {
     return this.prisma.submission.findMany({
       where: {
         team: {
           mentorAssignments: { some: { mentorId } },
+          ...(eventId && { eventId }),
         },
       },
       include: this.submissionInclude(mentorId),

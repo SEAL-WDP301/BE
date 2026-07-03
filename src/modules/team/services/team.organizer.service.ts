@@ -22,8 +22,8 @@ export class TeamOrganizerService {
     private readonly teamGithubService: TeamGithubService,
   ) {}
 
-  async getTeamsByEvent(eventId: number, trackId?: number, roundId?: number, hasMentor?: string) {
-    return this.prisma.team.findMany({
+  async getTeamsByEvent(eventId: number, adminId: number, trackId?: number, roundId?: number, hasMentor?: string) {
+    const teams = await this.prisma.team.findMany({
       where: {
         eventId,
         ...(trackId && { trackId }),
@@ -43,6 +43,26 @@ export class TeamOrganizerService {
         teamRounds: { include: { round: true } },
       },
     });
+
+    return Promise.all(teams.map(async (team) => {
+      const unreadCount = await this.prisma.teamMessage.count({
+        where: {
+          teamId: team.id,
+          senderId: { not: adminId },
+          reads: { none: { userId: adminId } }
+        }
+      });
+      const lastMessage = await this.prisma.teamMessage.findFirst({
+        where: { teamId: team.id },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true }
+      });
+      return {
+        ...team,
+        unreadCount,
+        lastMessageAt: lastMessage?.createdAt || null
+      };
+    }));
   }
 
   async getTeamsByTrack(eventId: number, trackId: number) {

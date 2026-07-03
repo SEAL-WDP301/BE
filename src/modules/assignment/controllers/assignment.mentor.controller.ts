@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
@@ -29,10 +30,13 @@ export class AssignmentMentorController {
 
   @Get("teams")
   @ApiOperation({ summary: "Get teams assigned to the current mentor" })
-  async getTeams(@CurrentUser("id") mentorId: number) {
+  async getTeams(
+    @CurrentUser("id") mentorId: number,
+    @Query("eventId") eventId?: string,
+  ) {
     return {
       message: "Mentor teams fetched",
-      data: await this.assignmentMentorService.getTeams(mentorId),
+      data: await this.assignmentMentorService.getTeams(mentorId, eventId ? Number(eventId) : undefined),
     };
   }
 
@@ -65,10 +69,13 @@ export class AssignmentMentorController {
 
   @Get("submissions")
   @ApiOperation({ summary: "Get submissions from all assigned teams" })
-  async getSubmissions(@CurrentUser("id") mentorId: number) {
+  async getSubmissions(
+    @CurrentUser("id") mentorId: number,
+    @Query("eventId") eventId?: string,
+  ) {
     return {
       message: "Mentor submissions fetched",
-      data: await this.assignmentMentorService.getSubmissions(mentorId),
+      data: await this.assignmentMentorService.getSubmissions(mentorId, eventId ? Number(eventId) : undefined),
     };
   }
 

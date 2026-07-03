@@ -32,12 +32,14 @@ export class TeamOrganizerController {
   @ApiOperation({ summary: "Get all teams for an event with filters" })
   async getTeamsByEvent(
     @Param("eventId", ParseIntPipe) eventId: number,
+    @CurrentUser("id") adminId: string,
     @Query("trackId") trackId?: string,
     @Query("roundId") roundId?: string,
     @Query("hasMentor") hasMentor?: string,
   ) {
     const teams = await this.teamOrganizerService.getTeamsByEvent(
       eventId,
+      Number(adminId),
       trackId ? Number(trackId) : undefined,
       roundId ? Number(roundId) : undefined,
       hasMentor,
