@@ -16,6 +16,18 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { CreateTrackDto } from "./create-track.dto";
 import { CreateRoundDto } from "./create-round.dto";
 
+export class EventFaqItemDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  question: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  answer: string;
+}
+
 export class CreateEventDto {
   @ApiProperty()
   @IsString()
@@ -54,6 +66,28 @@ export class CreateEventDto {
   @IsUrl()
   @IsOptional()
   githubOrgUrl?: string;
+
+  @ApiPropertyOptional({ type: [EventFaqItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EventFaqItemDto)
+  @IsOptional()
+  faq?: EventFaqItemDto[];
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  contact?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  rules?: string;
 
   @ApiPropertyOptional()
   @IsString()
