@@ -179,6 +179,10 @@ model Event {
   registrationDeadline DateTime?   @map("registration_deadline")
   startDate            DateTime?   @map("start_date")
   githubOrgUrl         String?     @map("github_org_url")
+  faq                  Json?
+  contact              String?     @db.Text
+  location             String?
+  rules                String?     @db.Text
   prize1st             String?     @map("prize_1st")
   prize2nd             String?     @map("prize_2nd")
   prize3rd             String?     @map("prize_3rd")
@@ -417,13 +421,13 @@ model MentorAssignment {
 }
 
 model MentorFeedback {
-  id           Int      @id @default(autoincrement())
-  mentorId     Int      @map("mentor_id")
-  teamId       Int      @map("team_id")
-  submissionId Int      @map("submission_id")
+  id           Int            @id @default(autoincrement())
+  mentorId     Int            @map("mentor_id")
+  teamId       Int            @map("team_id")
+  submissionId Int            @map("submission_id")
   content      String
   status       FeedbackStatus @default(unread)
-  createdAt    DateTime @default(now()) @map("created_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
 
   mentor     User       @relation(fields: [mentorId], references: [id], onDelete: Cascade)
   team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -450,7 +454,6 @@ model Notification {
   @@map("notifications")
 }
 
-
 enum FeedbackStatus {
   unread
   acknowledged
@@ -467,8 +470,8 @@ model TeamMessage {
   isEdited  Boolean  @default(false) @map("is_edited")
   isDeleted Boolean  @default(false) @map("is_deleted")
 
-  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  team   Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sender User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
   reads  TeamMessageRead[]
 
   @@map("team_messages")
