@@ -18,6 +18,7 @@ import { MailService } from "../../mail/mail.service";
 import { StorageService } from "../../storage/storage.service";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { RegisterTeamDto } from "../dto/register-team.dto";
+import { assertRegistrationOpen } from "../helpers/event-registration.guard";
 
 @Injectable()
 export class TeamStudentService {
@@ -135,6 +136,11 @@ export class TeamStudentService {
     eventId: number,
     dto: RegisterIndividualDto,
   ) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+    assertRegistrationOpen(event);
+
     return this.prisma.studentRegistration.upsert({
       where: { userId_eventId: { userId, eventId } },
       update: {
@@ -153,6 +159,14 @@ export class TeamStudentService {
   }
 
   async registerTeam(userId: number, eventId: number, dto: RegisterTeamDto) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+    if (!event) {
+      throw new NotFoundException("Event not found");
+    }
+    assertRegistrationOpen(event);
+
     const track = await this.prisma.track.findUnique({
       where: { id: dto.trackId },
     });
@@ -316,11 +330,7 @@ export class TeamStudentService {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
     });
-    if (event?.status !== "active") {
-      throw new BadRequestException(
-        "Team roster is locked because the event is no longer in the active registration phase.",
-      );
-    }
+    assertRegistrationOpen(event);
 
     const track = await this.prisma.track.findUnique({
       where: { id: dto.trackId },
@@ -466,6 +476,11 @@ export class TeamStudentService {
     }
 
     if (accept) {
+      const event = await this.prisma.event.findUnique({
+        where: { id: membership.team.eventId },
+      });
+      assertRegistrationOpen(event);
+
       const existingAccepted = await this.prisma.teamMember.findFirst({
         where: {
           userId,
