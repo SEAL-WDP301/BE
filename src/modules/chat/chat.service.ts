@@ -6,25 +6,7 @@ export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getTeamMessages(userId: number, role: string, teamId: number, cursorId?: number) {
-    // Basic authorization
-    // Admins and organizers can view all teams
-    if (role === 'student') {
-      const isMember = await this.prisma.teamMember.findFirst({
-        where: { userId, teamId },
-      });
-      const team = await this.prisma.team.findUnique({ where: { id: teamId } });
-      
-      if (!isMember && team?.leaderId !== userId) {
-        throw new ForbiddenException('You do not belong to this team');
-      }
-    } else if (role === 'stakeholder') {
-      const assignment = await this.prisma.mentorAssignment.findFirst({
-        where: { mentorId: userId, teamId },
-      });
-      if (!assignment) {
-        throw new ForbiddenException('You are not assigned to this team');
-      }
-    }
+    await this.assertTeamChatAccess(userId, role, teamId);
 
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
 
@@ -68,12 +50,50 @@ export class ChatService {
     }));
   }
 
-  async saveMessage(teamId: number, senderId: number, content: string) {
+  async assertTeamChatAccess(
+    userId: number,
+    role: string,
+    teamId: number,
+  ): Promise<void> {
+    if (role === "admin" || role === "organizer") {
+      return;
+    }
+
+    if (role === "student") {
+      const isMember = await this.prisma.teamMember.findFirst({
+        where: { userId, teamId },
+      });
+      const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+
+      if (!isMember && team?.leaderId !== userId) {
+        throw new ForbiddenException("You do not belong to this team");
+      }
+      return;
+    }
+
+    if (role === "stakeholder") {
+      const assignment = await this.prisma.mentorAssignment.findFirst({
+        where: { mentorId: userId, teamId },
+      });
+      if (!assignment) {
+        throw new ForbiddenException("You are not assigned to this team");
+      }
+    }
+  }
+
+  async saveMessage(teamId: number, senderId: number, content: string, role: string) {
+    await this.assertTeamChatAccess(senderId, role, teamId);
+
+    const trimmed = content?.trim();
+    if (!trimmed) {
+      throw new ForbiddenException("Message content cannot be empty");
+    }
+
     const message = await this.prisma.teamMessage.create({
       data: {
         teamId,
         senderId,
-        content,
+        content: trimmed,
       },
       include: {
         sender: {
@@ -109,7 +129,9 @@ export class ChatService {
     };
   }
 
-  async markMessagesAsRead(teamId: number, userId: number) {
+  async markMessagesAsRead(teamId: number, userId: number, role: string) {
+    await this.assertTeamChatAccess(userId, role, teamId);
+
     // Find messages in the team room sent by others that haven't been read by this user
     const unreadMessages = await this.prisma.teamMessage.findMany({
       where: {
@@ -177,6 +199,8 @@ export class ChatService {
     const message = await this.prisma.teamMessage.findUnique({ where: { id: messageId } });
     if (!message) throw new NotFoundException('Message not found');
 
+    await this.assertTeamChatAccess(userId, role, message.teamId);
+
     if (message.senderId !== userId && role !== 'admin' && role !== 'organizer') {
       throw new ForbiddenException('You can only edit your own messages');
     }
@@ -203,6 +227,8 @@ export class ChatService {
   async deleteMessage(userId: number, role: string, messageId: number) {
     const message = await this.prisma.teamMessage.findUnique({ where: { id: messageId } });
     if (!message) throw new NotFoundException('Message not found');
+
+    await this.assertTeamChatAccess(userId, role, message.teamId);
 
     if (message.senderId !== userId && role !== 'admin' && role !== 'organizer') {
       throw new ForbiddenException('You can only delete your own messages');

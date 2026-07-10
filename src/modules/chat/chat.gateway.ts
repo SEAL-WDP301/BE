@@ -53,13 +53,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('join_team_room')
-  handleJoinRoom(
+  async handleJoinRoom(
     @MessageBody() teamId: number,
     @ConnectedSocket() client: Socket,
   ) {
-    const roomName = `team_${teamId}`;
-    client.join(roomName);
-    return { event: 'joined_room', data: roomName };
+    if (!client.data.user) {
+      return { error: 'Unauthorized' };
+    }
+
+    const userId = Number(client.data.user.sub || client.data.user.id);
+    const role = client.data.user.role;
+
+    try {
+      await this.chatService.assertTeamChatAccess(userId, role, teamId);
+      const roomName = `team_${teamId}`;
+      client.join(roomName);
+      return { event: 'joined_room', data: roomName };
+    } catch (error) {
+      return { error: error.message };
+    }
   }
 
   @SubscribeMessage('leave_team_room')
@@ -77,19 +89,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { teamId: number; content: string },
     @ConnectedSocket() client: Socket,
   ) {
-    if (!client.data.user) return;
+    if (!client.data.user) return { error: 'Unauthorized' };
 
     const { teamId, content } = data;
     const userId = Number(client.data.user.sub || client.data.user.id);
-    
-    // Save to DB
-    const savedMessage = await this.chatService.saveMessage(teamId, userId, content);
+    const role = client.data.user.role;
 
-    // Broadcast to room
-    const roomName = `team_${teamId}`;
-    this.server.to(roomName).emit('receive_chat_message', savedMessage);
-    
-    return savedMessage;
+    try {
+      const savedMessage = await this.chatService.saveMessage(
+        teamId,
+        userId,
+        content,
+        role,
+      );
+
+      const roomName = `team_${teamId}`;
+      this.server.to(roomName).emit('receive_chat_message', savedMessage);
+
+      return savedMessage;
+    } catch (error) {
+      return { error: error.message };
+    }
   }
 
   @SubscribeMessage('mark_as_read')
@@ -97,21 +117,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() teamId: number,
     @ConnectedSocket() client: Socket,
   ) {
-    if (!client.data.user) return;
+    if (!client.data.user) return { error: 'Unauthorized' };
     const userId = Number(client.data.user.sub || client.data.user.id);
+    const role = client.data.user.role;
 
-    const updatedMessages = await this.chatService.markMessagesAsRead(teamId, userId);
-    if (updatedMessages && updatedMessages.length > 0) {
-      const roomName = `team_${teamId}`;
-      this.server.to(roomName).emit('messages_read_updated', updatedMessages);
+    try {
+      const updatedMessages = await this.chatService.markMessagesAsRead(
+        teamId,
+        userId,
+        role,
+      );
+      if (updatedMessages && updatedMessages.length > 0) {
+        const roomName = `team_${teamId}`;
+        this.server.to(roomName).emit('messages_read_updated', updatedMessages);
+      }
+    } catch (error) {
+      return { error: error.message };
     }
   }
+
   @SubscribeMessage('edit_chat_message')
   async handleEditMessage(
     @MessageBody() data: { messageId: number; content: string },
     @ConnectedSocket() client: Socket,
   ) {
-    if (!client.data.user) return;
+    if (!client.data.user) return { error: 'Unauthorized' };
     const userId = Number(client.data.user.sub || client.data.user.id);
     const role = client.data.user.role;
     
@@ -121,7 +151,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(roomName).emit('chat_message_edited', updatedMessage);
       return updatedMessage;
     } catch (e) {
-      console.error(e);
       return { error: e.message };
     }
   }
@@ -131,7 +160,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { messageId: number },
     @ConnectedSocket() client: Socket,
   ) {
-    if (!client.data.user) return;
+    if (!client.data.user) return { error: 'Unauthorized' };
     const userId = Number(client.data.user.sub || client.data.user.id);
     const role = client.data.user.role;
     
@@ -141,7 +170,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(roomName).emit('chat_message_deleted', deletedMessage);
       return deletedMessage;
     } catch (e) {
-      console.error(e);
       return { error: e.message };
     }
   }
