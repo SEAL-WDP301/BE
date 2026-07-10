@@ -96,4 +96,29 @@ export class MailService {
       throw error;
     }
   }
+
+  async sendNotificationEmail(to: string, title: string, content: string) {
+    try {
+      const response = await this.mailerService.sendMail({
+        to,
+        subject: `SEAL - ${title}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>${title}</h2>
+            <p>${content}</p>
+            <br/>
+            <p>Trân trọng,<br/>Đội ngũ SEAL</p>
+          </div>
+        `,
+      });
+
+      this.logger.log(
+        `Notification email sent to ${to}, MessageID: ${response?.messageId}`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to send notification email to ${to}`, error);
+      throw error;
+    }
+  }
 }

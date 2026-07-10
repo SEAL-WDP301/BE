@@ -23,8 +23,13 @@ export class EventPublicService {
   }
 
   async getPublicEventById(id: number) {
-    const event = await this.prisma.event.findUnique({
-      where: { id },
+    const event = await this.prisma.event.findFirst({
+      where: {
+        id,
+        status: {
+          in: [EventStatus.active, EventStatus.ongoing, EventStatus.closed],
+        },
+      },
       include: {
         tracks: true,
         rounds: true,

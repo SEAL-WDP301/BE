@@ -165,43 +165,49 @@ export class TeamOrganizerService {
     title: string,
     content: string,
   ) {
-    const emailsToNotify = Array.from(
+    const recipients = Array.from(
       new Set([
         team.leader.email,
         ...team.members.map((m: any) => m.user.email),
       ]),
-    );
+    ).map((email) => {
+      const user =
+        email === team.leader.email
+          ? team.leader
+          : team.members.find((m: any) => m.user.email === email)?.user;
+      return user ? { email, user } : null;
+    }).filter(Boolean) as Array<{ email: string; user: { id: number } }>;
 
-    const notifications = emailsToNotify
-      .map((email) => {
-        const user =
-          email === team.leader.email
-            ? team.leader
-            : team.members.find((m: any) => m.user.email === email)?.user;
-        if (user) {
-          return {
-            userId: user.id,
-            eventId: team.eventId,
-            type,
-            title,
-            content,
-            isEmailSent: true,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as any[];
-
-    if (notifications.length > 0) {
-      await this.prisma.notification.createMany({ data: notifications });
-      notifications.forEach((notif) => {
-        this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+    for (const { email, user } of recipients) {
+      const notification = await this.prisma.notification.create({
+        data: {
+          userId: user.id,
+          eventId: team.eventId,
+          type,
+          title,
+          content,
+          isEmailSent: false,
+        },
       });
-    }
 
-    emailsToNotify.forEach((email) => {
-      this.logger.log(`[MOCK MAIL] Sending email to ${email}: ${title}`);
-    });
+      this.eventEmitter.emit(
+        `notification.user.${notification.userId}`,
+        notification,
+      );
+
+      try {
+        await this.mailService.sendNotificationEmail(email, title, content);
+        await this.prisma.notification.update({
+          where: { id: notification.id },
+          data: { isEmailSent: true },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to send team notification email to ${email}`,
+          error,
+        );
+      }
+    }
   }
 
   async bulkDeleteTeams(teamIds: number[]) {

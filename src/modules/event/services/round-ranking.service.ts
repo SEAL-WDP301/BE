@@ -16,6 +16,7 @@ import { PrismaService } from "../../../database/prisma/prisma.service";
 import { computeSubmissionFinalScore, computeJudgeWeightedScore } from "../../../common/utils/scoring.util";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 import { TeamGithubService } from "../../team/services/team-github.service";
+import { MailService } from "../../mail/mail.service";
 
 export interface RankedTeamEntry {
   rank: number;
@@ -38,6 +39,7 @@ export class RoundRankingService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly teamGithubService: TeamGithubService,
+    private readonly mailService: MailService,
   ) {}
 
   async getRoundRankings(
@@ -499,33 +501,51 @@ export class RoundRankingService {
     title: string,
     content: string,
   ) {
-    const userIds = new Set<number>([
-      team.leader.id,
-      ...team.members.map((member) => member.user.id),
-    ]);
+    const recipients = [
+      { userId: team.leader.id, email: team.leader.email },
+      ...team.members.map((member) => ({
+        userId: member.user.id,
+        email: member.user.email,
+      })),
+    ];
 
-    const notifications = Array.from(userIds).map((userId) => ({
-      userId,
-      eventId,
-      type,
-      title,
-      content,
-      isEmailSent: true,
-    }));
+    const uniqueRecipients = Array.from(
+      new Map(recipients.map((recipient) => [recipient.userId, recipient])).values(),
+    );
 
-    if (notifications.length === 0) return;
+    for (const recipient of uniqueRecipients) {
+      const notification = await this.prisma.notification.create({
+        data: {
+          userId: recipient.userId,
+          eventId,
+          type,
+          title,
+          content,
+          isEmailSent: false,
+        },
+      });
 
-    await this.prisma.notification.createMany({ data: notifications });
-
-    for (const notification of notifications) {
       this.eventEmitter.emit(
         `notification.user.${notification.userId}`,
         notification,
       );
-    }
 
-    this.logger.log(
-      `[MOCK MAIL] Round result notification for team ${team.name}: ${title}`,
-    );
+      try {
+        await this.mailService.sendNotificationEmail(
+          recipient.email,
+          title,
+          content,
+        );
+        await this.prisma.notification.update({
+          where: { id: notification.id },
+          data: { isEmailSent: true },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to send round result email to ${recipient.email}`,
+          error,
+        );
+      }
+    }
   }
 }
