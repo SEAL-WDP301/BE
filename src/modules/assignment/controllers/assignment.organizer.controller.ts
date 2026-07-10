@@ -46,11 +46,10 @@ export class AssignmentOrganizerController {
     return { message: "Judges assigned successfully", data: assignment };
   }
 
-  @Delete("judges/:stakeholderId")
-  @ApiOperation({ summary: "Unassign a judge" })
-  // eslint-disable-next-line prettier/prettier
-  async unassignJudge(@Param("stakeholderId", ParseIntPipe) stakeholderId: number) {
-    await this.AssignmentOrganizerService.unassignJudge(stakeholderId);
+  @Delete("judges/:assignmentId")
+  @ApiOperation({ summary: "Unassign a judge by assignment ID" })
+  async unassignJudge(@Param("assignmentId", ParseIntPipe) assignmentId: number) {
+    await this.AssignmentOrganizerService.unassignJudge(assignmentId);
     return { message: "Judge unassigned successfully" };
   }
 

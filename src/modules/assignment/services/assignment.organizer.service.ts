@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { NotificationType } from "@prisma/client";
@@ -117,6 +117,13 @@ export class AssignmentOrganizerService {
   }
 
   async unassignJudge(assignmentId: number) {
+    const assignment = await this.prisma.judgeAssignment.findUnique({
+      where: { id: assignmentId },
+    });
+    if (!assignment) {
+      throw new NotFoundException("Judge assignment not found");
+    }
+
     return this.prisma.judgeAssignment.delete({ where: { id: assignmentId } });
   }
 
