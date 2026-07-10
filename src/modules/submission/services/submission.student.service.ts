@@ -8,12 +8,14 @@ import { PrismaService } from "../../../database/prisma/prisma.service";
 import { StorageService } from "../../storage/storage.service";
 import { SubmitProjectDto } from "../dto/submit-project.dto";
 import { TeamMemberStatus, TeamStatus, SubmissionType, RoundResultStatus } from "@prisma/client";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class SubmissionStudentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async submitProject(
@@ -174,6 +176,14 @@ export class SubmissionStudentService {
       ) {
         await this.storageService.deleteFile(previousFileKey);
       }
+
+      this.eventEmitter.emit("submission.created", {
+        roundId: dto.roundId,
+        teamId: teamId,
+        teamName: team.name,
+        submissionId: submission.id,
+        timestamp: now,
+      });
 
       return submission;
     } catch (error) {

@@ -166,6 +166,9 @@ export async function bootstrap() {
   // ─────────────────────────────────────────────────────────────────────────────
   // 8. START SERVER
   // ─────────────────────────────────────────────────────────────────────────────
+  // Enable shutdown hooks for Prisma $disconnect
+  app.enableShutdownHooks();
+
   const port = configService.get<number>("app.port") || 3000;
   await app.listen(port);
 

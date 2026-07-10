@@ -10,6 +10,7 @@ import { RoundRankingService } from "./services/round-ranking.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
 import { MailModule } from "../mail/mail.module";
 import { TeamModule } from "../team/team.module";
+import { AdminRealtimeGateway } from "./gateways/admin-realtime.gateway";
 
 @Module({
   imports: [PrismaModule, MailModule, TeamModule],
@@ -24,12 +25,14 @@ import { TeamModule } from "../team/team.module";
     CriterionService,
     RoundRankingService,
     EventJudgeService,
+    AdminRealtimeGateway,
   ],
   exports: [
     EventOrganizerService,
     EventPublicService,
     CriterionService,
     RoundRankingService,
+    AdminRealtimeGateway,
   ],
 })
 export class EventModule {}

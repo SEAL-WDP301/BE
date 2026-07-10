@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import {
   TeamMemberRole,
@@ -27,6 +28,7 @@ export class TeamStudentService {
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
     private readonly storageService: StorageService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async getMyEvents(userId: number) {
@@ -296,6 +298,14 @@ export class TeamStudentService {
         ),
       ).catch((err) => this.logger.error("Failed to send invitations", err));
     }
+
+    this.eventEmitter.emit("team.registered", {
+      eventId,
+      teamId: resultTeam.id,
+      teamName: resultTeam.name,
+      trackName: track.name,
+      timestamp: new Date(),
+    });
 
     return resultTeam;
   }

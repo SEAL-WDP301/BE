@@ -140,14 +140,10 @@ export class RoundRankingService {
     await this.prisma.$transaction(async (tx) => {
       for (const track of tracks) {
         const entries = await this.buildTrackRanking(roundId, track.id);
-        const competingEntries = entries.filter(
-          (entry) => entry.finalScore !== null,
-        );
-
-        const advancedIds = competingEntries
+        const advancedIds = entries
           .filter((entry) => advancingSet.has(entry.teamId))
           .map((entry) => entry.teamId);
-        const eliminatedIds = competingEntries
+        const eliminatedIds = entries
           .filter((entry) => !advancingSet.has(entry.teamId))
           .map((entry) => entry.teamId);
 
