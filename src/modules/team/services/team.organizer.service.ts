@@ -130,7 +130,7 @@ export class TeamOrganizerService {
 
       if (openGithubRound) {
         const githubResult =
-          await this.teamGithubService.provisionRepositoryForTeam(teamId);
+          await this.teamGithubService.provisionRepositoryForTeam(teamId, openGithubRound.id);
 
         if (githubResult.provisioned && githubResult.repoUrl) {
           await this.notifyEntireTeam(

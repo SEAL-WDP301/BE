@@ -22,6 +22,7 @@ export class TeamGithubService {
 
   async provisionRepositoryForTeam(
     teamId: number,
+    roundId?: number,
   ): Promise<TeamGithubProvisionResult> {
     const team = await this.prisma.team.findUnique({
       where: { id: teamId },
@@ -38,6 +39,9 @@ export class TeamGithubService {
     }
 
     if (team.githubRepoUrl) {
+      if (roundId) {
+        await this.autoCreateSubmission(teamId, roundId, team.githubRepoUrl, team.leaderId);
+      }
       return {
         provisioned: false,
         skipped: true,
@@ -109,6 +113,10 @@ export class TeamGithubService {
         `GitHub repo created for team ${teamId}: ${created.htmlUrl}`,
       );
 
+      if (roundId) {
+        await this.autoCreateSubmission(teamId, roundId, created.htmlUrl, team.leaderId);
+      }
+
       return {
         provisioned: true,
         skipped: false,
@@ -149,7 +157,28 @@ export class TeamGithubService {
     this.logger.log(`Found ${teamsWithoutRepo.length} teams needing GitHub repo provision for round ${roundId}`);
 
     for (const tr of teamsWithoutRepo) {
-      await this.provisionRepositoryForTeam(tr.teamId);
+      await this.provisionRepositoryForTeam(tr.teamId, roundId);
+    }
+  }
+
+  private async autoCreateSubmission(teamId: number, roundId: number, githubUrl: string, submittedById: number) {
+    try {
+      await this.prisma.submission.upsert({
+        where: { teamId_roundId: { teamId, roundId } },
+        create: {
+          teamId,
+          roundId,
+          githubUrl,
+          status: "submitted",
+          submittedById
+        },
+        update: {
+          githubUrl
+        }
+      });
+      this.logger.log(`Auto-created submission for team ${teamId} in round ${roundId}`);
+    } catch (error) {
+      this.logger.error(`Failed to auto-create submission for team ${teamId} round ${roundId}`, error);
     }
   }
 

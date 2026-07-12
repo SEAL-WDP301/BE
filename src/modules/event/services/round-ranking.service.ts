@@ -55,6 +55,10 @@ export class RoundRankingService {
       orderBy: { id: "asc" },
     });
 
+    const nextRound = await this.prisma.round.findFirst({
+      where: { eventId, roundNumber: round.roundNumber + 1 },
+    });
+
     const rankingsByTrack = await Promise.all(
       tracks.map(async (track) => ({
         track: { id: track.id, name: track.name },
@@ -68,6 +72,7 @@ export class RoundRankingService {
         name: round.name,
         roundNumber: round.roundNumber,
         status: round.status,
+        isFinalRound: !nextRound,
       },
       tracks: rankingsByTrack,
     };
@@ -88,6 +93,10 @@ export class RoundRankingService {
       orderBy: { id: "asc" },
     });
 
+    const nextRound = await this.prisma.round.findFirst({
+      where: { eventId, roundNumber: round.roundNumber + 1 },
+    });
+
     const rankingsByTrack = await Promise.all(
       tracks.map(async (track) => ({
         track: { id: track.id, name: track.name },
@@ -101,6 +110,7 @@ export class RoundRankingService {
         name: round.name,
         roundNumber: round.roundNumber,
         status: round.status,
+        isFinalRound: !nextRound,
       },
       tracks: rankingsByTrack,
     };
@@ -195,6 +205,18 @@ export class RoundRankingService {
           }
         }
 
+        // Handle awards if final round
+        if (!nextRound && dto.awards) {
+          for (const awardDto of dto.awards) {
+             if (entries.some(e => e.teamId === awardDto.teamId)) {
+                await tx.team.update({
+                  where: { id: awardDto.teamId },
+                  data: { award: awardDto.award || null }
+                });
+             }
+          }
+        }
+
         summary.push({
           trackId: track.id,
           trackName: track.name,
@@ -202,6 +224,17 @@ export class RoundRankingService {
           eliminatedTeamIds: eliminatedIds,
         });
       }
+
+      // Mark any remaining teams that did not submit as eliminated
+      await tx.teamRound.updateMany({
+        where: {
+          roundId,
+          status: RoundResultStatus.competing,
+        },
+        data: {
+          status: RoundResultStatus.eliminated,
+        },
+      });
 
       await tx.round.update({
         where: { id: roundId },
@@ -211,10 +244,17 @@ export class RoundRankingService {
 
     await this.notifyRoundResults(eventId, round.name, summary);
 
+    let repoSyncStarted = false;
     if (nextRound && nextRound.submissionType === "github_link") {
-      this.teamGithubService.syncRepositoriesForRound(nextRound.id).catch(err => {
-        this.logger.error(`Failed to sync github repositories for next round ${nextRound.id}`, err);
-      });
+      repoSyncStarted = true;
+      this.logger.log(`[GitHub Sync] Starting background repository provisioning for Round ${nextRound.id}`);
+      this.teamGithubService.syncRepositoriesForRound(nextRound.id)
+        .then(() => {
+           this.logger.log(`[GitHub Sync] Finished provisioning repositories for Round ${nextRound.id}`);
+        })
+        .catch(err => {
+           this.logger.error(`[GitHub Sync] Failed to sync github repositories for next round ${nextRound.id}`, err);
+        });
     }
 
     return {
@@ -222,6 +262,7 @@ export class RoundRankingService {
       status: RoundStatus.results_published,
       advancingTeamIds: dto.advancingTeamIds,
       nextRoundId: nextRound?.id ?? null,
+      repoSyncStarted,
       summary,
       rankings: await this.getRoundRankings(eventId, roundId),
     };
@@ -243,7 +284,14 @@ export class RoundRankingService {
         },
       },
       include: {
-        team: { include: { track: true } },
+        team: { 
+          include: { 
+            track: true,
+            teamRounds: {
+              where: { roundId }
+            }
+          } 
+        },
         scores: true,
       },
     });
@@ -266,7 +314,8 @@ export class RoundRankingService {
         submissionId: submission.id,
         finalScore,
         judgesScored,
-        status: RoundResultStatus.competing,
+        status: submission.team.teamRounds?.[0]?.status ?? RoundResultStatus.competing,
+        award: submission.team.award,
         rank: 0,
         submittedAt: submission.submittedAt,
       };
@@ -305,7 +354,14 @@ export class RoundRankingService {
         },
       },
       include: {
-        team: { include: { track: true } },
+        team: { 
+          include: { 
+            track: true,
+            teamRounds: {
+              where: { roundId }
+            }
+          } 
+        },
         scores: { include: { judge: true } },
       },
     });
@@ -389,7 +445,8 @@ export class RoundRankingService {
         finalScore,
         criteriaAverages,
         judges: validJudges,
-        status: RoundResultStatus.competing,
+        status: submission.team.teamRounds?.[0]?.status ?? RoundResultStatus.competing,
+        award: submission.team.award,
         rank: 0,
         submittedAt: submission.submittedAt,
       };
