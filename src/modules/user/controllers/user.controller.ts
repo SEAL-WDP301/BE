@@ -49,6 +49,17 @@ export class UserController {
     };
   }
 
+  @Get("profile-history")
+  @ApiOperation({ summary: "Get current user hackathon history and achievements" })
+  @ApiResponse({ status: 200, description: "History retrieved successfully" })
+  async getProfileHistory(@CurrentUser("id") userId: string) {
+    const history = await this.userService.getUserHistory(Number(userId));
+    return {
+      message: "User history retrieved successfully",
+      data: history,
+    };
+  }
+
   @Get("notifications")
   @ApiOperation({ summary: "Get current user notifications" })
   @ApiResponse({

@@ -521,4 +521,48 @@ export class UserService implements OnApplicationBootstrap {
       data: { isActive: false },
     });
   }
+
+  async getUserHistory(userId: number) {
+    const hackerHistory = await this.prisma.team.findMany({
+      where: {
+        OR: [
+          { leaderId: userId },
+          { members: { some: { userId, status: "accepted" } } }
+        ]
+      },
+      include: {
+        event: true,
+        track: true,
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    const judgeHistory = await this.prisma.judgeAssignment.findMany({
+      where: { judgeId: userId },
+      include: {
+        round: { include: { event: true } },
+        track: true,
+      },
+      orderBy: { assignedAt: "desc" }
+    });
+
+    const mentorHistory = await this.prisma.mentorAssignment.findMany({
+      where: { mentorId: userId },
+      include: {
+        team: {
+          include: {
+            event: true,
+            track: true,
+          }
+        }
+      },
+      orderBy: { assignedAt: "desc" }
+    });
+
+    return {
+      hackerHistory,
+      judgeHistory,
+      mentorHistory,
+    };
+  }
 }
