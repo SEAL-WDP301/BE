@@ -58,6 +58,7 @@ export class RoundRankingService {
     const nextRound = await this.prisma.round.findFirst({
       where: { eventId, roundNumber: round.roundNumber + 1 },
     });
+    const isFinalRound = !nextRound;
 
     const rankingsByTrack = await Promise.all(
       tracks.map(async (track) => ({
@@ -72,7 +73,7 @@ export class RoundRankingService {
         name: round.name,
         roundNumber: round.roundNumber,
         status: round.status,
-        isFinalRound: !nextRound,
+        isFinalRound,
       },
       tracks: rankingsByTrack,
     };
@@ -139,6 +140,7 @@ export class RoundRankingService {
     const nextRound = await this.prisma.round.findFirst({
       where: { eventId, roundNumber: round.roundNumber + 1 },
     });
+    const isFinalRound = !nextRound;
 
     const summary: Array<{
       trackId: number;
@@ -150,21 +152,27 @@ export class RoundRankingService {
     await this.prisma.$transaction(async (tx) => {
       for (const track of tracks) {
         const entries = await this.buildTrackRanking(roundId, track.id);
-        const advancedIds = entries
-          .filter((entry) => advancingSet.has(entry.teamId))
-          .map((entry) => entry.teamId);
-        const eliminatedIds = entries
-          .filter((entry) => !advancingSet.has(entry.teamId))
-          .map((entry) => entry.teamId);
+        const advancedIds = isFinalRound
+          ? []
+          : entries
+            .filter((entry) => advancingSet.has(entry.teamId))
+            .map((entry) => entry.teamId);
+        const eliminatedIds = isFinalRound
+          ? []
+          : entries
+            .filter((entry) => !advancingSet.has(entry.teamId))
+            .map((entry) => entry.teamId);
 
         for (const entry of entries) {
           const isAdvanced = advancedIds.includes(entry.teamId);
           const isEliminated = eliminatedIds.includes(entry.teamId);
-          const status = isAdvanced
-            ? RoundResultStatus.advanced
-            : isEliminated
-              ? RoundResultStatus.eliminated
-              : RoundResultStatus.competing;
+          const status = isFinalRound
+            ? RoundResultStatus.competing
+            : isAdvanced
+              ? RoundResultStatus.advanced
+              : isEliminated
+                ? RoundResultStatus.eliminated
+                : RoundResultStatus.competing;
 
           await tx.teamRound.upsert({
             where: {
@@ -206,7 +214,7 @@ export class RoundRankingService {
         }
 
         // Handle awards if final round
-        if (!nextRound && dto.awards) {
+        if (isFinalRound && dto.awards) {
           for (const awardDto of dto.awards) {
              if (entries.some(e => e.teamId === awardDto.teamId)) {
                 await tx.team.update({
@@ -226,15 +234,17 @@ export class RoundRankingService {
       }
 
       // Mark any remaining teams that did not submit as eliminated
-      await tx.teamRound.updateMany({
-        where: {
-          roundId,
-          status: RoundResultStatus.competing,
-        },
-        data: {
-          status: RoundResultStatus.eliminated,
-        },
-      });
+      if (!isFinalRound) {
+        await tx.teamRound.updateMany({
+          where: {
+            roundId,
+            status: RoundResultStatus.competing,
+          },
+          data: {
+            status: RoundResultStatus.eliminated,
+          },
+        });
+      }
 
       await tx.round.update({
         where: { id: roundId },

@@ -8,8 +8,15 @@ export class EventPublicService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private withImageAlias<T extends { imageUrl?: string | null }>(event: T) {
+    return {
+      ...event,
+      image_url: event.imageUrl ?? null,
+    };
+  }
+
   async getAllPublicEvents() {
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: {
         status: {
           in: [EventStatus.active, EventStatus.ongoing, EventStatus.closed],
@@ -20,6 +27,8 @@ export class EventPublicService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    return events.map((event) => this.withImageAlias(event));
   }
 
   async getPublicEventById(id: number) {
@@ -31,8 +40,8 @@ export class EventPublicService {
         _count: {
           select: {
             teams: true,
-          }
-        }
+          },
+        },
       },
     });
 
@@ -44,16 +53,16 @@ export class EventPublicService {
       where: {
         round: {
           eventId: id,
-        }
-      }
+        },
+      },
     });
 
-    return {
+    return this.withImageAlias({
       ...event,
       _count: {
         teams: event._count.teams,
         submissions: submissionCount,
-      }
-    };
+      },
+    });
   }
 }

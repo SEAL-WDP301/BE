@@ -39,6 +39,11 @@ export class CreateEventDto {
   @IsOptional()
   description?: string;
 
+  @ApiPropertyOptional({ description: "Public cover image URL for the event" })
+  @IsUrl()
+  @IsOptional()
+  imageUrl?: string;
+
   @ApiProperty({ enum: Season })
   @IsEnum(Season)
   season: Season;
