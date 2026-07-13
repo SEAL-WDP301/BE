@@ -28,6 +28,11 @@ export class EventPublicService {
       include: {
         tracks: true,
         rounds: true,
+        _count: {
+          select: {
+            teams: true,
+          }
+        }
       },
     });
 
@@ -35,6 +40,20 @@ export class EventPublicService {
       throw new NotFoundException("Event not found");
     }
 
-    return event;
+    const submissionCount = await this.prisma.submission.count({
+      where: {
+        round: {
+          eventId: id,
+        }
+      }
+    });
+
+    return {
+      ...event,
+      _count: {
+        teams: event._count.teams,
+        submissions: submissionCount,
+      }
+    };
   }
 }

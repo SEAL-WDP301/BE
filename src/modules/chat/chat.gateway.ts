@@ -62,6 +62,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { event: 'joined_room', data: roomName };
   }
 
+  @SubscribeMessage('join_multiple_team_rooms')
+  handleJoinMultipleRooms(
+    @MessageBody() teamIds: number[],
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (Array.isArray(teamIds)) {
+      teamIds.forEach(id => client.join(`team_${id}`));
+    }
+    return { event: 'joined_multiple_rooms', data: teamIds };
+  }
+
   @SubscribeMessage('leave_team_room')
   handleLeaveRoom(
     @MessageBody() teamId: number,

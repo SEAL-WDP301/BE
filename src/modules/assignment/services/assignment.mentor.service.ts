@@ -28,12 +28,13 @@ export class AssignmentMentorService {
       const lastMessage = await this.prisma.teamMessage.findFirst({
         where: { teamId: team.id },
         orderBy: { createdAt: 'desc' },
-        select: { createdAt: true }
+        include: { sender: { select: { id: true, name: true } } }
       });
       return {
         ...team,
         unreadCount,
-        lastMessageAt: lastMessage?.createdAt || null
+        lastMessageAt: lastMessage?.createdAt || null,
+        lastMessage: lastMessage || null
       };
     }));
   }
