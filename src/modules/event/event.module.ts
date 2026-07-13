@@ -5,7 +5,6 @@ import { EventOrganizerService } from "./services/event.organizer.service";
 import { EventPublicService } from "./services/event.public.service";
 import { EventJudgeController } from "./controllers/event.judge.controller";
 import { EventJudgeService } from "./services/event.judge.service";
-import { CriterionService } from "./services/criterion.service";
 import { RoundRankingService } from "./services/round-ranking.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
 import { MailModule } from "../mail/mail.module";
@@ -22,7 +21,6 @@ import { AdminRealtimeGateway } from "./gateways/admin-realtime.gateway";
   providers: [
     EventOrganizerService,
     EventPublicService,
-    CriterionService,
     RoundRankingService,
     EventJudgeService,
     AdminRealtimeGateway,
@@ -30,7 +28,6 @@ import { AdminRealtimeGateway } from "./gateways/admin-realtime.gateway";
   exports: [
     EventOrganizerService,
     EventPublicService,
-    CriterionService,
     RoundRankingService,
     AdminRealtimeGateway,
   ],

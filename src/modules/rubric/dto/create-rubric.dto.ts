@@ -1,44 +1,48 @@
 import {
-  IsInt,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
   IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
   Min,
+  IsNumber,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 
 export class CreateRubricDto {
-  @ApiProperty()
+  @ApiProperty({ example: "Technical Implementation" })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: "Code quality, architecture, and best practices" })
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ default: 10 })
+  @ApiProperty({ example: 10 })
+  @Type(() => Number)
   @IsInt()
   @Min(1)
-  @IsOptional()
-  maxScore?: number;
+  maxScore: number;
 
-  @ApiPropertyOptional({ default: 1 })
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @IsOptional()
-  weight?: number;
+  weight: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
   @IsInt()
-  @Min(1)
   roundId: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    example: 1,
+    description: "Omit or null for global rubrics that apply to all tracks in the round",
+  })
+  @Type(() => Number)
   @IsInt()
-  @Min(1)
   @IsOptional()
-  trackId?: number;
+  trackId?: number | null;
 }

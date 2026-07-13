@@ -16,7 +16,6 @@ import { RolesGuard } from "../../../common/guards/roles.guard";
 import { Roles } from "../../../common/decorators/roles.decorator";
 import { Role } from "../../../common/enums/role.enum";
 import { EventOrganizerService } from "../services/event.organizer.service";
-import { CriterionService } from "../services/criterion.service";
 import { RoundRankingService } from "../services/round-ranking.service";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { CreateEventDto } from "../dto/create-event.dto";
@@ -24,7 +23,6 @@ import { UpdateEventDto } from "../dto/update-event.dto";
 import { UpdateEventStatusDto } from "../dto/update-event-status.dto";
 import { UpdateRoundStatusDto } from "../dto/update-round-status.dto";
 
-import { CreateRubricDto } from "../dto/create-rubric.dto";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
@@ -36,7 +34,6 @@ import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 export class EventOrganizerController {
   constructor(
     private readonly eventOrganizerService: EventOrganizerService,
-    private readonly criterionService: CriterionService,
     private readonly roundRankingService: RoundRankingService,
   ) {}
 
@@ -114,82 +111,6 @@ export class EventOrganizerController {
   }
 
 
-
-  @Get(":id/rubrics")
-  @ApiOperation({ summary: "Get scoring criteria (rubrics) for an event" })
-  async getRubrics(
-    @Param("id", ParseIntPipe) eventId: number,
-    @Query("roundId") roundId?: string,
-    @Query("trackId") trackId?: string,
-  ) {
-    const rubrics = await this.criterionService.findAll(
-      eventId,
-      roundId ? Number(roundId) : undefined,
-      trackId ? Number(trackId) : undefined,
-    );
-    return { message: "Rubrics fetched", data: rubrics };
-  }
-
-  @Post(":id/rubrics")
-  @ApiOperation({ summary: "Create a scoring criterion (rubric)" })
-  async createRubric(
-    @Param("id", ParseIntPipe) eventId: number,
-    @CurrentUser("id") userId: string,
-    @Body() dto: CreateRubricDto,
-  ) {
-    const rubric = await this.criterionService.create(
-      eventId,
-      Number(userId),
-      dto,
-    );
-    return { message: "Rubric created successfully", data: rubric };
-  }
-
-  @Post(":id/rubrics/bulk")
-  @ApiOperation({ summary: "Bulk create scoring criteria (rubrics)" })
-  async bulkCreateRubrics(
-    @Param("id", ParseIntPipe) eventId: number,
-    @CurrentUser("id") userId: string,
-    @Body() dto: { rubrics: CreateRubricDto[] },
-  ) {
-    const result = await this.criterionService.bulkCreate(
-      eventId,
-      Number(userId),
-      dto.rubrics,
-    );
-    return { message: "Rubrics bulk created successfully", data: result };
-  }
-
-  @Put(":id/rubrics/:rubricId")
-  @ApiOperation({ summary: "Update a scoring criterion (rubric)" })
-  async updateRubric(
-    @Param("id", ParseIntPipe) eventId: number,
-    @Param("rubricId", ParseIntPipe) rubricId: number,
-    @Body() dto: CreateRubricDto,
-  ) {
-    const rubric = await this.criterionService.update(eventId, rubricId, dto);
-    return { message: "Rubric updated successfully", data: rubric };
-  }
-
-  @Delete(":id/rubrics/bulk")
-  @ApiOperation({ summary: "Bulk delete scoring criteria (rubrics)" })
-  async bulkDeleteRubrics(
-    @Param("id", ParseIntPipe) eventId: number,
-    @Body() dto: { rubricIds: number[] },
-  ) {
-    await this.criterionService.bulkRemove(eventId, dto.rubricIds);
-    return { message: "Rubrics deleted successfully" };
-  }
-
-  @Delete(":id/rubrics/:rubricId")
-  @ApiOperation({ summary: "Delete a scoring criterion (rubric)" })
-  async deleteRubric(
-    @Param("id", ParseIntPipe) eventId: number,
-    @Param("rubricId", ParseIntPipe) rubricId: number,
-  ) {
-    await this.criterionService.remove(eventId, rubricId);
-    return { message: "Rubric deleted successfully" };
-  }
 
   @Get(":id/rounds/:roundId/rankings")
   @ApiOperation({ summary: "Get team rankings for a round by track" })
