@@ -7,7 +7,7 @@ import { FeedbackGateway } from "../gateways/feedback.gateway";
 export class MentorFeedbackService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly feedbackGateway: FeedbackGateway
+    private readonly feedbackGateway: FeedbackGateway,
   ) {}
 
   async findAllByMentor(mentorId: number) {
@@ -52,7 +52,7 @@ export class MentorFeedbackService {
       },
       include: this.feedbackInclude(),
     });
-    
+
     this.feedbackGateway.notifyFeedbackUpdated(submission.teamId);
     return feedback;
   }
@@ -76,7 +76,9 @@ export class MentorFeedbackService {
 
   async remove(mentorId: number, feedbackId: number) {
     const feedback = await this.ensureOwnedFeedback(mentorId, feedbackId);
-    const deleted = await this.prisma.mentorFeedback.delete({ where: { id: feedbackId } });
+    const deleted = await this.prisma.mentorFeedback.delete({
+      where: { id: feedbackId },
+    });
     this.feedbackGateway.notifyFeedbackUpdated(feedback.teamId);
     return deleted;
   }
@@ -96,7 +98,7 @@ export class MentorFeedbackService {
     if (!feedback) {
       throw new NotFoundException("Mentor feedback not found");
     }
-    
+
     return feedback;
   }
 

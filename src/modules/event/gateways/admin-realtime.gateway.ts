@@ -60,7 +60,9 @@ export class AdminRealtimeGateway
     if (!data.eventId) return;
     const room = `admin-event-${data.eventId}`;
     this.server.to(room).emit("team.registered", data);
-    this.logger.log(`Emitted team.registered to ${room} for team ${data.teamName}`);
+    this.logger.log(
+      `Emitted team.registered to ${room} for team ${data.teamName}`,
+    );
   }
 
   @OnEvent("submission.created")
@@ -68,6 +70,8 @@ export class AdminRealtimeGateway
     if (!data.roundId) return;
     const room = `admin-round-${data.roundId}`;
     this.server.to(room).emit("submission.created", data);
-    this.logger.log(`Emitted submission.created to ${room} for team ${data.teamName}`);
+    this.logger.log(
+      `Emitted submission.created to ${room} for team ${data.teamName}`,
+    );
   }
 }

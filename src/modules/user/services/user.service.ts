@@ -527,14 +527,14 @@ export class UserService implements OnApplicationBootstrap {
       where: {
         OR: [
           { leaderId: userId },
-          { members: { some: { userId, status: "accepted" } } }
-        ]
+          { members: { some: { userId, status: "accepted" } } },
+        ],
       },
       include: {
         event: true,
         track: true,
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     const judgeHistory = await this.prisma.judgeAssignment.findMany({
@@ -543,7 +543,7 @@ export class UserService implements OnApplicationBootstrap {
         round: { include: { event: true } },
         track: true,
       },
-      orderBy: { assignedAt: "desc" }
+      orderBy: { assignedAt: "desc" },
     });
 
     const mentorHistory = await this.prisma.mentorAssignment.findMany({
@@ -553,10 +553,10 @@ export class UserService implements OnApplicationBootstrap {
           include: {
             event: true,
             track: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { assignedAt: "desc" }
+      orderBy: { assignedAt: "desc" },
     });
 
     return {

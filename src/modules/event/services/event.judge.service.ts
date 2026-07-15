@@ -27,7 +27,10 @@ export class EventJudgeService {
           select: { id: true, name: true },
         },
       },
-      orderBy: [{ round: { eventId: "desc" } }, { round: { roundNumber: "asc" } }],
+      orderBy: [
+        { round: { eventId: "desc" } },
+        { round: { roundNumber: "asc" } },
+      ],
     });
 
     const eventsMap = new Map<
@@ -65,7 +68,7 @@ export class EventJudgeService {
       }
 
       const currentRounds = eventsMap.get(event.id)!.rounds;
-      if (!currentRounds.some(r => r.roundId === assignment.roundId)) {
+      if (!currentRounds.some((r) => r.roundId === assignment.roundId)) {
         currentRounds.push({
           assignmentId: assignment.id,
           roundId: assignment.roundId,

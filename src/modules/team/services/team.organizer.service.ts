@@ -22,48 +22,82 @@ export class TeamOrganizerService {
     private readonly teamGithubService: TeamGithubService,
   ) {}
 
-  async getTeamsByEvent(eventId: number, adminId: number, trackId?: number, roundId?: number, hasMentor?: string) {
+  async getTeamsByEvent(
+    eventId: number,
+    adminId: number,
+    trackId?: number,
+    roundId?: number,
+    hasMentor?: string,
+  ) {
     const teams = await this.prisma.team.findMany({
       where: {
         eventId,
         ...(trackId && { trackId }),
         ...(roundId && {
           teamRounds: {
-            some: { roundId }
-          }
+            some: { roundId },
+          },
         }),
         ...(hasMentor === "true" && { mentorAssignments: { some: {} } }),
         ...(hasMentor === "false" && { mentorAssignments: { none: {} } }),
       },
       include: {
         track: true,
-        leader: { select: { id: true, name: true, email: true, avatarUrl: true, studentProfile: true } },
-        members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, studentProfile: true } } } },
-        mentorAssignments: { include: { mentor: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
+        leader: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            studentProfile: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+                studentProfile: true,
+              },
+            },
+          },
+        },
+        mentorAssignments: {
+          include: {
+            mentor: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
+          },
+        },
         teamRounds: { include: { round: true } },
       },
     });
 
-    return Promise.all(teams.map(async (team) => {
-      const unreadCount = await this.prisma.teamMessage.count({
-        where: {
-          teamId: team.id,
-          senderId: { not: adminId },
-          reads: { none: { userId: adminId } }
-        }
-      });
-      const lastMessage = await this.prisma.teamMessage.findFirst({
-        where: { teamId: team.id },
-        orderBy: { createdAt: 'desc' },
-        include: { sender: { select: { id: true, name: true } } }
-      });
-      return {
-        ...team,
-        unreadCount,
-        lastMessageAt: lastMessage?.createdAt || null,
-        lastMessage: lastMessage || null
-      };
-    }));
+    return Promise.all(
+      teams.map(async (team) => {
+        const unreadCount = await this.prisma.teamMessage.count({
+          where: {
+            teamId: team.id,
+            senderId: { not: adminId },
+            reads: { none: { userId: adminId } },
+          },
+        });
+        const lastMessage = await this.prisma.teamMessage.findFirst({
+          where: { teamId: team.id },
+          orderBy: { createdAt: "desc" },
+          include: { sender: { select: { id: true, name: true } } },
+        });
+        return {
+          ...team,
+          unreadCount,
+          lastMessageAt: lastMessage?.createdAt || null,
+          lastMessage: lastMessage || null,
+        };
+      }),
+    );
   }
 
   async getTeamsByTrack(eventId: number, trackId: number) {
@@ -74,7 +108,13 @@ export class TeamOrganizerService {
       },
       include: {
         leader: {
-          select: { id: true, name: true, email: true, avatarUrl: true, studentProfile: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            studentProfile: true,
+          },
         },
         members: {
           include: {
@@ -110,8 +150,14 @@ export class TeamOrganizerService {
 
     if (!team) throw new NotFoundException("Team not found");
 
-    if ((dto.status === TeamStatus.rejected || dto.status === TeamStatus.disqualified) && !dto.reason) {
-      throw new BadRequestException("Reason is required for rejected or disqualified status");
+    if (
+      (dto.status === TeamStatus.rejected ||
+        dto.status === TeamStatus.disqualified) &&
+      !dto.reason
+    ) {
+      throw new BadRequestException(
+        "Reason is required for rejected or disqualified status",
+      );
     }
 
     const updated = await this.prisma.team.update({
@@ -119,19 +165,29 @@ export class TeamOrganizerService {
       data: {
         status: dto.status,
         eliminationReason:
-          (dto.status === TeamStatus.rejected || dto.status === TeamStatus.disqualified) ? dto.reason : null,
+          dto.status === TeamStatus.rejected ||
+          dto.status === TeamStatus.disqualified
+            ? dto.reason
+            : null,
       },
     });
 
     if (dto.status === TeamStatus.approved) {
       // Check if there is an open round that requires github
       const openGithubRound = await this.prisma.round.findFirst({
-        where: { eventId: team.eventId, status: "open", submissionType: "github_link" }
+        where: {
+          eventId: team.eventId,
+          status: "open",
+          submissionType: "github_link",
+        },
       });
 
       if (openGithubRound) {
         const githubResult =
-          await this.teamGithubService.provisionRepositoryForTeam(teamId, openGithubRound.id);
+          await this.teamGithubService.provisionRepositoryForTeam(
+            teamId,
+            openGithubRound.id,
+          );
 
         if (githubResult.provisioned && githubResult.repoUrl) {
           await this.notifyEntireTeam(

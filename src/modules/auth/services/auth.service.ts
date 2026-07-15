@@ -147,7 +147,10 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
-    this.logger.log(`Access token for ${user.email}: ${tokens.accessToken}`, "AuthService");
+    this.logger.log(
+      `Access token for ${user.email}: ${tokens.accessToken}`,
+      "AuthService",
+    );
     await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -263,7 +266,7 @@ export class AuthService {
 
     return {
       message: MESSAGES.TOKEN_REFRESHED,
-      data: { 
+      data: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },

@@ -14,7 +14,9 @@ import { WsJwtGuard } from "../../auth/guards/ws-jwt.guard";
     origin: process.env.FRONTEND_URL || "http://localhost:3001",
   },
 })
-export class FeedbackGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class FeedbackGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -34,7 +36,9 @@ export class FeedbackGateway implements OnGatewayConnection, OnGatewayDisconnect
     const user = client.data.user;
     if (!user) return; // Add more specific team checks if needed
     client.join(`team_${teamId}`);
-    this.logger.log(`Client ${client.id} (User: ${user.email}) joined room: team_${teamId}`);
+    this.logger.log(
+      `Client ${client.id} (User: ${user.email}) joined room: team_${teamId}`,
+    );
   }
 
   @UseGuards(WsJwtGuard)

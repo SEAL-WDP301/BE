@@ -19,7 +19,6 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 
-
 @ApiTags("Organizer/Teams")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -74,8 +73,6 @@ export class TeamOrganizerController {
     );
     return { message: "Team status updated", data: updated };
   }
-
-
 
   @Post("bulk-delete")
   @ApiOperation({ summary: "Bulk delete teams" })

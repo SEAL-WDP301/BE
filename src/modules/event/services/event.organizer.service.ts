@@ -17,7 +17,7 @@ export class EventOrganizerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly teamGithubService: TeamGithubService,
-  ) { }
+  ) {}
 
   async createEvent(userId: number, dto: CreateEventDto) {
     const { tracks, rounds, ...eventData } = dto;
@@ -87,60 +87,60 @@ export class EventOrganizerService {
 
     const tracksUpdate = tracks
       ? {
-        deleteMany: {
-          id: { notIn: tracks.filter((t) => t.id).map((t) => t.id!) },
-        },
-        create: tracks
-          .filter((t) => !t.id)
-          .map((t) => ({
-            name: t.name,
-            description: t.description,
-            maxTeams: t.maxTeams,
-            maxMembersPerTeam: t.maxMembersPerTeam,
-          })),
-        update: tracks
-          .filter((t) => t.id)
-          .map((t) => ({
-            where: { id: t.id },
-            data: {
+          deleteMany: {
+            id: { notIn: tracks.filter((t) => t.id).map((t) => t.id!) },
+          },
+          create: tracks
+            .filter((t) => !t.id)
+            .map((t) => ({
               name: t.name,
               description: t.description,
               maxTeams: t.maxTeams,
               maxMembersPerTeam: t.maxMembersPerTeam,
-            },
-          })),
-      }
+            })),
+          update: tracks
+            .filter((t) => t.id)
+            .map((t) => ({
+              where: { id: t.id },
+              data: {
+                name: t.name,
+                description: t.description,
+                maxTeams: t.maxTeams,
+                maxMembersPerTeam: t.maxMembersPerTeam,
+              },
+            })),
+        }
       : undefined;
 
     const roundsUpdate = rounds
       ? {
-        deleteMany: {
-          id: { notIn: rounds.filter((r) => r.id).map((r) => r.id!) },
-        },
-        create: rounds
-          .filter((r) => !r.id)
-          .map((r) => ({
-            roundNumber: r.roundNumber,
-            name: r.name,
-            submissionType: r.submissionType,
-            submissionDeadline: r.submissionDeadline,
-            maxFileSizeMb: r.maxFileSizeMb,
-            isTrackSpecific: r.isTrackSpecific,
-          })),
-        update: rounds
-          .filter((r) => r.id)
-          .map((r) => ({
-            where: { id: r.id },
-            data: {
+          deleteMany: {
+            id: { notIn: rounds.filter((r) => r.id).map((r) => r.id!) },
+          },
+          create: rounds
+            .filter((r) => !r.id)
+            .map((r) => ({
               roundNumber: r.roundNumber,
               name: r.name,
               submissionType: r.submissionType,
               submissionDeadline: r.submissionDeadline,
               maxFileSizeMb: r.maxFileSizeMb,
               isTrackSpecific: r.isTrackSpecific,
-            },
-          })),
-      }
+            })),
+          update: rounds
+            .filter((r) => r.id)
+            .map((r) => ({
+              where: { id: r.id },
+              data: {
+                roundNumber: r.roundNumber,
+                name: r.name,
+                submissionType: r.submissionType,
+                submissionDeadline: r.submissionDeadline,
+                maxFileSizeMb: r.maxFileSizeMb,
+                isTrackSpecific: r.isTrackSpecific,
+              },
+            })),
+        }
       : undefined;
 
     const data: Prisma.EventUpdateInput = {
@@ -258,7 +258,7 @@ export class EventOrganizerService {
       where: {
         round: { eventId },
         ...(roundId && { roundId }),
-        ...(trackId && { team: { trackId } })
+        ...(trackId && { team: { trackId } }),
       },
       include: {
         team: { include: { track: true } },
@@ -275,7 +275,7 @@ export class EventOrganizerService {
       },
       include: {
         submittedBy: { select: { id: true, name: true, email: true } },
-      }
+      },
     });
 
     const submissionMap = new Map();
@@ -283,7 +283,7 @@ export class EventOrganizerService {
       submissionMap.set(`${sub.teamId}_${sub.roundId}`, sub);
     }
 
-    const merged = teamRounds.map(tr => {
+    const merged = teamRounds.map((tr) => {
       const sub = submissionMap.get(`${tr.teamId}_${tr.roundId}`);
       if (sub) {
         return {
@@ -309,7 +309,9 @@ export class EventOrganizerService {
       if (a.isSubmittedStatus && !b.isSubmittedStatus) return -1;
       if (!a.isSubmittedStatus && b.isSubmittedStatus) return 1;
       if (a.isSubmittedStatus && b.isSubmittedStatus) {
-        return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+        return (
+          new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+        );
       }
       return 0;
     });

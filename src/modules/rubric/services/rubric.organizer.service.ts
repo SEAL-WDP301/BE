@@ -10,11 +10,7 @@ import { CreateRubricDto } from "../dto/create-rubric.dto";
 export class RubricOrganizerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getRubricsByEvent(
-    eventId: number,
-    roundId?: number,
-    trackId?: number,
-  ) {
+  async getRubricsByEvent(eventId: number, roundId?: number, trackId?: number) {
     await this.assertEventExists(eventId);
 
     return this.prisma.criterion.findMany({
@@ -56,11 +52,17 @@ export class RubricOrganizerService {
     });
   }
 
-  async bulkCreateRubrics(eventId: number, createdById: number, dtos: CreateRubricDto[]) {
+  async bulkCreateRubrics(
+    eventId: number,
+    createdById: number,
+    dtos: CreateRubricDto[],
+  ) {
     if (!dtos || dtos.length === 0) return [];
 
-    const roundIds = [...new Set(dtos.map(d => d.roundId))];
-    const trackIds = [...new Set(dtos.map(d => d.trackId).filter(id => id != null))];
+    const roundIds = [...new Set(dtos.map((d) => d.roundId))];
+    const trackIds = [
+      ...new Set(dtos.map((d) => d.trackId).filter((id) => id != null)),
+    ];
 
     for (const roundId of roundIds) {
       await this.assertRoundBelongsToEvent(roundId, eventId);
@@ -71,7 +73,7 @@ export class RubricOrganizerService {
       await this.assertTrackBelongsToEvent(trackId, eventId);
     }
 
-    const createData = dtos.map(dto => ({
+    const createData = dtos.map((dto) => ({
       createdById,
       name: dto.name,
       description: dto.description,
@@ -87,7 +89,7 @@ export class RubricOrganizerService {
 
     return this.prisma.criterion.findMany({
       where: { roundId: { in: roundIds } },
-      include: { round: true, track: true }
+      include: { round: true, track: true },
     });
   }
 
@@ -150,14 +152,16 @@ export class RubricOrganizerService {
       throw new BadRequestException("Some criteria not found");
     }
 
-    const eventIds = [...new Set(existing.map(e => e.round.eventId))];
-    if (eventIds.some(id => id !== eventId)) {
+    const eventIds = [...new Set(existing.map((e) => e.round.eventId))];
+    if (eventIds.some((id) => id !== eventId)) {
       throw new BadRequestException("Criteria belong to different event");
     }
 
     for (const item of existing) {
       if (item.round.status !== "not_started" && item.round.status !== "open") {
-        throw new BadRequestException(`Round ${item.round.name} has already ended`);
+        throw new BadRequestException(
+          `Round ${item.round.name} has already ended`,
+        );
       }
     }
 
@@ -167,7 +171,7 @@ export class RubricOrganizerService {
 
     if (scoreCount > 0) {
       throw new BadRequestException(
-        "Cannot delete criteria that already have scores"
+        "Cannot delete criteria that already have scores",
       );
     }
 

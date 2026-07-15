@@ -27,7 +27,7 @@ import { TransformInterceptor } from "./common/interceptors/transform.intercepto
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     // Bật log error/warn để tránh bị "nuốt" lỗi nghiêm trọng lúc khởi động, nhưng tắt các log thường để nhường cho Winston
-    logger: ['error', 'warn'],
+    logger: ["error", "warn"],
     // Buffer logs until Winston is ready
     bufferLogs: true,
   });

@@ -15,7 +15,9 @@ export class CreateRubricDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ example: "Code quality, architecture, and best practices" })
+  @ApiPropertyOptional({
+    example: "Code quality, architecture, and best practices",
+  })
   @IsString()
   @IsOptional()
   description?: string;
@@ -39,7 +41,8 @@ export class CreateRubricDto {
 
   @ApiPropertyOptional({
     example: 1,
-    description: "Omit or null for global rubrics that apply to all tracks in the round",
+    description:
+      "Omit or null for global rubrics that apply to all tracks in the round",
   })
   @Type(() => Number)
   @IsInt()

@@ -19,7 +19,8 @@ import { ConfigService } from "@nestjs/config";
 export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
   constructor(private readonly configService: ConfigService) {
     super({
-      clientID: configService.get<string>("GOOGLE_CLIENT_ID") || "not-configured",
+      clientID:
+        configService.get<string>("GOOGLE_CLIENT_ID") || "not-configured",
       clientSecret:
         configService.get<string>("GOOGLE_CLIENT_SECRET") || "not-configured",
       callbackURL:

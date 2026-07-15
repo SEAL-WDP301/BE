@@ -30,7 +30,9 @@ import { SubmissionStudentService } from "../services/submission.student.service
 @Roles(Role.STUDENT)
 @Controller("student/teams")
 export class SubmissionStudentController {
-  constructor(private readonly submissionStudentService: SubmissionStudentService) {}
+  constructor(
+    private readonly submissionStudentService: SubmissionStudentService,
+  ) {}
 
   @Post("my-team/submissions")
   @ApiOperation({ summary: "Submit project for a round" })

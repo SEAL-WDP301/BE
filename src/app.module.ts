@@ -36,7 +36,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
-import { ChatModule } from './modules/chat/chat.module';
+import { ChatModule } from "./modules/chat/chat.module";
 
 @Module({
   imports: [

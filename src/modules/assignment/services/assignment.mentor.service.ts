@@ -3,9 +3,7 @@ import { PrismaService } from "../../../database/prisma/prisma.service";
 
 @Injectable()
 export class AssignmentMentorService {
-  constructor(
-    private readonly prisma: PrismaService
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getTeams(mentorId: number, eventId?: number) {
     const teams = await this.prisma.team.findMany({
@@ -17,26 +15,28 @@ export class AssignmentMentorService {
       orderBy: { createdAt: "desc" },
     });
 
-    return Promise.all(teams.map(async (team) => {
-      const unreadCount = await this.prisma.teamMessage.count({
-        where: {
-          teamId: team.id,
-          senderId: { not: mentorId },
-          reads: { none: { userId: mentorId } }
-        }
-      });
-      const lastMessage = await this.prisma.teamMessage.findFirst({
-        where: { teamId: team.id },
-        orderBy: { createdAt: 'desc' },
-        include: { sender: { select: { id: true, name: true } } }
-      });
-      return {
-        ...team,
-        unreadCount,
-        lastMessageAt: lastMessage?.createdAt || null,
-        lastMessage: lastMessage || null
-      };
-    }));
+    return Promise.all(
+      teams.map(async (team) => {
+        const unreadCount = await this.prisma.teamMessage.count({
+          where: {
+            teamId: team.id,
+            senderId: { not: mentorId },
+            reads: { none: { userId: mentorId } },
+          },
+        });
+        const lastMessage = await this.prisma.teamMessage.findFirst({
+          where: { teamId: team.id },
+          orderBy: { createdAt: "desc" },
+          include: { sender: { select: { id: true, name: true } } },
+        });
+        return {
+          ...team,
+          unreadCount,
+          lastMessageAt: lastMessage?.createdAt || null,
+          lastMessage: lastMessage || null,
+        };
+      }),
+    );
   }
 
   async getTeamById(mentorId: number, teamId: number) {
@@ -95,8 +95,6 @@ export class AssignmentMentorService {
 
     return submission;
   }
-
-
 
   private async ensureAssignedTeam(mentorId: number, teamId: number) {
     const assignment = await this.prisma.mentorAssignment.findUnique({

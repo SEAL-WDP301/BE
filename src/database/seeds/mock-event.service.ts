@@ -1,6 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { Role, Season, EventStatus, SubmissionType, TeamStatus, TeamMemberRole } from "@prisma/client";
+import {
+  Role,
+  Season,
+  EventStatus,
+  SubmissionType,
+  TeamStatus,
+  TeamMemberRole,
+} from "@prisma/client";
 
 @Injectable()
 export class MockEventService {
@@ -9,10 +16,14 @@ export class MockEventService {
   async run() {
     console.log("--- Starting Mock Event Seeding ---");
     const adminEmail = "admin@gmail.com";
-    let adminUser = await this.prisma.user.findUnique({ where: { email: adminEmail } });
+    let adminUser = await this.prisma.user.findUnique({
+      where: { email: adminEmail },
+    });
 
     if (!adminUser) {
-      console.error("Admin user not found. Please run 'npm run seed:run' first to create Admin.");
+      console.error(
+        "Admin user not found. Please run 'npm run seed:run' first to create Admin.",
+      );
       return;
     }
 
@@ -27,18 +38,36 @@ export class MockEventService {
         createdById: adminUser.id,
         tracks: {
           create: [
-            { name: "Web Development", description: "Xây dựng ứng dụng Web", maxTeams: 50, maxMembersPerTeam: 4 },
-            { name: "AI Solutions", description: "Giải pháp ứng dụng Trí tuệ nhân tạo", maxTeams: 50, maxMembersPerTeam: 4 },
-          ]
+            {
+              name: "Web Development",
+              description: "Xây dựng ứng dụng Web",
+              maxTeams: 50,
+              maxMembersPerTeam: 4,
+            },
+            {
+              name: "AI Solutions",
+              description: "Giải pháp ứng dụng Trí tuệ nhân tạo",
+              maxTeams: 50,
+              maxMembersPerTeam: 4,
+            },
+          ],
         },
         rounds: {
           create: [
-            { roundNumber: 1, name: "Idea Pitching", submissionType: SubmissionType.file },
-            { roundNumber: 2, name: "Final Demo", submissionType: SubmissionType.github_link },
-          ]
-        }
+            {
+              roundNumber: 1,
+              name: "Idea Pitching",
+              submissionType: SubmissionType.file,
+            },
+            {
+              roundNumber: 2,
+              name: "Final Demo",
+              submissionType: SubmissionType.github_link,
+            },
+          ],
+        },
       },
-      include: { tracks: true }
+      include: { tracks: true },
     });
 
     console.log(`[Event] Created event: ${event.name}`);
@@ -49,7 +78,9 @@ export class MockEventService {
     });
 
     if (students.length === 0) {
-      console.error("No student users found in the database. Please create some students manually first.");
+      console.error(
+        "No student users found in the database. Please create some students manually first.",
+      );
       return;
     }
 
@@ -62,8 +93,8 @@ export class MockEventService {
       for (let t = 1; t <= 2; t++) {
         if (studentIndex >= students.length) break;
 
-        const teamName = `Team ${track.name.split(' ')[0]} ${t}`;
-        
+        const teamName = `Team ${track.name.split(" ")[0]} ${t}`;
+
         // Take up to 3 students per team
         const members = [];
         for (let m = 1; m <= 3; m++) {
@@ -80,7 +111,12 @@ export class MockEventService {
           await this.prisma.studentRegistration.upsert({
             where: { userId_eventId: { userId: u.id, eventId: event.id } },
             update: { trackId: track.id, hasTeam: true },
-            create: { userId: u.id, eventId: event.id, trackId: track.id, hasTeam: true }
+            create: {
+              userId: u.id,
+              eventId: event.id,
+              trackId: track.id,
+              hasTeam: true,
+            },
           });
         }
 
@@ -95,12 +131,15 @@ export class MockEventService {
             members: {
               create: members.map((u, index) => ({
                 userId: u.id,
-                role: index === 0 ? TeamMemberRole.leader : TeamMemberRole.member,
-              }))
-            }
-          }
+                role:
+                  index === 0 ? TeamMemberRole.leader : TeamMemberRole.member,
+              })),
+            },
+          },
         });
-        console.log(`[Team] Created team: ${teamName} in track ${track.name} with ${members.length} members.`);
+        console.log(
+          `[Team] Created team: ${teamName} in track ${track.name} with ${members.length} members.`,
+        );
       }
     }
 

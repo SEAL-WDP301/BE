@@ -7,11 +7,13 @@ async function run() {
   const service = app.get(MockTeamsService);
   try {
     const args = process.argv.slice(2);
-    const eventIdArg = args.find(arg => !arg.startsWith('-'));
+    const eventIdArg = args.find((arg) => !arg.startsWith("-"));
     const eventId = parseInt(eventIdArg || "", 10);
 
     if (isNaN(eventId)) {
-      throw new Error("Vui lòng cung cấp eventId hợp lệ. Cú pháp: npm run seed:mock-teams -- 10");
+      throw new Error(
+        "Vui lòng cung cấp eventId hợp lệ. Cú pháp: npm run seed:mock-teams -- 10",
+      );
     }
 
     await service.run(eventId);

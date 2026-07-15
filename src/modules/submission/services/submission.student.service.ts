@@ -7,7 +7,12 @@ import {
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { StorageService } from "../../storage/storage.service";
 import { SubmitProjectDto } from "../dto/submit-project.dto";
-import { TeamMemberStatus, TeamStatus, SubmissionType, RoundResultStatus } from "@prisma/client";
+import {
+  TeamMemberStatus,
+  TeamStatus,
+  SubmissionType,
+  RoundResultStatus,
+} from "@prisma/client";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
@@ -47,7 +52,9 @@ export class SubmissionStudentService {
     }
 
     if (team.leaderId !== userId) {
-      throw new ForbiddenException("Only the team leader can submit the project");
+      throw new ForbiddenException(
+        "Only the team leader can submit the project",
+      );
     }
 
     const teamId = team.id;
@@ -104,7 +111,9 @@ export class SubmissionStudentService {
     }
 
     if (file && file.size > round.maxFileSizeMb * 1024 * 1024) {
-      throw new BadRequestException(`File size exceeds the limit of ${round.maxFileSizeMb}MB`);
+      throw new BadRequestException(
+        `File size exceeds the limit of ${round.maxFileSizeMb}MB`,
+      );
     }
 
     let fileUrl = existingSubmission?.fileUrl ?? null;
@@ -188,7 +197,9 @@ export class SubmissionStudentService {
       return submission;
     } catch (error) {
       if (uploadedFileKey) {
-        await this.storageService.deleteFile(uploadedFileKey).catch(() => undefined);
+        await this.storageService
+          .deleteFile(uploadedFileKey)
+          .catch(() => undefined);
       }
       throw error;
     }
@@ -233,7 +244,7 @@ export class SubmissionStudentService {
     }
 
     const isMember = feedback.team.members.some(
-      (m) => m.userId === userId && m.status === TeamMemberStatus.accepted
+      (m) => m.userId === userId && m.status === TeamMemberStatus.accepted,
     );
     const isLeader = feedback.team.leaderId === userId;
 

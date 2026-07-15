@@ -40,7 +40,12 @@ export class TeamGithubService {
 
     if (team.githubRepoUrl) {
       if (roundId) {
-        await this.autoCreateSubmission(teamId, roundId, team.githubRepoUrl, team.leaderId);
+        await this.autoCreateSubmission(
+          teamId,
+          roundId,
+          team.githubRepoUrl,
+          team.leaderId,
+        );
       }
       return {
         provisioned: false,
@@ -104,9 +109,14 @@ export class TeamGithubService {
       }
 
       for (const username of Array.from(githubUsernames)) {
-        await this.githubService.addCollaborator(org, repoName, username, "push").catch(err => {
-          this.logger.error(`Failed to add collaborator ${username} to ${repoName}`, err);
-        });
+        await this.githubService
+          .addCollaborator(org, repoName, username, "push")
+          .catch((err) => {
+            this.logger.error(
+              `Failed to add collaborator ${username} to ${repoName}`,
+              err,
+            );
+          });
       }
 
       this.logger.log(
@@ -114,7 +124,12 @@ export class TeamGithubService {
       );
 
       if (roundId) {
-        await this.autoCreateSubmission(teamId, roundId, created.htmlUrl, team.leaderId);
+        await this.autoCreateSubmission(
+          teamId,
+          roundId,
+          created.htmlUrl,
+          team.leaderId,
+        );
       }
 
       return {
@@ -132,7 +147,9 @@ export class TeamGithubService {
         provisioned: false,
         skipped: false,
         reason:
-          error instanceof Error ? error.message : "GitHub repo creation failed",
+          error instanceof Error
+            ? error.message
+            : "GitHub repo creation failed",
       };
     }
   }
@@ -154,14 +171,21 @@ export class TeamGithubService {
     });
 
     const teamsWithoutRepo = teamRounds.filter((tr) => !tr.team.githubRepoUrl);
-    this.logger.log(`Found ${teamsWithoutRepo.length} teams needing GitHub repo provision for round ${roundId}`);
+    this.logger.log(
+      `Found ${teamsWithoutRepo.length} teams needing GitHub repo provision for round ${roundId}`,
+    );
 
     for (const tr of teamsWithoutRepo) {
       await this.provisionRepositoryForTeam(tr.teamId, roundId);
     }
   }
 
-  private async autoCreateSubmission(teamId: number, roundId: number, githubUrl: string, submittedById: number) {
+  private async autoCreateSubmission(
+    teamId: number,
+    roundId: number,
+    githubUrl: string,
+    submittedById: number,
+  ) {
     try {
       await this.prisma.submission.upsert({
         where: { teamId_roundId: { teamId, roundId } },
@@ -170,23 +194,24 @@ export class TeamGithubService {
           roundId,
           githubUrl,
           status: "submitted",
-          submittedById
+          submittedById,
         },
         update: {
-          githubUrl
-        }
+          githubUrl,
+        },
       });
-      this.logger.log(`Auto-created submission for team ${teamId} in round ${roundId}`);
+      this.logger.log(
+        `Auto-created submission for team ${teamId} in round ${roundId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to auto-create submission for team ${teamId} round ${roundId}`, error);
+      this.logger.error(
+        `Failed to auto-create submission for team ${teamId} round ${roundId}`,
+        error,
+      );
     }
   }
 
-  private buildRepoDescription(
-    event: Event,
-    team: Team,
-    track: Track,
-  ): string {
+  private buildRepoDescription(event: Event, team: Team, track: Track): string {
     return `SEAL ${event.season} ${event.year} — ${team.name} (${track.name})`;
   }
 }

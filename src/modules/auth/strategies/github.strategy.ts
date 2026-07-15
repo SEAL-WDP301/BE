@@ -17,7 +17,8 @@ interface GithubEmail {
 export class GithubStrategy extends PassportStrategy(Strategy, "github") {
   constructor(private readonly configService: ConfigService) {
     super({
-      clientID: configService.get<string>("GITHUB_CLIENT_ID") || "not-configured",
+      clientID:
+        configService.get<string>("GITHUB_CLIENT_ID") || "not-configured",
       clientSecret:
         configService.get<string>("GITHUB_CLIENT_SECRET") || "not-configured",
       callbackURL:

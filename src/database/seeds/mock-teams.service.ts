@@ -11,7 +11,7 @@ export class MockTeamsService {
 
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      include: { tracks: true }
+      include: { tracks: true },
     });
 
     if (!event) {
@@ -20,7 +20,9 @@ export class MockTeamsService {
     }
 
     if (event.tracks.length === 0) {
-      console.error(`[Error] Event ID ${eventId} has no tracks. Cannot assign teams.`);
+      console.error(
+        `[Error] Event ID ${eventId} has no tracks. Cannot assign teams.`,
+      );
       return;
     }
 
@@ -29,21 +31,27 @@ export class MockTeamsService {
     });
 
     if (students.length === 0) {
-      console.error("No student users found in the database. Please create some students first.");
+      console.error(
+        "No student users found in the database. Please create some students first.",
+      );
       return;
     }
 
     // Get existing team members for this event so we don't reuse students already in a team
     const existingMembers = await this.prisma.teamMember.findMany({
       where: { team: { eventId: event.id } },
-      select: { userId: true }
+      select: { userId: true },
     });
-    const existingMemberIds = new Set(existingMembers.map(m => m.userId));
+    const existingMemberIds = new Set(existingMembers.map((m) => m.userId));
 
-    const availableStudents = students.filter(s => !existingMemberIds.has(s.id));
+    const availableStudents = students.filter(
+      (s) => !existingMemberIds.has(s.id),
+    );
 
     if (availableStudents.length === 0) {
-      console.log("All existing students are already in a team for this event. No new teams created.");
+      console.log(
+        "All existing students are already in a team for this event. No new teams created.",
+      );
       return;
     }
 
@@ -56,7 +64,7 @@ export class MockTeamsService {
         if (studentIndex >= availableStudents.length) break;
 
         const teamName = `Team Mock ${timeHash} ${track.id}-${t}`;
-        
+
         // Take up to 3 students per team
         const members = [];
         for (let m = 1; m <= 3; m++) {
@@ -72,7 +80,12 @@ export class MockTeamsService {
           await this.prisma.studentRegistration.upsert({
             where: { userId_eventId: { userId: u.id, eventId: event.id } },
             update: { trackId: track.id, hasTeam: true },
-            create: { userId: u.id, eventId: event.id, trackId: track.id, hasTeam: true }
+            create: {
+              userId: u.id,
+              eventId: event.id,
+              trackId: track.id,
+              hasTeam: true,
+            },
           });
         }
 
@@ -87,12 +100,15 @@ export class MockTeamsService {
             members: {
               create: members.map((u, index) => ({
                 userId: u.id,
-                role: index === 0 ? TeamMemberRole.leader : TeamMemberRole.member,
-              }))
-            }
-          }
+                role:
+                  index === 0 ? TeamMemberRole.leader : TeamMemberRole.member,
+              })),
+            },
+          },
         });
-        console.log(`[Team] Created team: ${teamName} in track ID ${track.id} with ${members.length} members.`);
+        console.log(
+          `[Team] Created team: ${teamName} in track ID ${track.id} with ${members.length} members.`,
+        );
       }
     }
 

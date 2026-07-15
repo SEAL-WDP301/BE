@@ -110,8 +110,6 @@ export class EventOrganizerController {
     return { message: "Submissions fetched", data: submissions };
   }
 
-
-
   @Get(":id/rounds/:roundId/rankings")
   @ApiOperation({ summary: "Get team rankings for a round by track" })
   async getRoundRankings(
@@ -128,7 +126,9 @@ export class EventOrganizerController {
   }
 
   @Get(":id/rounds/:roundId/rankings/detailed")
-  @ApiOperation({ summary: "Get detailed team rankings and analytics for a round by track" })
+  @ApiOperation({
+    summary: "Get detailed team rankings and analytics for a round by track",
+  })
   async getDetailedRoundRankings(
     @Param("id", ParseIntPipe) eventId: number,
     @Param("roundId", ParseIntPipe) roundId: number,

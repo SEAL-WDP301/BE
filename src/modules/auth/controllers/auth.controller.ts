@@ -60,9 +60,7 @@ export class AuthController {
   @Post("signin")
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 401, description: "Invalid credentials" })
-  async signin(
-    @Body() dto: SignInDto,
-  ) {
+  async signin(@Body() dto: SignInDto) {
     return this.authService.signin(dto);
   }
 
@@ -92,9 +90,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth("refresh_token")
   @ApiResponse({ status: 401, description: "Invalid or expired refresh token" })
-  async refresh(
-    @Body('refreshToken') refreshToken: string,
-  ) {
+  async refresh(@Body("refreshToken") refreshToken: string) {
     return this.authService.refreshTokens(refreshToken);
   }
 
@@ -106,9 +102,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  async logout(
-    @CurrentUser("id") userId: string,
-  ) {
+  async logout(@CurrentUser("id") userId: string) {
     return this.authService.logout(Number(userId));
   }
 

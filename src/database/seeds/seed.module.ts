@@ -18,6 +18,11 @@ import { MockStakeholdersService } from "./mock-stakeholders.service";
     }),
     PrismaModule,
   ],
-  providers: [SeedService, MockEventService, MockTeamsService, MockStakeholdersService],
+  providers: [
+    SeedService,
+    MockEventService,
+    MockTeamsService,
+    MockStakeholdersService,
+  ],
 })
 export class SeedModule {}

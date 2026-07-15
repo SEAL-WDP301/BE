@@ -8,7 +8,10 @@ export class OrganizerUpdateTeamDto {
   status: TeamStatus;
 
   @ApiPropertyOptional()
-  @ValidateIf((o) => o.status === TeamStatus.rejected || o.status === TeamStatus.disqualified)
+  @ValidateIf(
+    (o) =>
+      o.status === TeamStatus.rejected || o.status === TeamStatus.disqualified,
+  )
   @IsString()
   @IsOptional()
   reason?: string;

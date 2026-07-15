@@ -18,7 +18,9 @@ export class EventJudgeController {
   @Get()
   @ApiOperation({ summary: "Get events and rounds assigned to the judge" })
   async getAssignedEvents(@CurrentUser("id") userId: string) {
-    const events = await this.eventJudgeService.getAssignedEvents(Number(userId));
+    const events = await this.eventJudgeService.getAssignedEvents(
+      Number(userId),
+    );
     return { message: "Assigned events fetched", data: events };
   }
 }

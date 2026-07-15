@@ -13,7 +13,10 @@ import {
 } from "@prisma/client";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { computeSubmissionFinalScore, computeJudgeWeightedScore } from "../../../common/utils/scoring.util";
+import {
+  computeSubmissionFinalScore,
+  computeJudgeWeightedScore,
+} from "../../../common/utils/scoring.util";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 import { TeamGithubService } from "../../team/services/team-github.service";
 
@@ -40,11 +43,7 @@ export class RoundRankingService {
     private readonly teamGithubService: TeamGithubService,
   ) {}
 
-  async getRoundRankings(
-    eventId: number,
-    roundId: number,
-    trackId?: number,
-  ) {
+  async getRoundRankings(eventId: number, roundId: number, trackId?: number) {
     const round = await this.assertRoundInEvent(eventId, roundId);
 
     const tracks = await this.prisma.track.findMany({
@@ -155,13 +154,13 @@ export class RoundRankingService {
         const advancedIds = isFinalRound
           ? []
           : entries
-            .filter((entry) => advancingSet.has(entry.teamId))
-            .map((entry) => entry.teamId);
+              .filter((entry) => advancingSet.has(entry.teamId))
+              .map((entry) => entry.teamId);
         const eliminatedIds = isFinalRound
           ? []
           : entries
-            .filter((entry) => !advancingSet.has(entry.teamId))
-            .map((entry) => entry.teamId);
+              .filter((entry) => !advancingSet.has(entry.teamId))
+              .map((entry) => entry.teamId);
 
         for (const entry of entries) {
           const isAdvanced = advancedIds.includes(entry.teamId);
@@ -216,12 +215,12 @@ export class RoundRankingService {
         // Handle awards if final round
         if (isFinalRound && dto.awards) {
           for (const awardDto of dto.awards) {
-             if (entries.some(e => e.teamId === awardDto.teamId)) {
-                await tx.team.update({
-                  where: { id: awardDto.teamId },
-                  data: { award: awardDto.award || null }
-                });
-             }
+            if (entries.some((e) => e.teamId === awardDto.teamId)) {
+              await tx.team.update({
+                where: { id: awardDto.teamId },
+                data: { award: awardDto.award || null },
+              });
+            }
           }
         }
 
@@ -257,13 +256,21 @@ export class RoundRankingService {
     let repoSyncStarted = false;
     if (nextRound && nextRound.submissionType === "github_link") {
       repoSyncStarted = true;
-      this.logger.log(`[GitHub Sync] Starting background repository provisioning for Round ${nextRound.id}`);
-      this.teamGithubService.syncRepositoriesForRound(nextRound.id)
+      this.logger.log(
+        `[GitHub Sync] Starting background repository provisioning for Round ${nextRound.id}`,
+      );
+      this.teamGithubService
+        .syncRepositoriesForRound(nextRound.id)
         .then(() => {
-           this.logger.log(`[GitHub Sync] Finished provisioning repositories for Round ${nextRound.id}`);
+          this.logger.log(
+            `[GitHub Sync] Finished provisioning repositories for Round ${nextRound.id}`,
+          );
         })
-        .catch(err => {
-           this.logger.error(`[GitHub Sync] Failed to sync github repositories for next round ${nextRound.id}`, err);
+        .catch((err) => {
+          this.logger.error(
+            `[GitHub Sync] Failed to sync github repositories for next round ${nextRound.id}`,
+            err,
+          );
         });
     }
 
@@ -294,13 +301,13 @@ export class RoundRankingService {
         },
       },
       include: {
-        team: { 
-          include: { 
+        team: {
+          include: {
             track: true,
             teamRounds: {
-              where: { roundId }
-            }
-          } 
+              where: { roundId },
+            },
+          },
         },
         scores: true,
       },
@@ -313,7 +320,8 @@ export class RoundRankingService {
         scoreValue: score.scoreValue,
       }));
 
-      const judgesScored = new Set(submission.scores.map((s) => s.judgeId)).size;
+      const judgesScored = new Set(submission.scores.map((s) => s.judgeId))
+        .size;
       const finalScore = computeSubmissionFinalScore(rubrics, judgeScores);
 
       return {
@@ -324,7 +332,9 @@ export class RoundRankingService {
         submissionId: submission.id,
         finalScore,
         judgesScored,
-        status: submission.team.teamRounds?.[0]?.status ?? RoundResultStatus.competing,
+        status:
+          submission.team.teamRounds?.[0]?.status ??
+          RoundResultStatus.competing,
         award: submission.team.award,
         rank: 0,
         submittedAt: submission.submittedAt,
@@ -348,10 +358,7 @@ export class RoundRankingService {
     }));
   }
 
-  private async buildDetailedTrackRanking(
-    roundId: number,
-    trackId: number,
-  ) {
+  private async buildDetailedTrackRanking(roundId: number, trackId: number) {
     const rubrics = await this.getApplicableCriteria(roundId, trackId);
 
     const submissions = await this.prisma.submission.findMany({
@@ -364,13 +371,13 @@ export class RoundRankingService {
         },
       },
       include: {
-        team: { 
-          include: { 
+        team: {
+          include: {
             track: true,
             teamRounds: {
-              where: { roundId }
-            }
-          } 
+              where: { roundId },
+            },
+          },
         },
         scores: { include: { judge: true } },
       },
@@ -378,7 +385,7 @@ export class RoundRankingService {
 
     const entries = submissions.map((submission) => {
       const judgeScoresMap = new Map<number, any>();
-      
+
       for (const score of submission.scores) {
         if (!judgeScoresMap.has(score.judgeId)) {
           judgeScoresMap.set(score.judgeId, {
@@ -390,59 +397,76 @@ export class RoundRankingService {
             comments: [],
           });
         }
-        
+
         const j = judgeScoresMap.get(score.judgeId);
         j.criteriaScores.push({
           criterionId: score.criterionId,
           scoreValue: score.scoreValue,
         });
         if (score.comment && score.comment.trim() !== "") {
-           const text = score.comment.trim();
-           if (!j.comments.includes(text)) {
-               j.comments.push(text);
-           }
+          const text = score.comment.trim();
+          if (!j.comments.includes(text)) {
+            j.comments.push(text);
+          }
         }
       }
 
       const validJudges = [];
-      const criteriaAveragesMap = new Map<number, { sum: number; count: number }>();
+      const criteriaAveragesMap = new Map<
+        number,
+        { sum: number; count: number }
+      >();
 
       for (const judgeData of judgeScoresMap.values()) {
-        judgeData.comment = judgeData.comments.length > 0 ? judgeData.comments.join(" | ") : undefined;
+        judgeData.comment =
+          judgeData.comments.length > 0
+            ? judgeData.comments.join(" | ")
+            : undefined;
         delete judgeData.comments;
         const jScores = judgeData.criteriaScores;
         const total = computeJudgeWeightedScore(rubrics, jScores);
         if (total !== null) {
           judgeData.totalGivenScore = total;
           validJudges.push(judgeData);
-          
+
           for (const s of jScores) {
-             const cv = criteriaAveragesMap.get(s.criterionId) || { sum: 0, count: 0 };
-             cv.sum += Number(s.scoreValue);
-             cv.count += 1;
-             criteriaAveragesMap.set(s.criterionId, cv);
+            const cv = criteriaAveragesMap.get(s.criterionId) || {
+              sum: 0,
+              count: 0,
+            };
+            cv.sum += Number(s.scoreValue);
+            cv.count += 1;
+            criteriaAveragesMap.set(s.criterionId, cv);
           }
         }
       }
 
-      const finalScore = computeSubmissionFinalScore(rubrics, submission.scores.map(s => ({
-        judgeId: s.judgeId, criterionId: s.criterionId, scoreValue: s.scoreValue
-      })));
+      const finalScore = computeSubmissionFinalScore(
+        rubrics,
+        submission.scores.map((s) => ({
+          judgeId: s.judgeId,
+          criterionId: s.criterionId,
+          scoreValue: s.scoreValue,
+        })),
+      );
 
       if (finalScore !== null) {
         for (const vj of validJudges) {
-          vj.deviationFromAverage = Number((vj.totalGivenScore - finalScore).toFixed(2));
+          vj.deviationFromAverage = Number(
+            (vj.totalGivenScore - finalScore).toFixed(2),
+          );
         }
       }
 
-      const criteriaAverages = rubrics.map(r => {
+      const criteriaAverages = rubrics.map((r) => {
         const ag = criteriaAveragesMap.get(r.id);
         return {
-           criterionId: r.id,
-           name: r.name,
-           maxScore: Number(r.maxScore),
-           weight: Number(r.weight),
-           averageScore: ag && ag.count > 0 ? Number((ag.sum / ag.count).toFixed(2)) : 0
+          criterionId: r.id,
+          name: r.name,
+          maxScore: Number(r.maxScore),
+          weight: Number(r.weight),
+          averageScore:
+            ag && ag.count > 0 ? Number((ag.sum / ag.count).toFixed(2)) : 0,
         };
       });
 
@@ -455,7 +479,9 @@ export class RoundRankingService {
         finalScore,
         criteriaAverages,
         judges: validJudges,
-        status: submission.team.teamRounds?.[0]?.status ?? RoundResultStatus.competing,
+        status:
+          submission.team.teamRounds?.[0]?.status ??
+          RoundResultStatus.competing,
         award: submission.team.award,
         rank: 0,
         submittedAt: submission.submittedAt,

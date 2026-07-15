@@ -4,16 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import {
-  RoundStatus,
-  SubmissionStatus,
-  TeamStatus,
-} from "@prisma/client";
+import { RoundStatus, SubmissionStatus, TeamStatus } from "@prisma/client";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { SubmitScoresDto } from "../dto/submit-scores.dto";
-import {
-  computeJudgeWeightedScore,
-} from "../../../common/utils/scoring.util";
+import { computeJudgeWeightedScore } from "../../../common/utils/scoring.util";
 
 type ScoringStatus = "pending" | "in_review" | "completed";
 
@@ -72,10 +66,7 @@ export class SubmissionJudgeService {
       submissions.map(async (submission) => {
         const trackId = submission.team.trackId;
         if (!criteriaByTrack.has(trackId)) {
-          const criteria = await this.getApplicableCriteria(
-            roundId,
-            trackId,
-          );
+          const criteria = await this.getApplicableCriteria(roundId, trackId);
           criteriaByTrack.set(trackId, criteria.length);
         }
 
@@ -185,10 +176,7 @@ export class SubmissionJudgeService {
       event: submission.round.event,
       rubrics,
       myScores,
-      scoringStatus: this.resolveScoringStatus(
-        myScores.length,
-        rubrics.length,
-      ),
+      scoringStatus: this.resolveScoringStatus(myScores.length, rubrics.length),
       weightedScore,
     };
   }
@@ -318,10 +306,7 @@ export class SubmissionJudgeService {
       return;
     }
 
-    if (
-      round.submissionDeadline &&
-      round.submissionDeadline <= new Date()
-    ) {
+    if (round.submissionDeadline && round.submissionDeadline <= new Date()) {
       return;
     }
 
@@ -346,10 +331,7 @@ export class SubmissionJudgeService {
     return map;
   }
 
-  private async fetchJudgeVisibleSubmissions(
-    judgeId: number,
-    roundId: number,
-  ) {
+  private async fetchJudgeVisibleSubmissions(judgeId: number, roundId: number) {
     const assignments = await this.prisma.judgeAssignment.findMany({
       where: { judgeId, roundId },
     });

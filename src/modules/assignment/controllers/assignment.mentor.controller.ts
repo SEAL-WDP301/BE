@@ -36,7 +36,10 @@ export class AssignmentMentorController {
   ) {
     return {
       message: "Mentor teams fetched",
-      data: await this.assignmentMentorService.getTeams(mentorId, eventId ? Number(eventId) : undefined),
+      data: await this.assignmentMentorService.getTeams(
+        mentorId,
+        eventId ? Number(eventId) : undefined,
+      ),
     };
   }
 
@@ -75,7 +78,10 @@ export class AssignmentMentorController {
   ) {
     return {
       message: "Mentor submissions fetched",
-      data: await this.assignmentMentorService.getSubmissions(mentorId, eventId ? Number(eventId) : undefined),
+      data: await this.assignmentMentorService.getSubmissions(
+        mentorId,
+        eventId ? Number(eventId) : undefined,
+      ),
     };
   }
 
