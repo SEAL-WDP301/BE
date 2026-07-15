@@ -5,6 +5,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  InternalServerErrorException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -45,10 +46,14 @@ export class StorageController {
     if (!file) {
       throw new BadRequestException("No file provided");
     }
-    const result = await this.storageService.uploadFile(file, "general");
-    return {
-      success: true,
-      data: result,
-    };
+    try {
+      const result = await this.storageService.uploadFile(file, "general");
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message || "Failed to upload file");
+    }
   }
 }
