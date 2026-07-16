@@ -68,6 +68,11 @@ export class CreateEventDto {
   startDate?: string;
 
   @ApiPropertyOptional()
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
+
+  @ApiPropertyOptional()
   @IsUrl()
   @IsOptional()
   githubOrgUrl?: string;
