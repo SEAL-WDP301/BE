@@ -179,6 +179,7 @@ model Event {
   status               EventStatus @default(draft)
   registrationDeadline DateTime?   @map("registration_deadline")
   startDate            DateTime?   @map("start_date")
+  endDate              DateTime?   @map("end_date")
   githubOrgUrl         String?     @map("github_org_url")
   faq                  Json?
   contact              String?     @db.Text

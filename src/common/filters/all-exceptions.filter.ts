@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
+import { SentryExceptionCaptured } from "@sentry/nestjs";
 import { Logger } from "winston";
 
 /**
@@ -37,6 +38,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     private readonly logger: Logger,
   ) {}
 
+  @SentryExceptionCaptured()
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
