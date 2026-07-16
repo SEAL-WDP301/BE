@@ -31,11 +31,27 @@ async function main() {
             status: 'active', // Active immediately to allow participation
             registrationDeadline: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Deadline in 7 days
             startDate: new Date(),
+            endDate: new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000), // 14 days duration
             githubOrgUrl: 'https://github.com/DEMO-SEAL-HackaThon-ORG',
-            prize1st: '$5,000 Cash + 10,000 AWS Credits',
-            prize2nd: '$3,000 Cash + 5,000 AWS Credits',
-            prize3rd: '$1,000 Cash + 2,000 AWS Credits',
-            prizeHonorable: 'Exclusive Swag package + 1,000 AWS Credits',
+            location: 'Virtual Event',
+            contact: JSON.stringify([
+              { type: "Email", value: "e2e-test@hackathon.com" },
+              { type: "Website", value: "https://e2e-test.hackathon.com" }
+            ]),
+            rules: JSON.stringify([
+              { title: "Standard Rule", itemsText: "Must use automation.\nMust write e2e tests." }
+            ]),
+            faq: [
+              { question: "Is this real?", answer: "No, this is an E2E test." }
+            ],
+            prizes: {
+                create: [
+                    { name: '1st Prize', description: '$5,000 Cash + 10,000 AWS Credits', quantity: 1 },
+                    { name: '2nd Prize', description: '$3,000 Cash + 5,000 AWS Credits', quantity: 1 },
+                    { name: '3rd Prize', description: '$1,000 Cash + 2,000 AWS Credits', quantity: 1 },
+                    { name: 'Honorable Mention', description: 'Exclusive Swag package + 1,000 AWS Credits', quantity: 1 },
+                ]
+            },
             createdById: creator.id,
 
             // Create Tracks
