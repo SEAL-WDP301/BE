@@ -1,5 +1,6 @@
 import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { SentryModule } from "@sentry/nestjs/setup";
 import { WinstonModule } from "nest-winston";
 
 // Config namespaces
@@ -46,6 +47,8 @@ import { ChatModule } from "./modules/chat/chat.module";
       load: [appConfig, databaseConfig, jwtConfig, redisConfig, githubConfig],
       cache: true,
     }),
+
+    SentryModule.forRoot(),
 
     WinstonModule.forRootAsync({
       inject: [ConfigService],
