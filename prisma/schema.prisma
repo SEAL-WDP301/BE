@@ -57,13 +57,6 @@ enum RoundResultStatus {
   eliminated
 }
 
-enum AwardType {
-  first_prize
-  second_prize
-  third_prize
-  honorable_mention
-}
-
 enum TeamMemberRole {
   leader
   member
@@ -185,10 +178,6 @@ model Event {
   contact              String?     @db.Text
   location             String?
   rules                String?     @db.Text
-  prize1st             String?     @map("prize_1st")
-  prize2nd             String?     @map("prize_2nd")
-  prize3rd             String?     @map("prize_3rd")
-  prizeHonorable       String?     @map("prize_honorable")
   createdById          Int         @map("created_by")
   createdAt            DateTime    @default(now()) @map("created_at")
   updatedAt            DateTime    @default(now()) @updatedAt @map("updated_at")
@@ -199,8 +188,23 @@ model Event {
   teams         Team[]
   registrations StudentRegistration[]
   notifications Notification[]
+  prizes        EventPrize[]
 
   @@map("events")
+}
+
+model EventPrize {
+  id          Int      @id @default(autoincrement())
+  eventId     Int      @map("event_id")
+  name        String
+  description String?
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  event Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  teams Team[] @relation("TeamAward")
+
+  @@map("event_prizes")
 }
 
 model Track {
@@ -274,13 +278,14 @@ model Team {
   githubRepoUrl     String?    @map("github_repo_url")
   githubRepoName    String?    @map("github_repo_name")
   leaderId          Int        @map("leader_id")
-  award             AwardType?
+  awardId           Int?       @map("award_id")
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @default(now()) @updatedAt @map("updated_at")
 
   event             Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   track             Track              @relation(fields: [trackId], references: [id], onDelete: Cascade)
   leader            User               @relation("TeamLeader", fields: [leaderId], references: [id])
+  award             EventPrize?        @relation("TeamAward", fields: [awardId], references: [id], onDelete: SetNull)
   members           TeamMember[]
   submissions       Submission[]
   mentorAssignments MentorAssignment[]

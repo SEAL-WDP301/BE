@@ -533,6 +533,7 @@ export class UserService implements OnApplicationBootstrap {
       include: {
         event: true,
         track: true,
+        award: true,
       },
       orderBy: { createdAt: "desc" },
     });

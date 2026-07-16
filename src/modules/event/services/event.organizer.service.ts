@@ -20,7 +20,7 @@ export class EventOrganizerService {
   ) {}
 
   async createEvent(userId: number, dto: CreateEventDto) {
-    const { tracks, rounds, ...eventData } = dto;
+    const { tracks, rounds, prizes, ...eventData } = dto;
     const { faq, ...restEventData } = eventData;
 
     const data: Prisma.EventCreateInput = {
@@ -37,6 +37,11 @@ export class EventOrganizerService {
       rounds: {
         create: rounds,
       },
+      prizes: prizes
+        ? {
+            create: prizes,
+          }
+        : undefined,
     };
 
     return this.prisma.event.create({
@@ -44,6 +49,7 @@ export class EventOrganizerService {
       include: {
         tracks: true,
         rounds: true,
+        prizes: true,
       },
     });
   }
@@ -67,6 +73,7 @@ export class EventOrganizerService {
         rounds: {
           include: { _count: { select: { submissions: true } } },
         },
+        prizes: true,
       },
     });
     if (!event) throw new NotFoundException("Event not found");
@@ -82,7 +89,7 @@ export class EventOrganizerService {
       );
     }
 
-    const { tracks, rounds, ...eventData } = dto;
+    const { tracks, rounds, prizes, ...eventData } = dto;
     const { faq, ...restEventData } = eventData;
 
     const tracksUpdate = tracks
@@ -143,19 +150,49 @@ export class EventOrganizerService {
         }
       : undefined;
 
+    const prizesUpdate = prizes
+      ? {
+          deleteMany: {
+            id: { notIn: prizes.filter((p) => p.id).map((p) => p.id!) },
+          },
+          create: prizes
+            .filter((p) => !p.id)
+            .map((p) => ({
+              name: p.name,
+              description: p.description,
+              quantity: p.quantity,
+            })),
+          update: prizes
+            .filter((p) => p.id)
+            .map((p) => ({
+              where: { id: p.id },
+              data: {
+                name: p.name,
+                description: p.description,
+                quantity: p.quantity,
+              },
+            })),
+        }
+      : undefined;
+
     const data: Prisma.EventUpdateInput = {
       ...restEventData,
       ...(faq !== undefined && {
         faq: faq as unknown as Prisma.InputJsonValue,
       }),
-      ...(tracksUpdate && { tracks: tracksUpdate }),
-      ...(roundsUpdate && { rounds: roundsUpdate }),
+      tracks: tracksUpdate,
+      rounds: roundsUpdate,
+      prizes: prizesUpdate,
     };
 
     const updatedEvent = await this.prisma.event.update({
       where: { id },
       data,
-      include: { tracks: true, rounds: true },
+      include: {
+        tracks: true,
+        rounds: true,
+        prizes: true,
+      },
     });
 
     // Auto-assign teams to Round 1 if it exists

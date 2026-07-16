@@ -16,6 +16,28 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { CreateTrackDto } from "./create-track.dto";
 import { CreateRoundDto } from "./create-round.dto";
 
+export class CreatePrizeDto {
+  @ApiPropertyOptional()
+  @IsInt()
+  @IsOptional()
+  id?: number;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsInt()
+  @IsOptional()
+  quantity?: number;
+}
+
 export class EventFaqItemDto {
   @ApiProperty()
   @IsString()
@@ -99,25 +121,12 @@ export class CreateEventDto {
   @IsOptional()
   rules?: string;
 
-  @ApiPropertyOptional()
-  @IsString()
+  @ApiPropertyOptional({ type: [CreatePrizeDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreatePrizeDto)
   @IsOptional()
-  prize1st?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  prize2nd?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  prize3rd?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  prizeHonorable?: string;
+  prizes?: CreatePrizeDto[];
 
   @ApiProperty({ type: [CreateTrackDto] })
   @IsArray()

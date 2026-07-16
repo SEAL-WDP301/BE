@@ -31,6 +31,7 @@ export interface RankedTeamEntry {
   judgesScored: number;
   status: RoundResultStatus;
   submittedAt: Date;
+  award?: any;
 }
 
 @Injectable()
@@ -218,7 +219,7 @@ export class RoundRankingService {
             if (entries.some((e) => e.teamId === awardDto.teamId)) {
               await tx.team.update({
                 where: { id: awardDto.teamId },
-                data: { award: awardDto.award || null },
+                data: { awardId: awardDto.awardId || null },
               });
             }
           }
@@ -304,6 +305,7 @@ export class RoundRankingService {
         team: {
           include: {
             track: true,
+            award: true,
             teamRounds: {
               where: { roundId },
             },
@@ -374,6 +376,7 @@ export class RoundRankingService {
         team: {
           include: {
             track: true,
+            award: true,
             teamRounds: {
               where: { roundId },
             },

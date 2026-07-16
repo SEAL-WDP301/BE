@@ -7,17 +7,17 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { AwardType } from "@prisma/client";
+
 
 export class TeamAwardDto {
   @ApiProperty()
   @IsInt()
   teamId: number;
 
-  @ApiPropertyOptional({ enum: AwardType })
-  @IsEnum(AwardType)
+  @ApiPropertyOptional()
+  @IsInt()
   @IsOptional()
-  award?: AwardType;
+  awardId?: number;
 }
 
 export class PublishRoundResultsDto {
