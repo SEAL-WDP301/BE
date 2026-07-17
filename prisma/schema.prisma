@@ -90,6 +90,7 @@ enum NotificationType {
   team_invite_accepted
   team_invite_rejected
   team_leadership_transfer
+  deadline_reminder
 }
 
 model User {
