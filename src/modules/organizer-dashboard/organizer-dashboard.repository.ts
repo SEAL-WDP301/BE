@@ -135,27 +135,6 @@ export class OrganizerDashboardRepository {
     });
   }
 
-  async countActiveUsers(eventIds: number[], from: Date, to: Date) {
-    const rows = await this.prisma.activityEvent.findMany({
-      where: { eventId: { in: eventIds }, occurredAt: { gte: from, lt: to } },
-      distinct: ["userId"],
-      select: { userId: true },
-    });
-    return rows.length;
-  }
-
-  findActivityEvents(eventIds: number[], from: Date, to: Date) {
-    return this.prisma.activityEvent.findMany({
-      where: { eventId: { in: eventIds }, occurredAt: { gte: from, lt: to } },
-      select: {
-        userId: true,
-        occurredAt: true,
-        user: { select: { role: true } },
-      },
-      orderBy: { occurredAt: "asc" },
-    });
-  }
-
   findEventsForMonthlyChart(eventIds: number[], year: number) {
     const from = new Date(Date.UTC(year, 0, 1));
     const to = new Date(Date.UTC(year + 1, 0, 1));

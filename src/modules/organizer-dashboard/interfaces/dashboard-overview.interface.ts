@@ -17,5 +17,4 @@ export interface DashboardOverview {
     pendingEvaluation: number;
     submissionRate: number;
   };
-  activeUsers24h: ComparisonMetric & { peakHour: string | null };
 }

@@ -76,11 +76,6 @@ export class DashboardSeedService {
       events.push(event);
     }
 
-    await this.seedActivityEvents(
-      events.map(({ id }) => id),
-      [organizer, ...students, ...judges],
-      now,
-    );
     await this.seedReminderNotifications(events[0].id, students.slice(0, 8));
 
     console.log(`Dashboard organizer: ${organizer.email}`);
@@ -381,31 +376,6 @@ export class DashboardSeedService {
     }
 
     return event;
-  }
-
-  private async seedActivityEvents(
-    eventIds: number[],
-    users: Array<{ id: number }>,
-    now: Date,
-  ) {
-    const actions = [
-      "GET:/public/events/:id",
-      "GET:/student/teams/status/:eventId",
-      "GET:/student/teams/my-team/workspace",
-      "POST:/student/teams/register/team/:eventId",
-      "GET:/judge/rounds/:roundId/submissions",
-      "GET:/organizer/dashboard/overview",
-    ];
-    await this.prisma.activityEvent.createMany({
-      data: Array.from({ length: 180 }, (_, index) => ({
-        userId: users[index % users.length].id,
-        eventId: eventIds[index % eventIds.length],
-        action: actions[index % actions.length],
-        occurredAt: new Date(
-          now.getTime() - (index % 30) * DAY - (index % 20) * 3_600_000,
-        ),
-      })),
-    });
   }
 
   private async seedReminderNotifications(

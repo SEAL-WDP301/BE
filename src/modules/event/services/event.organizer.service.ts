@@ -48,8 +48,9 @@ export class EventOrganizerService {
     });
   }
 
-  async getAllEvents() {
+  async getAllEvents(userId: number, includeAll = false) {
     return this.prisma.event.findMany({
+      where: includeAll ? undefined : { createdById: userId },
       include: {
         tracks: true,
       },

@@ -52,8 +52,14 @@ export class EventOrganizerController {
 
   @Get()
   @ApiOperation({ summary: "Get all events" })
-  async getAllEvents() {
-    const events = await this.eventOrganizerService.getAllEvents();
+  async getAllEvents(
+    @CurrentUser("id") userId: string,
+    @CurrentUser("role") role: string,
+  ) {
+    const events = await this.eventOrganizerService.getAllEvents(
+      Number(userId),
+      role === Role.ADMIN,
+    );
     return { message: "Events fetched", data: events };
   }
 

@@ -1,20 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import {
-  EventStatus,
-  Role,
-  SubmissionStatus,
-  TeamStatus,
-} from "@prisma/client";
+import { EventStatus, SubmissionStatus, TeamStatus } from "@prisma/client";
 import { EventsByMonthQueryDto } from "./dto/events-by-month-query.dto";
 import { OrganizerDashboardQueryDto } from "./dto/organizer-dashboard-query.dto";
 import { ParticipantsByEventQueryDto } from "./dto/participants-by-event-query.dto";
 import { RecentRegistrationsQueryDto } from "./dto/recent-registrations-query.dto";
 import { RegistrationTrendQueryDto } from "./dto/registration-trend-query.dto";
 import { SubmissionsDashboardQueryDto } from "./dto/submissions-dashboard-query.dto";
-import {
-  ActivityPeriod,
-  UserActivityQueryDto,
-} from "./dto/user-activity-query.dto";
 import { UpcomingDeadlinesQueryDto } from "./dto/upcoming-deadlines-query.dto";
 import { DashboardOverview } from "./interfaces/dashboard-overview.interface";
 import { OrganizerDashboardRepository } from "./organizer-dashboard.repository";
@@ -54,7 +45,6 @@ export class OrganizerDashboardService {
     const range = resolveDateRange(query);
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 86_400_000);
-    const twoDaysAgo = new Date(now.getTime() - 2 * 86_400_000);
 
     if (!eventIds.length) return this.emptyOverview();
 
@@ -71,10 +61,7 @@ export class OrganizerDashboardService {
       submittedLast24Hours,
       eligibleTeams,
       submittedTeams,
-      activeUsers,
-      previousActiveUsers,
       submissionRows,
-      activityRows,
     ] = await Promise.all([
       this.repository.countEvents(eventIds, range.from, range.to),
       this.repository.countEvents(
@@ -104,21 +91,8 @@ export class OrganizerDashboardService {
       this.repository.countSubmissions(eventIds, dayAgo, now),
       this.repository.countEligibleTeams(eventIds),
       this.repository.countSubmittedTeams(eventIds),
-      this.repository.countActiveUsers(eventIds, dayAgo, now),
-      this.repository.countActiveUsers(eventIds, twoDaysAgo, dayAgo),
       this.repository.findSubmissions(eventIds, range.from, range.to),
-      this.repository.findActivityEvents(eventIds, dayAgo, now),
     ]);
-
-    const hourly = new Map<string, Set<number>>();
-    for (const row of activityRows) {
-      const key = row.occurredAt.toISOString().slice(11, 13) + ":00";
-      if (!hourly.has(key)) hourly.set(key, new Set());
-      hourly.get(key)!.add(row.userId);
-    }
-    const peakHour =
-      [...hourly.entries()].sort((a, b) => b[1].size - a[1].size)[0]?.[0] ??
-      null;
 
     return {
       totalEvents: {
@@ -145,11 +119,6 @@ export class OrganizerDashboardService {
           ({ scores }) => scores.length === 0,
         ).length,
         submissionRate: calculatePercentage(submittedTeams, eligibleTeams),
-      },
-      activeUsers24h: {
-        value: activeUsers,
-        ...calculateChange(activeUsers, previousActiveUsers),
-        peakHour,
       },
     };
   }
@@ -411,76 +380,6 @@ export class OrganizerDashboardService {
     };
   }
 
-  async getUserActivity(organizerId: number, query: UserActivityQueryDto) {
-    const eventIds = await this.getScopedEventIds(organizerId, query);
-    const normalizedQuery = { ...query };
-    if (!normalizedQuery.from && !normalizedQuery.to && query.period) {
-      const duration =
-        query.period === ActivityPeriod.DAY
-          ? 1
-          : query.period === ActivityPeriod.WEEK
-            ? 7
-            : 30;
-      normalizedQuery.to = new Date().toISOString();
-      normalizedQuery.from = new Date(
-        Date.now() - duration * 86_400_000,
-      ).toISOString();
-    }
-    const range = resolveDateRange(normalizedQuery);
-    const groupBy = resolveGroupBy(range, query.groupBy);
-    const previousFrom = range.previousFrom;
-    const previousTo = range.previousTo;
-    const [rows, previousCount] = await Promise.all([
-      this.repository.findActivityEvents(eventIds, range.from, range.to),
-      this.repository.countActiveUsers(eventIds, previousFrom, previousTo),
-    ]);
-    const grouped = new Map<string, Set<number>>();
-    const byRole = new Map<Role, Set<number>>();
-    for (const row of rows) {
-      const key = periodKey(row.occurredAt, groupBy);
-      if (!grouped.has(key)) grouped.set(key, new Set());
-      grouped.get(key)!.add(row.userId);
-      if (!byRole.has(row.user.role)) byRole.set(row.user.role, new Set());
-      byRole.get(row.user.role)!.add(row.userId);
-    }
-    const uniqueUsers = new Set(rows.map(({ userId }) => userId)).size;
-    const activity = fillMissingPeriods(
-      range,
-      groupBy,
-      [...grouped].map(([period, users]) => ({
-        period,
-        activeUsers: users.size,
-      })),
-      { activeUsers: 0 },
-    );
-    const peak = [...activity].sort((a, b) => b.activeUsers - a.activeUsers)[0];
-    return {
-      summary: {
-        uniqueActiveUsers: uniqueUsers,
-        previousPeriod: previousCount,
-        changePercentage: calculateChange(uniqueUsers, previousCount)
-          .changePercentage,
-        peakPeriod: peak?.period ?? null,
-        peakUsers: peak?.activeUsers ?? 0,
-        averageUsers: activity.length
-          ? Math.round(
-              activity.reduce((sum, point) => sum + point.activeUsers, 0) /
-                activity.length,
-            )
-          : 0,
-      },
-      activity,
-      byRole: Object.values(Role).map((role) => ({
-        role: role.toUpperCase(),
-        count: byRole.get(role)?.size ?? 0,
-        percentage: calculatePercentage(
-          byRole.get(role)?.size ?? 0,
-          uniqueUsers,
-        ),
-      })),
-    };
-  }
-
   async getUpcomingDeadlines(
     organizerId: number,
     query: UpcomingDeadlinesQueryDto,
@@ -695,7 +594,6 @@ export class OrganizerDashboardService {
         pendingEvaluation: 0,
         submissionRate: 0,
       },
-      activeUsers24h: { ...comparison, peakHour: null },
     };
   }
 }

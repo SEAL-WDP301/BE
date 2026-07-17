@@ -8,6 +8,9 @@ import { Test } from "@nestjs/testing";
 import * as request from "supertest";
 import { RolesGuard } from "../src/common/guards/roles.guard";
 import { JwtAuthGuard } from "../src/modules/auth/guards/jwt-auth.guard";
+import { EventOrganizerController } from "../src/modules/event/controllers/event.organizer.controller";
+import { EventOrganizerService } from "../src/modules/event/services/event.organizer.service";
+import { RoundRankingService } from "../src/modules/event/services/round-ranking.service";
 import { OrganizerDashboardController } from "../src/modules/organizer-dashboard/organizer-dashboard.controller";
 import { OrganizerDashboardService } from "../src/modules/organizer-dashboard/organizer-dashboard.service";
 import { OrganizerNotificationsController } from "../src/modules/organizer-notifications/organizer-notifications.controller";
@@ -28,7 +31,15 @@ describe("Organizer dashboard API (e2e)", () => {
   const dashboardService = {
     getOverview: jest.fn(),
     getEventsByMonth: jest.fn(),
+    getEventStatus: jest.fn(),
+    getRecentRegistrations: jest.fn(),
+    getRegistrationTrend: jest.fn(),
+    getSubmissions: jest.fn(),
+    getUpcomingDeadlines: jest.fn(),
     getParticipationConversion: jest.fn(),
+  };
+  const eventService = {
+    getAllEvents: jest.fn(),
   };
   const notificationService = {
     sendDeadlineReminder: jest.fn(),
@@ -37,11 +48,14 @@ describe("Organizer dashboard API (e2e)", () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [
+        EventOrganizerController,
         OrganizerDashboardController,
         OrganizerNotificationsController,
       ],
       providers: [
         { provide: OrganizerDashboardService, useValue: dashboardService },
+        { provide: EventOrganizerService, useValue: eventService },
+        { provide: RoundRankingService, useValue: {} },
         {
           provide: OrganizerNotificationsService,
           useValue: notificationService,
@@ -65,6 +79,17 @@ describe("Organizer dashboard API (e2e)", () => {
   afterAll(async () => app.close());
 
   beforeEach(() => jest.clearAllMocks());
+
+  it("GET /api/organizer/events", async () => {
+    eventService.getAllEvents.mockResolvedValue([
+      { id: 1, name: "SEAL 2026", year: 2026, tracks: [] },
+    ]);
+    const response = await request(app.getHttpServer())
+      .get("/api/organizer/events")
+      .expect(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(eventService.getAllEvents).toHaveBeenCalledWith(42, false);
+  });
 
   it("GET /api/organizer/dashboard/overview", async () => {
     dashboardService.getOverview.mockResolvedValue({
@@ -94,6 +119,73 @@ describe("Organizer dashboard API (e2e)", () => {
       .get("/api/organizer/dashboard/events-by-month?year=2026")
       .expect(200);
     expect(response.body.data.data).toHaveLength(12);
+    expect(dashboardService.getEventsByMonth).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ year: 2026 }),
+    );
+  });
+
+  it("GET /api/organizer/dashboard/event-status", async () => {
+    dashboardService.getEventStatus.mockResolvedValue({ total: 1, data: [] });
+    await request(app.getHttpServer())
+      .get("/api/organizer/dashboard/event-status?year=2026&eventId=1")
+      .expect(200);
+    expect(dashboardService.getEventStatus).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ year: 2026, eventId: 1 }),
+    );
+  });
+
+  it("GET /api/organizer/dashboard/recent-registrations", async () => {
+    dashboardService.getRecentRegistrations.mockResolvedValue({ data: [] });
+    await request(app.getHttpServer())
+      .get("/api/organizer/dashboard/recent-registrations?limit=10&eventId=1")
+      .expect(200);
+    expect(dashboardService.getRecentRegistrations).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ limit: 10, eventId: 1 }),
+    );
+  });
+
+  it("GET /api/organizer/dashboard/registration-trend", async () => {
+    dashboardService.getRegistrationTrend.mockResolvedValue({
+      groupBy: "day",
+      data: [],
+    });
+    await request(app.getHttpServer())
+      .get("/api/organizer/dashboard/registration-trend?groupBy=day&eventId=1")
+      .expect(200);
+    expect(dashboardService.getRegistrationTrend).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ groupBy: "day", eventId: 1 }),
+    );
+  });
+
+  it("GET /api/organizer/dashboard/submissions", async () => {
+    dashboardService.getSubmissions.mockResolvedValue({
+      summary: {},
+      activity: [],
+    });
+    await request(app.getHttpServer())
+      .get("/api/organizer/dashboard/submissions?groupBy=day&eventId=1")
+      .expect(200);
+    expect(dashboardService.getSubmissions).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ groupBy: "day", eventId: 1 }),
+    );
+  });
+
+  it("GET /api/organizer/dashboard/upcoming-deadlines", async () => {
+    dashboardService.getUpcomingDeadlines.mockResolvedValue({ data: [] });
+    await request(app.getHttpServer())
+      .get(
+        "/api/organizer/dashboard/upcoming-deadlines?withinDays=30&eventId=1",
+      )
+      .expect(200);
+    expect(dashboardService.getUpcomingDeadlines).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ withinDays: 30, eventId: 1 }),
+    );
   });
 
   it("GET /api/organizer/dashboard/participation-conversion", async () => {

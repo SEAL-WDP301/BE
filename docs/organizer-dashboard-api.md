@@ -15,8 +15,6 @@ scope is resolved from the authenticated user; clients must never send an
 - Event and round date fields are used as deadlines because there is no
   schedule table.
 - Event capacity is derived from `Track.maxTeams * Track.maxMembersPerTeam`.
-- Activity reporting reads the new `activity_events` table populated by the
-  global activity interceptor.
 
 ## Shared query
 
@@ -63,7 +61,7 @@ GET /api/organizer/dashboard/overview?year=2026
 ```
 
 Returns `totalEvents`, `activeEvents`, `totalRegistrations`,
-`totalParticipants`, `totalSubmissions`, and `activeUsers24h`. Comparison
+`totalParticipants`, and `totalSubmissions`. Comparison
 metrics contain `previousValue`, `changePercentage`, and `changeDirection`.
 
 ### Events by month
@@ -137,15 +135,6 @@ Returns:
 - `timingStatus`: `ON_TIME` or `LATE`.
 - `evaluationStatus`: derived from the presence of score records.
 - `activity`: submission and unique-team counts by period.
-
-### User activity
-
-```http
-GET /api/organizer/dashboard/user-activity?eventId=33&period=24h
-```
-
-Returns unique users, period comparison, peak period, activity chart points,
-and unique users by role. It does not use `User.updatedAt`.
 
 ### Upcoming deadlines
 

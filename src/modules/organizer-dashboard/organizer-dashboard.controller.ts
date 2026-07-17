@@ -17,7 +17,6 @@ import { RecentRegistrationsQueryDto } from "./dto/recent-registrations-query.dt
 import { RegistrationTrendQueryDto } from "./dto/registration-trend-query.dto";
 import { SubmissionsDashboardQueryDto } from "./dto/submissions-dashboard-query.dto";
 import { UpcomingDeadlinesQueryDto } from "./dto/upcoming-deadlines-query.dto";
-import { UserActivityQueryDto } from "./dto/user-activity-query.dto";
 import { OrganizerDashboardService } from "./organizer-dashboard.service";
 
 @ApiTags("Organizer Dashboard")
@@ -127,18 +126,6 @@ export class OrganizerDashboardController {
     return {
       message: "Submission dashboard retrieved",
       data: await this.service.getSubmissions(Number(organizerId), query),
-    };
-  }
-
-  @Get("user-activity")
-  @ApiOperation({ summary: "Get unique user activity for accessible events" })
-  async getUserActivity(
-    @CurrentUser("id") organizerId: string,
-    @Query() query: UserActivityQueryDto,
-  ) {
-    return {
-      message: "User activity retrieved",
-      data: await this.service.getUserActivity(Number(organizerId), query),
     };
   }
 
