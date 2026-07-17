@@ -7,6 +7,19 @@ export class MailService {
 
   constructor(private readonly mailerService: MailerService) {}
 
+  async sendNotificationEmail(
+    to: string,
+    recipientName: string,
+    subject: string,
+    message: string,
+  ) {
+    return this.mailerService.sendMail({
+      to,
+      subject,
+      text: `Hello ${recipientName},\n\n${message}\n\nSEAL Team`,
+    });
+  }
+
   async sendOtpEmail(to: string, otp: string) {
     try {
       const response = await this.mailerService.sendMail({

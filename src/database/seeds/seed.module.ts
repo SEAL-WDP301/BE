@@ -7,6 +7,7 @@ import { SeedService } from "./seed.service";
 import { MockEventService } from "./mock-event.service";
 import { MockTeamsService } from "./mock-teams.service";
 import { MockStakeholdersService } from "./mock-stakeholders.service";
+import { DashboardSeedService } from "./dashboard-seed.service";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MockStakeholdersService } from "./mock-stakeholders.service";
     MockEventService,
     MockTeamsService,
     MockStakeholdersService,
+    DashboardSeedService,
   ],
 })
 export class SeedModule {}

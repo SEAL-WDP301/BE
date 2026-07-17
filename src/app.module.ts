@@ -38,6 +38,10 @@ import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
 import { ChatModule } from "./modules/chat/chat.module";
+import { OrganizerDashboardModule } from "./modules/organizer-dashboard/organizer-dashboard.module";
+import { OrganizerNotificationsModule } from "./modules/organizer-notifications/organizer-notifications.module";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+import { ActivityTrackingInterceptor } from "./common/interceptors/activity-tracking.interceptor";
 
 @Module({
   imports: [
@@ -71,6 +75,14 @@ import { ChatModule } from "./modules/chat/chat.module";
     SubmissionModule,
     FeedbackModule,
     ChatModule,
+    OrganizerDashboardModule,
+    OrganizerNotificationsModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ActivityTrackingInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {

@@ -22,6 +22,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed:run": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
+    "seed:dashboard": "ts-node -r tsconfig-paths/register src/database/seeds/run-dashboard-seed.ts",
     "events:backfill-images": "ts-node -r tsconfig-paths/register scripts/backfill-event-images.ts"
   },
   "dependencies": {
@@ -78,6 +79,7 @@
     "@types/passport-github2": "^1.2.9",
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/passport-jwt": "^4.0.1",
+    "@types/supertest": "^7.2.1",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
@@ -88,6 +90,7 @@
     "prettier": "^3.4.2",
     "prisma": "^6.19.3",
     "source-map-support": "^0.5.21",
+    "supertest": "^7.2.2",
     "ts-jest": "^29.2.5",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
