@@ -58,6 +58,7 @@ export class EventOrganizerService {
     return this.prisma.event.findMany({
       include: {
         tracks: true,
+        prizes: true,
       },
       orderBy: { createdAt: "desc" },
     });
