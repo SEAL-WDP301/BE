@@ -38,7 +38,7 @@ import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
 import { OrganizerDashboardModule } from "./modules/organizer-dashboard/organizer-dashboard.module";
-import { OrganizerNotificationsModule } from "./modules/organizer-notifications/organizer-notifications.module";
+
 
 @Module({
   imports: [
@@ -72,7 +72,6 @@ import { OrganizerNotificationsModule } from "./modules/organizer-notifications/
     SubmissionModule,
     FeedbackModule,
     OrganizerDashboardModule,
-    OrganizerNotificationsModule,
   ],
 })
 export class AppModule implements NestModule {

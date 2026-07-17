@@ -22,7 +22,7 @@ import { OrganizerDashboardService } from "./organizer-dashboard.service";
 @ApiTags("Organizer Dashboard")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ORGANIZER)
+@Roles(Role.ORGANIZER, Role.ADMIN)
 @Controller("organizer/dashboard")
 export class OrganizerDashboardController {
   constructor(private readonly service: OrganizerDashboardService) {}

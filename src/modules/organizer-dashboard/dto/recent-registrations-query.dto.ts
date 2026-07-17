@@ -11,6 +11,6 @@ export class RecentRegistrationsQueryDto extends OmitType(
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(20)
+  @Max(100)
   limit?: number = 5;
 }
