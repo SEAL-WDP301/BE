@@ -30,6 +30,7 @@ export class EventPublicService {
       },
       include: {
         tracks: true,
+        prizes: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -43,6 +44,7 @@ export class EventPublicService {
       include: {
         tracks: true,
         rounds: true,
+        prizes: true,
         _count: {
           select: {
             teams: true,

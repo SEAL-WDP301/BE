@@ -22,7 +22,7 @@ interface GithubCreateRepoResponse {
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   isConfigured(): boolean {
     return Boolean(this.configService.get<string>("github.token"));
@@ -90,7 +90,7 @@ export class GithubService {
       };
       throw new BadRequestException(
         body.message ||
-          `GitHub repo "${input.repoName}" already exists or name is invalid`,
+        `GitHub repo "${input.repoName}" already exists or name is invalid`,
       );
     }
 

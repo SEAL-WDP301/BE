@@ -4,102 +4,71 @@ Hệ thống quản lý giải chạy học thuật thường niên **SEAL Hacka
 
 ---
 
-## ⚡ Tech Stack & Framework
+## ⚡ Tech Stack & Architecture
 
-Hệ thống được phát triển theo tiêu chuẩn **Enterprise-ready**, đảm bảo tính bảo mật, khả năng mở rộng cao:
+Hệ thống được phát triển theo tiêu chuẩn **Enterprise-ready**, đảm bảo tính bảo mật, khả năng mở rộng cao và hiệu năng ổn định:
 
-*   **Backend Framework:** NestJS (TypeScript) với kiến trúc Module-based Layered Architecture.
-*   **Database:** PostgreSQL kết hợp TypeORM.
-*   **Cache & Queue:** Redis (ioredis) hỗ trợ tối ưu hiệu năng và khả năng scale.
-*   **Security:** 
-    *   Xác thực bằng bộ đôi JWT (Access Token thời gian ngắn) + Refresh Token (Lưu trong bảo mật HttpOnly Cookie).
-    *   Tích hợp Google OAuth2 dành cho sinh viên và Giám khảo.
-    *   Bảo vệ API bằng Helmet, CORS và Cookie Parser.
-*   **Logger:** Winston (nest-winston) phân tách log Console (Nest-like color) và File JSON (`logs/app.log`).
-*   **Validation:** Đảm bảo toàn vẹn dữ liệu đầu vào thông qua `class-validator` và `class-transformer` toàn cục.
-*   **API Documentation:** Swagger UI tích hợp sẵn tại `/api/docs`.
-*   **Containerization:** Docker Compose cấu hình sẵn cho PostgreSQL giúp setup môi trường nhanh chóng.
-
----
-
-## 🎯 Nghiệp vụ cốt lõi (Business Core)
-
-Hệ thống giải quyết toàn bộ bài toán vận hành thủ công trước đây của SEAL Hackathon qua các luồng chính:
-
-1.  **Quản lý Sự kiện & Vòng thi (Event & Round):** Cấu hình linh hoạt nhiều sự kiện theo học kỳ (Spring, Summer, Fall) với nhiều vòng đấu (Sơ loại, Chung kết), thời hạn nộp bài riêng biệt và tiêu chí thăng hạng tự động.
-2.  **Quản lý Hạng mục & Phân quyền (Tracks & Roles):** Định nghĩa các bảng đấu (AI, Web, Mobile) kèm phân công Mentor và Giám khảo linh hoạt. Phân chia rõ ràng 5 nhóm đối tượng: *Team Member, Team Leader, Mentor, Judge, và Event Coordinator*.
-3.  **Quản lý Đăng ký & Đội thi (Team & Registration):** Kiểm soát luồng đăng ký chặt chẽ dành riêng cho Sinh viên FPT và sinh viên ngoài trường (cần BTC phê duyệt) và cơ chế tự lập nhóm từ 3-5 thành viên.
-4.  **Nộp bài & Chấm điểm chi tiết (Submission & Scoring):** Đội thi nộp liên kết sản phẩm trực tiếp. Giám khảo chấm điểm độc lập dựa trên bộ tiêu chí động được thừa kế và tùy biến theo từng sự kiện.
+*   **Backend Framework:** NestJS (TypeScript) với kiến trúc Module-based Layered Architecture (Phân tách rạch ròi Controllers, Services, và Repositories).
+*   **Database ORM:** Prisma ORM, cung cấp Type-safe Database Access kết hợp PostgreSQL. Khai thác mạnh mẽ các trường JSON để lưu trữ linh hoạt (ví dụ: Rubrics, FAQs).
+*   **Cache & Message Broker:** Redis (ioredis) dùng cho việc Cache dữ liệu nặng, quản lý Session và làm Adapter cho WebSocket cluster.
+*   **Real-time Engine:** NestJS WebSockets (`@nestjs/websockets` + Socket.IO) phục vụ đồng bộ dữ liệu thời gian thực cho chat nhóm và hệ thống thông báo.
+*   **Event-Driven Communication:** Sử dụng `@nestjs/event-emitter` để Decouple (tách rời) các logic gửi Email, tạo Thông báo (Notification) khỏi luồng xử lý chính.
+*   **Security & Auth:** 
+    *   Bảo vệ theo mô hình Cookie-based JWT Authentication.
+    *   OAuth2 (Google, GitHub) tích hợp qua Passport.js.
+    *   Bảo vệ chống tấn công bằng Helmet, cấu hình CORS khắt khe và HttpOnly/Secure Cookies.
+*   **Cron Jobs & Scheduling:** Xử lý các tác vụ định kỳ tự động bằng `@nestjs/schedule` (ví dụ: tự động khóa/mở vòng thi, khóa kho lưu trữ GitHub khi hết hạn).
+*   **Cloud Storage & Integrations:** Amazon S3 (quản lý file qua Presigned URLs) và GitHub Octokit API (quản lý Organization & Repositories tự động).
 
 ---
 
-## 🚀 Điểm nổi bật của dự án (Project Highlights)
+## 🧠 Các Kỹ thuật Xử lý Chuyên sâu (Advanced Techniques)
 
-*   **Định hướng Nghiên cứu Khoa học (RBL - Research-based Learning):** Hệ thống không gộp chung điểm số của bài nộp mà **lưu vết chi tiết điểm của từng giám khảo theo từng tiêu chí**. Hỗ trợ xuất dữ liệu ẩn danh (CSV) để phân tích độ tin cậy (ICC, Krippendorff's $\alpha$) và dựng Dashboard trực quan hóa phương sai điểm số nhằm gia tăng tính minh bạch trong học thuật.
-*   **Kiến trúc Lifecycle NestJS chuẩn chỉ:** Áp dụng nghiêm ngặt luồng xử lý `Middleware ➔ Guard ➔ Interceptor ➔ Pipe ➔ Handler` giúp phân tách rạch ròi các nhiệm vụ: Log request, xác thực RBAC, định dạng phản hồi chuẩn hóa, và validate dữ liệu đầu vào.
-*   **Hệ thống xử lý lỗi tập trung:** Mọi ngoại lệ (Exceptions) đều được bắt lại ở tầng lọc toàn cục `AllExceptionsFilter`, tự động che giấu stack trace đối với client để bảo mật nhưng vẫn ghi log chi tiết (kèm Request ID độc bản) vào file hệ thống qua Winston.
-*   **Bảo mật Cookie nâng cao:** Refresh Token lưu hoàn toàn ở phía máy chủ thông qua cookie được mã hóa bảo mật (`httpOnly`, `secure`, `sameSite`), triệt tiêu rủi ro bị tấn công XSS đánh cắp thông tin như các phương pháp lưu trữ ở localStorage thông thường.
+### 1. Kiến trúc Dependency Injection & Lifecycle Hook
+*   **Nền tảng NestJS v10:** Áp dụng nghiêm ngặt luồng xử lý (Request Lifecycle): `Middleware ➔ Guard ➔ Interceptor ➔ Pipe ➔ Controller/Handler`.
+*   **Global Exception Handling:** Tất cả các lỗi trong hệ thống được gom về `AllExceptionsFilter`. Lỗi sẽ được log chi tiết xuống file (thông qua Winston) kèm định danh `RequestId`, nhưng chỉ trả về HTTP Error Response sạch sẽ, chuẩn hóa (ẩn Stack Trace) cho client để bảo mật.
+*   **Custom Decorators & Guards:** Xây dựng `RolesGuard` để kiểm tra quyền hạn (RBAC) và `AuthUser` decorator để lấy thông tin định danh JWT một cách gọn gàng ở Controller.
+
+### 2. Tự động hóa Workflow (Automation via Background Jobs)
+*   **GitHub Repositories Provisioning:** Khi một sự kiện/vòng thi có cấu hình nộp bài qua GitHub mở ra, một tiến trình chạy ngầm sẽ duyệt qua tất cả các đội thi đủ điều kiện, tự động gọi API GitHub bằng `Octokit` để:
+    1. Tạo Private Repository trên tổ chức (Organization) chỉ định.
+    2. Quét tài khoản GitHub của thành viên và tự động cấp quyền `Collaborator`.
+*   **Time-based Status Synchronization:** Hệ thống sử dụng Cronjob kiểm tra `submissionDeadline`. Khi thời gian đếm ngược kết thúc, trạng thái của vòng thi được chuyển tự động, và quyền Push code trên GitHub của thí sinh sẽ bị hạ cấp xuống Read-only.
+
+### 3. Lưu trữ hướng Cloud (Presigned URL Architecture)
+*   Thay vì để Backend nhận file project (làm nghẽn băng thông và memory), BE chỉ đóng vai trò xác thực tính hợp lệ (Size, File Type) và sinh ra một **AWS S3 Presigned URL** ngắn hạn (có chữ ký số hợp lệ trong 5 phút).
+*   Client sử dụng URL này để upload trực tiếp lên Cloud. Sau khi thành công, BE mới lưu bản ghi vào Database. Cơ chế này giúp Backend xử lý hàng ngàn request cùng lúc mà không bị thắt nút cổ chai (Bottleneck) ở băng thông Mạng.
+
+### 4. Tối ưu hóa Database với Prisma
+*   **Batch Queries & Transactions:** Để đảm bảo tính toàn vẹn (ACID), khi chấm điểm nhiều tiêu chí cùng lúc hoặc phân bổ nhiều giám khảo, BE sử dụng tính năng `$transaction` của Prisma.
+*   **Complex Relations Querying:** Tối ưu hóa truy vấn bằng cơ chế `include` và `select` chính xác các fields cần thiết để giảm tải lượng dữ liệu trả về mạng. Quản lý trạng thái đa vòng (TeamRounds) với các sub-queries lồng ghép để tính điểm tổng kết.
+
+### 5. Nghiên cứu Khoa học (RBL - Inter-rater reliability)
+*   Hệ thống không tính điểm gộp chung ngay từ đầu, mà lưu vết độc lập (Isolation) kết quả đánh giá của từng giám khảo đối với từng tiêu chí nhỏ (Rubric Items).
+*   Cấu trúc Data Model hỗ trợ xuất khẩu các mẫu dữ liệu dưới dạng Ma trận điểm (Score Matrix) để chạy thuật toán thống kê hệ số đồng thuận (Krippendorff's Alpha, ICC) trực tiếp trên các phần mềm như SPSS hoặc R.
 
 ---
 
 ## 🛠️ Hướng dẫn Cài đặt & Chạy dự án (Quick Start)
 
-Hướng dẫn này giúp bạn thiết lập môi trường phát triển nhanh chóng bằng cách kết nối trực tiếp vào **Database PostgreSQL chung (được host trên DigitalOcean)** và chạy các dịch vụ bổ trợ (Redis Cache) bằng Docker ở máy local.
-
----
-
-### 1. Cấu hình Môi trường (Environment)
-
-Để kết nối được tới cơ sở dữ liệu chung của dự án, bạn cần tạo file môi trường cá nhân:
-
-1. Copy file `.env.example` thành `.env.development`:
-   ```bash
-   cp .env.example .env.development
-   ```
-2. Mở file `.env.development` và cấu hình các biến kết nối database như dưới đây:
-   ```env
-   # ==========================================
-   # DATABASE (PostgreSQL - DigitalOcean Remote DB)
-   # ==========================================
-   DB_HOST=<VUI_LONG_HOI_LEAD_DEV_DE_LAY_HOST>
-   DB_PORT=25060
-   DB_USERNAME=<VUI_LONG_HOI_LEAD_DEV_DE_LAY_USER>
-   DB_PASSWORD=<VUI_LONG_HOI_LEAD_DEV_DE_LAY_PASS>
-   DB_NAME=defaultdb
-   DB_LOGGING=false
-   DB_SSL=true                                    # Bắt buộc phải là true để kết nối được tới DigitalOcean
-   
-   # ==========================================
-   # REDIS (Local Cache)
-   # ==========================================
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
-   ```
-
----
-
-### 3. Khởi chạy Ứng dụng NestJS (Local)
-
-Chạy các lệnh sau tại thư mục `BE` để cài đặt thư viện và chạy ứng dụng:
-
+### 1. Cấu hình Môi trường
+Copy file `.env.example` thành `.env.development` và điền thông tin kết nối DB (PostgreSQL) và Redis:
 ```bash
-# 1. Cài đặt các dependencies
+cp .env.example .env.development
+```
+
+### 2. Khởi chạy Ứng dụng NestJS
+```bash
+# 1. Cài đặt các thư viện (Lưu ý: Prisma CLI đã được ghim ở version 6.x)
 npm install
 
-# 2. Khởi chạy ứng dụng ở chế độ Development (Hot-reload)
-nest start --watch
+# 2. Sinh mã Prisma Client tương ứng với Schema
+npx prisma generate
+
+# 3. Khởi chạy Server (chế độ tự động reload)
+npm run start:dev
 ```
 
 Sau khi chạy thành công:
 * **API Server:** Chạy tại [http://localhost:3000/api](http://localhost:3000/api)
 * **Tài liệu API (Swagger UI):** Truy cập tại [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
-
----
-
-### 4. Các công cụ hỗ trợ phát triển (Tích hợp sẵn)
-
-Dự án đã tích hợp sẵn các giao diện quản lý giúp việc lập trình và kiểm thử cực kỳ dễ dàng:
-
-| **Redis Insight** | [http://localhost:8001](http://localhost:8001) | Xem & Quản lý Key-Value Redis | Không yêu cầu đăng nhập |
-| **Swagger UI** | [http://localhost:3000/api/docs](http://localhost:3000/api/docs) | Tài liệu hóa & Test trực tiếp API | Đang chạy local |
-

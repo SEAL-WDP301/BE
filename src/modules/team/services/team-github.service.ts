@@ -18,7 +18,7 @@ export class TeamGithubService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly githubService: GithubService,
-  ) {}
+  ) { }
 
   async provisionRepositoryForTeam(
     teamId: number,
