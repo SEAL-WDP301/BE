@@ -10,12 +10,13 @@ export class MentorFeedbackService {
     private readonly feedbackGateway: FeedbackGateway,
   ) {}
 
-  async findAllByMentor(mentorId: number) {
+  async findAllByMentor(mentorId: number, eventId?: number) {
     return this.prisma.mentorFeedback.findMany({
       where: {
         mentorId,
         team: {
           mentorAssignments: { some: { mentorId } },
+          ...(eventId && { eventId }),
         },
       },
       include: this.feedbackInclude(),

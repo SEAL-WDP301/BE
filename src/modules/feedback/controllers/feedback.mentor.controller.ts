@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  Query,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
@@ -28,10 +29,16 @@ export class MentorFeedbackController {
 
   @Get("feedback")
   @ApiOperation({ summary: "Get feedback created by the current mentor" })
-  async getFeedback(@CurrentUser("id") mentorId: number) {
+  async getFeedback(
+    @CurrentUser("id") mentorId: number,
+    @Query("eventId") eventId?: string,
+  ) {
     return {
       message: "Mentor feedback fetched",
-      data: await this.mentorFeedbackService.findAllByMentor(mentorId),
+      data: await this.mentorFeedbackService.findAllByMentor(
+        mentorId,
+        eventId ? Number(eventId) : undefined,
+      ),
     };
   }
 
