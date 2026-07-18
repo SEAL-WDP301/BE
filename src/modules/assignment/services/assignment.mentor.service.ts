@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
+import { TeamMemberStatus } from "@prisma/client";
 
 @Injectable()
 export class AssignmentMentorService {
@@ -102,6 +103,7 @@ export class AssignmentMentorService {
         },
       },
       members: {
+        where: { status: TeamMemberStatus.accepted },
         include: {
           user: {
             select: {
