@@ -32,6 +32,7 @@ import { StorageModule } from "./modules/storage/storage.module";
 import { AssignmentModule } from "./modules/assignment/assignment.module";
 import { SubmissionModule } from "./modules/submission/submission.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
+import { ChatModule } from "./modules/chat/chat.module";
 
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
@@ -72,6 +73,7 @@ import { OrganizerDashboardModule } from "./modules/organizer-dashboard/organize
     SubmissionModule,
     FeedbackModule,
     OrganizerDashboardModule,
+    ChatModule,
   ],
 })
 export class AppModule implements NestModule {
