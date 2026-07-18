@@ -27,55 +27,85 @@ export class TeamOrganizerService {
     trackId?: number,
     roundId?: number,
     hasMentor?: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+    search?: string,
   ) {
-    const teams = await this.prisma.team.findMany({
-      where: {
-        eventId,
-        ...(trackId && { trackId }),
-        ...(roundId && {
-          teamRounds: {
-            some: { roundId },
-          },
-        }),
-        ...(hasMentor === "true" && { mentorAssignments: { some: {} } }),
-        ...(hasMentor === "false" && { mentorAssignments: { none: {} } }),
-      },
-      include: {
-        track: true,
-        leader: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-            studentProfile: true,
-          },
+    const where: any = {
+      eventId,
+      ...(trackId && { trackId }),
+      ...(roundId && {
+        teamRounds: {
+          some: { roundId },
         },
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                avatarUrl: true,
-                studentProfile: true,
+      }),
+      ...(hasMentor === "true" && { mentorAssignments: { some: {} } }),
+      ...(hasMentor === "false" && { mentorAssignments: { none: {} } }),
+      ...(status && status !== "all" && { status }),
+    };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { leader: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [teams, total] = await Promise.all([
+      this.prisma.team.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          track: true,
+          leader: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+              studentProfile: true,
+            },
+          },
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatarUrl: true,
+                  studentProfile: true,
+                },
               },
             },
           },
-        },
-        mentorAssignments: {
-          include: {
-            mentor: {
-              select: { id: true, name: true, email: true, avatarUrl: true },
+          mentorAssignments: {
+            include: {
+              mentor: {
+                select: { id: true, name: true, email: true, avatarUrl: true },
+              },
             },
           },
+          teamRounds: { include: { round: true } },
         },
-        teamRounds: { include: { round: true } },
-      },
-    });
+      }),
+      this.prisma.team.count({ where }),
+    ]);
 
-    return teams;
+    return {
+      data: teams,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getTeamsByTrack(eventId: number, trackId: number) {
@@ -247,5 +277,27 @@ export class TeamOrganizerService {
         },
       },
     });
+  }
+
+  async bulkUpdateTeamsStatus(
+    teamIds: number[],
+    status: TeamStatus,
+    reason?: string,
+    adminId?: number,
+  ) {
+    const results = [];
+    for (const teamId of teamIds) {
+      try {
+        const res = await this.updateTeamStatus(
+          teamId,
+          { status, reason },
+          adminId || 0,
+        );
+        results.push(res);
+      } catch (err) {
+        this.logger.error(`Failed to update status for team ${teamId}`, err);
+      }
+    }
+    return results;
   }
 }

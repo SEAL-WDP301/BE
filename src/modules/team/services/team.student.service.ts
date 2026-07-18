@@ -191,6 +191,7 @@ export class TeamStudentService {
     const existingMemberships = await this.prisma.teamMember.findMany({
       where: {
         userId: { in: [...memberIds, userId] },
+        status: { not: TeamMemberStatus.rejected },
         team: {
           eventId,
           status: {
@@ -373,7 +374,14 @@ export class TeamStudentService {
     if (usersToAdd.length > 0) {
       const memberIds = usersToAdd.map((m) => m.id);
       const existingMemberships = await this.prisma.teamMember.findMany({
-        where: { userId: { in: memberIds }, team: { eventId } },
+        where: { 
+          userId: { in: memberIds }, 
+          status: { not: TeamMemberStatus.rejected },
+          team: { 
+            eventId,
+            status: { notIn: [TeamStatus.rejected, TeamStatus.disqualified] }
+          } 
+        },
         include: { user: true },
       });
       if (existingMemberships.length > 0) {

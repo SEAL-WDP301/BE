@@ -28,20 +28,28 @@ export class TeamOrganizerController {
   constructor(private readonly teamOrganizerService: TeamOrganizerService) {}
 
   @Get("events/:eventId")
-  @ApiOperation({ summary: "Get all teams for an event with filters" })
+  @ApiOperation({ summary: "Get all teams for an event with filters and pagination" })
   async getTeamsByEvent(
     @Param("eventId", ParseIntPipe) eventId: number,
     @Query("trackId") trackId?: string,
     @Query("roundId") roundId?: string,
     @Query("hasMentor") hasMentor?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
   ) {
-    const teams = await this.teamOrganizerService.getTeamsByEvent(
+    const result = await this.teamOrganizerService.getTeamsByEvent(
       eventId,
       trackId ? Number(trackId) : undefined,
       roundId ? Number(roundId) : undefined,
       hasMentor,
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10,
+      status,
+      search,
     );
-    return { message: "Teams fetched", data: teams };
+    return { message: "Teams fetched", ...result };
   }
 
   @Get("events/:eventId/tracks/:trackId")
@@ -77,5 +85,20 @@ export class TeamOrganizerController {
   async bulkDeleteTeams(@Body() dto: { teamIds: number[] }) {
     await this.teamOrganizerService.bulkDeleteTeams(dto.teamIds);
     return { message: "Teams deleted successfully" };
+  }
+
+  @Post("bulk-status")
+  @ApiOperation({ summary: "Bulk update status for teams" })
+  async bulkUpdateTeamsStatus(
+    @Body() dto: { teamIds: number[]; status: string; reason?: string },
+    @CurrentUser("id") adminId: string,
+  ) {
+    await this.teamOrganizerService.bulkUpdateTeamsStatus(
+      dto.teamIds,
+      dto.status as any,
+      dto.reason,
+      Number(adminId),
+    );
+    return { message: "Teams status updated successfully" };
   }
 }
