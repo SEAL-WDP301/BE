@@ -22,13 +22,14 @@ import { PrismaModule } from "./database/prisma/prisma.module";
 // Feature Modules
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
-import { HealthModule } from "./modules/health/health.module";
-import { RedisModule } from "./modules/redis/redis.module";
-import { MailModule } from "./modules/mail/mail.module";
+import { HealthModule } from "./core/health/health.module";
+import { RedisModule } from "./core/redis/redis.module";
+import { MailModule } from "./core/mail/mail.module";
 import { EventModule } from "./modules/event/event.module";
 import { RubricModule } from "./modules/rubric/rubric.module";
 import { TeamModule } from "./modules/team/team.module";
-import { StorageModule } from "./modules/storage/storage.module";
+import { NotificationModule } from "./modules/notification/notification.module";
+import { StorageModule } from "./core/storage/storage.module";
 import { AssignmentModule } from "./modules/assignment/assignment.module";
 import { SubmissionModule } from "./modules/submission/submission.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
@@ -38,8 +39,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
-import { OrganizerDashboardModule } from "./modules/organizer-dashboard/organizer-dashboard.module";
-
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
 
 @Module({
   imports: [
@@ -66,13 +66,14 @@ import { OrganizerDashboardModule } from "./modules/organizer-dashboard/organize
     UserModule,
     HealthModule,
     EventModule,
+    NotificationModule,
     RubricModule,
     TeamModule,
     StorageModule,
     AssignmentModule,
     SubmissionModule,
     FeedbackModule,
-    OrganizerDashboardModule,
+    AnalyticsModule,
     ChatModule,
   ],
 })
