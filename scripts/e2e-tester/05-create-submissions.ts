@@ -7,7 +7,7 @@ async function main() {
 
     // 1. Get the latest active event
     const latestEvent = await prisma.event.findFirst({
-        where: { status: 'active' },
+        where: { status: { in: ['active', 'ongoing'] } },
         orderBy: { createdAt: 'desc' },
         include: { rounds: { where: { roundNumber: 1 } } }
     });
