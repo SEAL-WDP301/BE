@@ -8,7 +8,6 @@ import {
   Param,
   UseGuards,
   ParseIntPipe,
-  Sse,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -62,78 +61,7 @@ export class UserController {
     };
   }
 
-  @Get("notifications")
-  @ApiOperation({ summary: "Get current user notifications" })
-  @ApiResponse({
-    status: 200,
-    description: "Notifications retrieved successfully",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized — missing or invalid token",
-  })
-  async getNotifications(@CurrentUser("id") userId: string) {
-    const notifications = await this.userService.getUserNotifications(
-      Number(userId),
-    );
-    return {
-      message: "Notifications retrieved successfully",
-      data: notifications,
-    };
-  }
 
-  @Sse("notifications/stream")
-  @ApiOperation({ summary: "Stream user notifications (SSE)" })
-  @ApiResponse({ status: 200, description: "Stream established" })
-  streamNotifications(@CurrentUser("id") userId: string) {
-    return this.userService.streamNotifications(Number(userId));
-  }
-
-  @Patch("notifications/read-all")
-  @ApiOperation({ summary: "Mark all notifications as read" })
-  @ApiResponse({ status: 200, description: "All notifications marked as read" })
-  async markAllNotificationsAsRead(@CurrentUser("id") userId: string) {
-    await this.userService.markAllNotificationsAsRead(Number(userId));
-    return {
-      message: "All notifications marked as read",
-    };
-  }
-
-  @Patch("notifications/:id/read")
-  @ApiOperation({ summary: "Mark a notification as read" })
-  @ApiResponse({ status: 200, description: "Notification marked as read" })
-  async markNotificationAsRead(
-    @CurrentUser("id") userId: string,
-    @Param("id") id: string,
-  ) {
-    await this.userService.markNotificationAsRead(Number(userId), Number(id));
-    return {
-      message: "Notification marked as read",
-    };
-  }
-
-  @Delete("notifications/all")
-  @ApiOperation({ summary: "Delete all notifications" })
-  @ApiResponse({ status: 200, description: "All notifications deleted" })
-  async deleteAllNotifications(@CurrentUser("id") userId: string) {
-    await this.userService.deleteAllNotifications(Number(userId));
-    return {
-      message: "All notifications deleted",
-    };
-  }
-
-  @Delete("notifications/:id")
-  @ApiOperation({ summary: "Delete a notification" })
-  @ApiResponse({ status: 200, description: "Notification deleted" })
-  async deleteNotification(
-    @CurrentUser("id") userId: string,
-    @Param("id") id: string,
-  ) {
-    await this.userService.deleteNotification(Number(userId), Number(id));
-    return {
-      message: "Notification deleted",
-    };
-  }
 
   @Put("profile/student")
   @ApiOperation({ summary: "Update own student profile" })
