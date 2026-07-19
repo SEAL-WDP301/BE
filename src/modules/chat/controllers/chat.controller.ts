@@ -12,9 +12,9 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from "@nestjs/swagger";
-import { ChatService } from "./chat.service";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { ChatService } from "../services/chat.service";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 @ApiTags("Chat")
 @ApiBearerAuth()

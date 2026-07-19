@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { ChatService } from "./chat.service";
-import { ChatController } from "./chat.controller";
-import { ChatGateway } from "./chat.gateway";
+import { ChatService } from "./services/chat.service";
+import { ChatController } from "./controllers/chat.controller";
+import { ChatGateway } from "./gateways/chat.gateway";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 
