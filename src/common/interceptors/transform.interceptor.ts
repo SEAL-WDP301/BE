@@ -14,6 +14,7 @@ export interface SuccessResponse<T> {
   success: true;
   message: string;
   data: T;
+  meta?: any;
   timestamp: string;
 }
 
@@ -57,14 +58,15 @@ export class TransformInterceptor<T> implements NestInterceptor<
           return data;
         }
 
-        // If handler returns { message, data } destructure it
         const message = data?.message ?? "Success";
         const payload = data?.data !== undefined ? data.data : data;
+        const meta = data?.meta;
 
         return {
           success: true as const,
           message,
           data: payload,
+          ...(meta !== undefined && { meta }),
           timestamp: new Date().toISOString(),
         };
       }),

@@ -3,10 +3,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log("Starting 05-score-round1.ts...");
+    console.log("Starting 06-score-round1.ts...");
 
     const latestEvent = await prisma.event.findFirst({
-        where: { status: 'active' },
+        where: { status: { in: ['active', 'ongoing'] } },
         orderBy: { createdAt: 'desc' },
         include: { rounds: true }
     });
