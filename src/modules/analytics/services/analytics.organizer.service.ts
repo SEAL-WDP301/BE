@@ -1,30 +1,30 @@
 import { Injectable } from "@nestjs/common";
 import { EventStatus, SubmissionStatus, TeamStatus } from "@prisma/client";
-import { EventsByMonthQueryDto } from "./dto/events-by-month-query.dto";
-import { OrganizerDashboardQueryDto } from "./dto/organizer-dashboard-query.dto";
-import { ParticipantsByEventQueryDto } from "./dto/participants-by-event-query.dto";
-import { RecentRegistrationsQueryDto } from "./dto/recent-registrations-query.dto";
-import { RegistrationTrendQueryDto } from "./dto/registration-trend-query.dto";
-import { SubmissionsDashboardQueryDto } from "./dto/submissions-dashboard-query.dto";
-import { UpcomingDeadlinesQueryDto } from "./dto/upcoming-deadlines-query.dto";
-import { DashboardOverview } from "./interfaces/dashboard-overview.interface";
-import { OrganizerDashboardRepository } from "./organizer-dashboard.repository";
+import { EventsByMonthQueryDto } from "../dto/events-by-month-query.dto";
+import { OrganizerDashboardQueryDto } from "../dto/organizer-dashboard-query.dto";
+import { ParticipantsByEventQueryDto } from "../dto/participants-by-event-query.dto";
+import { RecentRegistrationsQueryDto } from "../dto/recent-registrations-query.dto";
+import { RegistrationTrendQueryDto } from "../dto/registration-trend-query.dto";
+import { SubmissionsDashboardQueryDto } from "../dto/submissions-dashboard-query.dto";
+import { UpcomingDeadlinesQueryDto } from "../dto/upcoming-deadlines-query.dto";
+import { DashboardOverview } from "../interfaces/dashboard-overview.interface";
+import { AnalyticsOrganizerRepository } from "../repositories/analytics.organizer.repository";
 import { OrganizerEventAccessService } from "./organizer-event-access.service";
 import {
   periodKey,
   resolveDateRange,
   resolveGroupBy,
-} from "./utils/dashboard-date-range.util";
-import { fillMissingPeriods } from "./utils/dashboard-grouping.util";
+} from "../utils/dashboard-date-range.util";
+import { fillMissingPeriods } from "../utils/dashboard-grouping.util";
 import {
   calculateChange,
   calculatePercentage,
-} from "./utils/dashboard-percentage.util";
+} from "../utils/dashboard-percentage.util";
 
 @Injectable()
-export class OrganizerDashboardService {
+export class AnalyticsOrganizerService {
   constructor(
-    private readonly repository: OrganizerDashboardRepository,
+    private readonly repository: AnalyticsOrganizerRepository,
     private readonly eventAccess: OrganizerEventAccessService,
   ) {}
 
@@ -565,7 +565,7 @@ export class OrganizerDashboardService {
 
   private getDrops(
     funnelName: "REGISTRATION" | "SUBMISSION",
-    funnel: ReturnType<OrganizerDashboardService["buildFunnel"]>,
+    funnel: ReturnType<AnalyticsOrganizerService["buildFunnel"]>,
   ) {
     return funnel.slice(1).map((step, index) => ({
       funnel: funnelName,

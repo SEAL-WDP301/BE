@@ -5,27 +5,27 @@ import {
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { Roles } from "../../common/decorators/roles.decorator";
-import { Role } from "../../common/enums/role.enum";
-import { RolesGuard } from "../../common/guards/roles.guard";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { EventsByMonthQueryDto } from "./dto/events-by-month-query.dto";
-import { OrganizerDashboardQueryDto } from "./dto/organizer-dashboard-query.dto";
-import { ParticipantsByEventQueryDto } from "./dto/participants-by-event-query.dto";
-import { RecentRegistrationsQueryDto } from "./dto/recent-registrations-query.dto";
-import { RegistrationTrendQueryDto } from "./dto/registration-trend-query.dto";
-import { SubmissionsDashboardQueryDto } from "./dto/submissions-dashboard-query.dto";
-import { UpcomingDeadlinesQueryDto } from "./dto/upcoming-deadlines-query.dto";
-import { OrganizerDashboardService } from "./organizer-dashboard.service";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { Roles } from "../../../common/decorators/roles.decorator";
+import { Role } from "../../../common/enums/role.enum";
+import { RolesGuard } from "../../../common/guards/roles.guard";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { EventsByMonthQueryDto } from "../dto/events-by-month-query.dto";
+import { OrganizerDashboardQueryDto } from "../dto/organizer-dashboard-query.dto";
+import { ParticipantsByEventQueryDto } from "../dto/participants-by-event-query.dto";
+import { RecentRegistrationsQueryDto } from "../dto/recent-registrations-query.dto";
+import { RegistrationTrendQueryDto } from "../dto/registration-trend-query.dto";
+import { SubmissionsDashboardQueryDto } from "../dto/submissions-dashboard-query.dto";
+import { UpcomingDeadlinesQueryDto } from "../dto/upcoming-deadlines-query.dto";
+import { AnalyticsOrganizerService } from "../services/analytics.organizer.service";
 
 @ApiTags("Organizer Dashboard")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ORGANIZER, Role.ADMIN)
 @Controller("organizer/dashboard")
-export class OrganizerDashboardController {
-  constructor(private readonly service: OrganizerDashboardService) {}
+export class AnalyticsOrganizerController {
+  constructor(private readonly service: AnalyticsOrganizerService) {}
 
   @Get("filter-options")
   @ApiOperation({ summary: "Get accessible dashboard filter options" })

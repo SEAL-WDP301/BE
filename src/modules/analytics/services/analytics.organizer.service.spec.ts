@@ -1,9 +1,9 @@
 import { EventStatus, Season, TeamStatus } from "@prisma/client";
-import { OrganizerDashboardRepository } from "./organizer-dashboard.repository";
-import { OrganizerDashboardService } from "./organizer-dashboard.service";
+import { AnalyticsOrganizerRepository } from "../repositories/analytics.organizer.repository";
+import { AnalyticsOrganizerService } from "./analytics.organizer.service";
 import { OrganizerEventAccessService } from "./organizer-event-access.service";
 
-describe("OrganizerDashboardService", () => {
+describe("AnalyticsOrganizerService", () => {
   const repository = {
     findScopedEventIds: jest.fn(),
     findFilterOptions: jest.fn(),
@@ -13,8 +13,8 @@ describe("OrganizerDashboardService", () => {
     getParticipantsByEvent: jest.fn(),
   };
   const eventAccess = { ensureEventAccess: jest.fn() };
-  const service = new OrganizerDashboardService(
-    repository as unknown as OrganizerDashboardRepository,
+  const service = new AnalyticsOrganizerService(
+    repository as unknown as AnalyticsOrganizerRepository,
     eventAccess as unknown as OrganizerEventAccessService,
   );
 

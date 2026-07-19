@@ -5,11 +5,11 @@ import {
   TeamMemberStatus,
   TeamStatus,
 } from "@prisma/client";
-import { PrismaService } from "../../database/prisma/prisma.service";
-import { OrganizerDashboardQueryDto } from "./dto/organizer-dashboard-query.dto";
+import { PrismaService } from "../../../database/prisma/prisma.service";
+import { OrganizerDashboardQueryDto } from "../dto/organizer-dashboard-query.dto";
 
 @Injectable()
-export class OrganizerDashboardRepository {
+export class AnalyticsOrganizerRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findScopedEventIds(
