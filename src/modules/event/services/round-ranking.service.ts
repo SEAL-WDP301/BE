@@ -19,6 +19,7 @@ import {
 } from "../../../common/utils/scoring.util";
 import { PublishRoundResultsDto } from "../dto/publish-round-results.dto";
 import { TeamGithubService } from "../../team/services/team-github.service";
+import { MailService } from "../../../core/mail/mail.service";
 
 export interface RankedTeamEntry {
   rank: number;
@@ -42,6 +43,7 @@ export class RoundRankingService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly teamGithubService: TeamGithubService,
+    private readonly mailService: MailService,
   ) {}
 
   async getRoundRankings(eventId: number, roundId: number, trackId?: number) {
@@ -563,6 +565,8 @@ export class RoundRankingService {
           NotificationType.round_result,
           `Advanced from ${roundName}`,
           `Congratulations! Team "${team.name}" advanced from ${roundName} in ${trackSummary.trackName}.`,
+          roundName,
+          trackSummary.trackName
         );
       }
 
@@ -573,6 +577,8 @@ export class RoundRankingService {
           NotificationType.round_result,
           `Round result: ${roundName}`,
           `Team "${team.name}" did not advance from ${roundName} in ${trackSummary.trackName}.`,
+          roundName,
+          trackSummary.trackName
         );
       }
     }
@@ -590,6 +596,8 @@ export class RoundRankingService {
     type: NotificationType,
     title: string,
     content: string,
+    roundName: string,
+    trackName: string,
   ) {
     const userIds = new Set<number>([
       team.leader.id,
@@ -616,8 +624,29 @@ export class RoundRankingService {
       );
     }
 
-    this.logger.log(
-      `[MOCK MAIL] Round result notification for team ${team.name}: ${title}`,
-    );
+    const contentLower = content.toLowerCase();
+    const isAdvanced = contentLower.includes('advanced') && !contentLower.includes('did not advance');
+    const isAwarded = /(winner|first prize|second prize|third prize|champion|finalist)/i.test(contentLower);
+
+    const emailsToNotify = new Set([
+      team.leader.email,
+      ...team.members.map((m) => m.user.email).filter(Boolean),
+    ]);
+
+    for (const email of emailsToNotify) {
+      if (email) {
+        this.mailService.sendRoundResultEmail(
+          email,
+          team.name,
+          roundName,
+          trackName,
+          isAdvanced,
+          isAwarded,
+          content
+        ).catch((err) => {
+          this.logger.error(`Failed to send email to ${email}`, err);
+        });
+      }
+    }
   }
 }

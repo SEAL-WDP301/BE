@@ -14,19 +14,33 @@ export class NotificationService {
   /**
    * Get notifications for the given user.
    */
-  async getUserNotifications(userId: number) {
-    return this.prisma.notification.findMany({
-      where: { userId },
-      include: {
-        event: {
-          select: {
-            name: true,
+  async getUserNotifications(userId: number, page: number = 1, limit: number = 25) {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        include: {
+          event: {
+            select: { id: true, name: true },
           },
         },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where: { userId } }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+    };
   }
 
   /**
@@ -92,5 +106,60 @@ export class NotificationService {
     return this.prisma.notification.deleteMany({
       where: { userId },
     });
+  }
+
+  async createNotification(data: {
+    userId: number;
+    eventId?: number;
+    type: string;
+    title: string;
+    content: string;
+    actionUrl?: string;
+  }) {
+    const notification = await this.prisma.notification.create({
+      data: {
+        userId: data.userId,
+        eventId: data.eventId,
+        type: data.type as any,
+        title: data.title,
+        content: data.content,
+        actionUrl: data.actionUrl,
+        isEmailSent: true,
+      },
+    });
+    this.eventEmitter.emit(`notification.user.${data.userId}`, notification);
+    return notification;
+  }
+
+  async createManyNotifications(data: {
+    userIds: number[];
+    eventId?: number;
+    type: string;
+    title: string;
+    content: string;
+    actionUrl?: string;
+  }) {
+    const notifications = data.userIds.map((userId) => ({
+      userId,
+      eventId: data.eventId,
+      type: data.type as any,
+      title: data.title,
+      content: data.content,
+      actionUrl: data.actionUrl,
+      isEmailSent: true,
+    }));
+
+    if (notifications.length > 0) {
+      await this.prisma.notification.createMany({ data: notifications });
+      
+      // Need to find them to get the IDs, but for SSE we can just emit the payloads
+      notifications.forEach((notif) => {
+        this.eventEmitter.emit(`notification.user.${notif.userId}`, {
+          ...notif,
+          createdAt: new Date(),
+          isRead: false,
+        });
+      });
+    }
   }
 }

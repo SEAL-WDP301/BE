@@ -11,6 +11,9 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { OrganizerUpdateTeamDto } from "../dto/organizer-update-team.dto";
 import { TeamGithubService } from "./team-github.service";
 
+import { NotificationService } from "../../notification/services/notification.service";
+import { NotificationTemplates } from "../../notification/constants/notification.template";
+
 @Injectable()
 export class TeamOrganizerService {
   private readonly logger = new Logger(TeamOrganizerService.name);
@@ -20,6 +23,7 @@ export class TeamOrganizerService {
     private readonly mailService: MailService,
     private readonly eventEmitter: EventEmitter2,
     private readonly teamGithubService: TeamGithubService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async getTeamsByEvent(
@@ -198,11 +202,13 @@ export class TeamOrganizerService {
           );
 
         if (githubResult.provisioned && githubResult.repoUrl) {
+          const template = NotificationTemplates[NotificationType.github_repo_created](githubResult.repoUrl);
           await this.notifyEntireTeam(
             team,
-            NotificationType.team_assigned,
-            "GitHub Repository Ready",
-            `Your team repository has been created: ${githubResult.repoUrl}. Push your project code to this repository before the submission deadline.`,
+            NotificationType.github_repo_created,
+            template.title,
+            template.content,
+            githubResult.repoUrl,
           );
         } else if (githubResult.reason && !githubResult.skipped) {
           this.logger.warn(
@@ -212,11 +218,12 @@ export class TeamOrganizerService {
       }
     }
 
+    const statusTemplate = NotificationTemplates[NotificationType.team_assigned](dto.status, dto.reason);
     await this.notifyEntireTeam(
       team,
       NotificationType.team_assigned,
-      `Team Status Updated: ${dto.status}`,
-      `Your team "${team.name}" status has been updated to ${dto.status}. ${dto.reason ? `Reason: ${dto.reason}` : ""}`,
+      statusTemplate.title,
+      statusTemplate.content,
     );
 
     return this.prisma.team.findUnique({
@@ -229,6 +236,7 @@ export class TeamOrganizerService {
     type: NotificationType,
     title: string,
     content: string,
+    actionUrl?: string,
   ) {
     const emailsToNotify = Array.from(
       new Set([
@@ -237,30 +245,24 @@ export class TeamOrganizerService {
       ]),
     );
 
-    const notifications = emailsToNotify
+    const userIdsToNotify = emailsToNotify
       .map((email) => {
         const user =
           email === team.leader.email
             ? team.leader
             : team.members.find((m: any) => m.user.email === email)?.user;
-        if (user) {
-          return {
-            userId: user.id,
-            eventId: team.eventId,
-            type,
-            title,
-            content,
-            isEmailSent: true,
-          };
-        }
-        return null;
+        return user ? user.id : null;
       })
-      .filter(Boolean) as any[];
+      .filter(Boolean) as number[];
 
-    if (notifications.length > 0) {
-      await this.prisma.notification.createMany({ data: notifications });
-      notifications.forEach((notif) => {
-        this.eventEmitter.emit(`notification.user.${notif.userId}`, notif);
+    if (userIdsToNotify.length > 0) {
+      await this.notificationService.createManyNotifications({
+        userIds: userIdsToNotify,
+        eventId: team.eventId,
+        type,
+        title,
+        content,
+        actionUrl,
       });
     }
 

@@ -4,6 +4,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   UseGuards,
   Sse,
 } from "@nestjs/common";
@@ -12,6 +13,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from "@nestjs/swagger";
 import { NotificationService } from "../services/notification.service";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
@@ -20,12 +22,14 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 @ApiTags("Notifications")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller("users/notifications")
+@Controller("notifications")
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
   @ApiOperation({ summary: "Get current user notifications" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: "Notifications retrieved successfully",
@@ -34,13 +38,20 @@ export class NotificationController {
     status: 401,
     description: "Unauthorized — missing or invalid token",
   })
-  async getNotifications(@CurrentUser("id") userId: string) {
-    const notifications = await this.notificationService.getUserNotifications(
+  async getNotifications(
+    @CurrentUser("id") userId: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    const result = await this.notificationService.getUserNotifications(
       Number(userId),
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 25,
     );
     return {
-      message: "Notifications retrieved successfully",
-      data: notifications,
+      success: true,
+      data: result.data,
+      meta: result.meta,
     };
   }
 

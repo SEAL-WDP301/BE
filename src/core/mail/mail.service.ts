@@ -109,4 +109,87 @@ export class MailService {
       throw error;
     }
   }
+
+  async sendRoundResultEmail(
+    to: string,
+    teamName: string,
+    roundName: string,
+    trackName: string,
+    isAdvanced: boolean,
+    isAwarded: boolean,
+    resultContext: string,
+  ) {
+    const subject = isAwarded
+      ? `🏆 SEAL - THÔNG BÁO KẾT QUẢ ĐẶC BIỆT: ${teamName} - ${roundName}`
+      : isAdvanced
+        ? `🎉 SEAL - CHÚC MỪNG: ${teamName} vượt qua ${roundName}`
+        : `📋 SEAL - THÔNG BÁO KẾT QUẢ: ${roundName}`;
+
+    const themeColor = isAwarded ? "#f59e0b" : isAdvanced ? "#10b981" : "#6b7280";
+    const headerTitle = isAwarded
+      ? "OUTSTANDING ACHIEVEMENT"
+      : isAdvanced
+        ? "CONGRATULATIONS"
+        : "ROUND RESULTS";
+
+    let bodyContent = "";
+    if (isAwarded) {
+      bodyContent = `
+        <p>Thành tích xuất sắc của đội bạn đã giúp các bạn ghi danh vào danh sách những đội xuất sắc nhất. Ban tổ chức xin chính thức ghi nhận những nỗ lực phi thường này.</p>
+        <p>Vui lòng theo dõi email tiếp theo để nhận thư mời tham dự Lễ Trao Giải (Award Ceremony).</p>
+      `;
+    } else if (isAdvanced) {
+      bodyContent = `
+        <p>Thật tuyệt vời khi thấy đội của bạn tiếp tục tiến bước. Thành tích này là minh chứng cho sự hợp tác và năng lực kỹ thuật xuất sắc của toàn đội.</p>
+        <p>Hãy chuẩn bị thật kỹ lưỡng cho những thử thách sắp tới, vì hành trình phía trước sẽ đòi hỏi nhiều sự đổi mới và kiên cường hơn nữa.</p>
+      `;
+    } else {
+      bodyContent = `
+        <p>Mặc dù đội của bạn không đi tiếp trong vòng này, Ban tổ chức đánh giá rất cao sự nỗ lực, sáng tạo và kiên trì mà các bạn đã thể hiện.</p>
+        <p>Hy vọng những kinh nghiệm và phản hồi thu được từ cuộc thi sẽ là nền tảng vững chắc cho những thành công trong tương lai của các bạn. Đừng ngừng cố gắng nhé!</p>
+      `;
+    }
+
+    try {
+      const response = await this.mailerService.sendMail({
+        to,
+        subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: ${themeColor}; color: white; padding: 20px; text-align: center;">
+              <h2 style="margin: 0; font-size: 24px; letter-spacing: 1px;">${headerTitle}</h2>
+            </div>
+            
+            <div style="padding: 30px;">
+              <p style="font-size: 16px; margin-top: 0;">Xin chào thành viên đội <strong>${teamName}</strong>,</p>
+              
+              <p>Hội đồng Đánh giá đã chính thức công bố kết quả cho <strong>${roundName}</strong> (Bảng thi: <strong>${trackName}</strong>).</p>
+              
+              <div style="background-color: #f9fafb; border-left: 4px solid ${themeColor}; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0; font-size: 16px;"><strong>Kết quả:</strong> ${resultContext}</p>
+              </div>
+
+              ${bodyContent}
+
+              <div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 14px; color: #6b7280;">
+                <p style="margin: 0;">Nếu bạn có bất kỳ câu hỏi nào về kết quả đánh giá, vui lòng liên hệ:</p>
+                <p style="margin: 5px 0 0 0;"><strong>Email:</strong> support@seal.edu.vn</p>
+              </div>
+            </div>
+            
+            <div style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #9ca3af;">
+              <p style="margin: 0;">Đây là email tự động từ hệ thống SEAL. Vui lòng không trả lời trực tiếp email này.</p>
+            </div>
+          </div>
+        `,
+      });
+
+      this.logger.log(
+        `Round Result Email sent to ${to}, MessageID: ${response?.messageId}`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to send round result email to ${to}`, error);
+    }
+  }
 }

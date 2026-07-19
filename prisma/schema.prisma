@@ -91,6 +91,7 @@ enum NotificationType {
   team_invite_rejected
   team_leadership_transfer
   deadline_reminder
+  github_repo_created
 }
 
 model User {
@@ -463,6 +464,7 @@ model Notification {
   type        NotificationType
   title       String
   content     String
+  actionUrl   String?          @map("action_url")
   isEmailSent Boolean          @default(false) @map("is_email_sent")
   isRead      Boolean          @default(false) @map("is_read")
   sentAt      DateTime?        @map("sent_at")
