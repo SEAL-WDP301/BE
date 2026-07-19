@@ -10,9 +10,10 @@ import { PrismaModule } from "../../database/prisma/prisma.module";
 import { MailModule } from "../../core/mail/mail.module";
 import { TeamModule } from "../team/team.module";
 import { AdminRealtimeGateway } from "./gateways/admin-realtime.gateway";
+import { NotificationModule } from "../notification/notification.module";
 
 @Module({
-  imports: [PrismaModule, MailModule, TeamModule],
+  imports: [PrismaModule, MailModule, TeamModule, NotificationModule],
   controllers: [
     EventOrganizerController,
     EventPublicController,

@@ -4,12 +4,16 @@ import { SubmissionJudgeService } from "./services/submission.judge.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
 import { SubmissionStudentController } from "./controllers/submission.student.controller";
 import { SubmissionStudentService } from "./services/submission.student.service";
+import { SubmissionOrganizerController } from "./controllers/submission.organizer.controller";
+import { SubmissionOrganizerService } from "./services/submission.organizer.service";
 import { StorageModule } from "../../core/storage/storage.module";
+import { NotificationModule } from "../notification/notification.module";
+import { MailModule } from "../../core/mail/mail.module";
 
 @Module({
-  imports: [PrismaModule, StorageModule],
-  controllers: [SubmissionJudgeController, SubmissionStudentController],
-  providers: [SubmissionJudgeService, SubmissionStudentService],
-  exports: [SubmissionJudgeService, SubmissionStudentService],
+  imports: [PrismaModule, StorageModule, NotificationModule, MailModule],
+  controllers: [SubmissionJudgeController, SubmissionStudentController, SubmissionOrganizerController],
+  providers: [SubmissionJudgeService, SubmissionStudentService, SubmissionOrganizerService],
+  exports: [SubmissionJudgeService, SubmissionStudentService, SubmissionOrganizerService],
 })
 export class SubmissionModule {}

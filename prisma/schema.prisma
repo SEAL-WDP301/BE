@@ -92,6 +92,8 @@ enum NotificationType {
   team_leadership_transfer
   deadline_reminder
   github_repo_created
+  bulk_reminder_unsubmitted
+  bulk_reminder_submitted
 }
 
 model User {

@@ -192,4 +192,75 @@ export class MailService {
       this.logger.error(`Failed to send round result email to ${to}`, error);
     }
   }
+
+  async sendSubmissionReminderEmail(
+    to: string,
+    teamName: string,
+    roundName: string,
+    eventName: string,
+    deadline: string,
+    timeRemaining: string,
+    isSubmitted: boolean,
+    actionUrl: string
+  ) {
+    const subject = isSubmitted
+      ? `ℹ️ Nhắc nhở: Rà soát bài nộp vòng ${roundName} - ${eventName}`
+      : `⚠️ KHẨN CẤP: Sắp hết hạn nộp bài vòng ${roundName} - ${eventName}`;
+
+    const themeColor = isSubmitted ? "#3b82f6" : "#ef4444";
+    const headerTitle = isSubmitted ? "REVIEW SUBMISSION" : "URGENT REMINDER";
+
+    const bodyContent = isSubmitted
+      ? `<p>Hệ thống đã ghi nhận bản nộp của đội <strong>${teamName}</strong>. Tuy nhiên, Ban tổ chức khuyến nghị các bạn nên rà soát lại các file/đường link đã tải lên để đảm bảo Ban giám khảo có thể truy cập được.</p>
+         <p>Bạn vẫn có thể cập nhật bài nộp của mình cho đến khi thời gian kết thúc.</p>`
+      : `<p>Ban tổ chức nhận thấy đội <strong>${teamName}</strong> <span style="color: #ef4444; font-weight: bold;">VẪN CHƯA NỘP BÀI</span> cho vòng thi này.</p>
+         <p>Vui lòng nhanh chóng hoàn thiện và nộp bài trước thời hạn. Các bài nộp muộn sẽ không được chấp nhận và có thể dẫn đến việc đội bạn bị loại khỏi cuộc thi.</p>`;
+
+    try {
+      const response = await this.mailerService.sendMail({
+        to,
+        subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: ${themeColor}; color: white; padding: 20px; text-align: center;">
+              <h2 style="margin: 0; font-size: 24px; letter-spacing: 1px;">${headerTitle}</h2>
+            </div>
+            
+            <div style="padding: 30px;">
+              <p style="font-size: 16px; margin-top: 0;">Xin chào thành viên đội <strong>${teamName}</strong>,</p>
+              
+              ${bodyContent}
+              
+              <div style="background-color: #f9fafb; border-left: 4px solid ${themeColor}; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Hạn chót:</strong> ${deadline}</p>
+                <p style="margin: 0; font-size: 16px;"><strong>Thời gian còn lại:</strong> ${timeRemaining}</p>
+              </div>
+
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="${actionUrl}" style="display: inline-block; background-color: ${themeColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                  ĐI ĐẾN TRANG NỘP BÀI
+                </a>
+              </div>
+
+              <div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 14px; color: #6b7280;">
+                <p style="margin: 0;">Nếu bạn cần hỗ trợ kỹ thuật, vui lòng liên hệ:</p>
+                <p style="margin: 5px 0 0 0;"><strong>Email:</strong> support@seal.edu.vn</p>
+              </div>
+            </div>
+            
+            <div style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #9ca3af;">
+              <p style="margin: 0;">Đây là email tự động từ hệ thống SEAL. Vui lòng không trả lời trực tiếp email này.</p>
+            </div>
+          </div>
+        `,
+      });
+
+      this.logger.log(
+        `Submission Reminder Email sent to ${to}, MessageID: ${response?.messageId}`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to send submission reminder email to ${to}`, error);
+    }
+  }
 }

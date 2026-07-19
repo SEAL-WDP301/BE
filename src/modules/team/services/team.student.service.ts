@@ -115,6 +115,7 @@ export class TeamStudentService {
                 },
               },
             },
+            award: true,
           },
         },
       },

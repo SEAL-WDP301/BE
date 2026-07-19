@@ -63,4 +63,12 @@ export const NotificationTemplates = {
     title: "GitHub Repository Ready",
     content: `Your team repository has been created. Push your project code to this repository before the submission deadline.`,
   }),
+  [NotificationType.bulk_reminder_unsubmitted]: (teamName: string, roundName: string, eventName: string, deadline: string, timeRemaining: string) => ({
+    title: `⚠️ Urgent Reminder: Submission Deadline for ${roundName}`,
+    content: `Hello ${teamName} team members,\n\nThis is a reminder that your team HAS NOT YET SUBMITTED for the ${roundName} round of ${eventName}.\n\n⏰ Deadline: ${deadline}\n⏳ Time Remaining: ${timeRemaining}\n\nPlease submit your files or code repositories before the deadline. Submissions after this time will not be accepted and may lead to elimination.`,
+  }),
+  [NotificationType.bulk_reminder_submitted]: (teamName: string, roundName: string, eventName: string, deadline: string, timeRemaining: string) => ({
+    title: `ℹ️ Reminder: Review your submission for ${roundName}`,
+    content: `Hello ${teamName} team members,\n\nWe have received your submission for the ${roundName} round of ${eventName}.\n\n⏰ The system will close at: ${deadline}\n⏳ Time Remaining: ${timeRemaining}\n\nWe recommend that you double-check your uploaded files and links to ensure judges can access them. You can still make changes until the deadline.`,
+  }),
 };
