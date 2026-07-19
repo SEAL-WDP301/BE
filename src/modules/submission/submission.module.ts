@@ -4,7 +4,7 @@ import { SubmissionJudgeService } from "./services/submission.judge.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
 import { SubmissionStudentController } from "./controllers/submission.student.controller";
 import { SubmissionStudentService } from "./services/submission.student.service";
-import { StorageModule } from "../../modules/storage/storage.module";
+import { StorageModule } from "../../core/storage/storage.module";
 
 @Module({
   imports: [PrismaModule, StorageModule],

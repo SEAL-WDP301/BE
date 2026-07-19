@@ -10,8 +10,8 @@ import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 import { GithubOAuthGuard } from "./guards/github-oauth.guard";
 import { GithubStrategy } from "./strategies/github.strategy";
 import { UserModule } from "../user/user.module";
-import { RedisModule } from "../redis/redis.module";
-import { MailModule } from "../mail/mail.module";
+import { RedisModule } from "../../core/redis/redis.module";
+import { MailModule } from "../../core/mail/mail.module";
 import { WsJwtGuard } from "./guards/ws-jwt.guard";
 
 /**

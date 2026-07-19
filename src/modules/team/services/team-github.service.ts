@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Event, Team, Track } from "@prisma/client";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { GithubService } from "../../github/github.service";
+import { GithubService } from "../../../core/github/github.service";
 
 export interface TeamGithubProvisionResult {
   provisioned: boolean;

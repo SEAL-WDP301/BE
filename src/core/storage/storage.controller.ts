@@ -15,7 +15,7 @@ import {
   ApiBody,
 } from "@nestjs/swagger";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { JwtAuthGuard } from "../../modules/auth/guards/jwt-auth.guard";
 import { StorageService } from "./storage.service";
 
 @ApiTags("Storage")

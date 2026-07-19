@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
-import { StorageService } from "../../storage/storage.service";
+import { StorageService } from "../../../core/storage/storage.service";
 import { SubmitProjectDto } from "../dto/submit-project.dto";
 import {
   TeamMemberStatus,

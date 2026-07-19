@@ -15,8 +15,8 @@ import {
   RoundResultStatus,
   RoundStatus,
 } from "@prisma/client";
-import { MailService } from "../../mail/mail.service";
-import { StorageService } from "../../storage/storage.service";
+import { MailService } from "../../../core/mail/mail.service";
+import { StorageService } from "../../../core/storage/storage.service";
 import { RegisterIndividualDto } from "../dto/register-individual.dto";
 import { RegisterTeamDto } from "../dto/register-team.dto";
 

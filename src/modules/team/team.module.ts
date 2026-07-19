@@ -3,9 +3,9 @@ import { TeamStudentService } from "./services/team.student.service";
 import { TeamOrganizerService } from "./services/team.organizer.service";
 import { TeamGithubService } from "./services/team-github.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
-import { MailModule } from "../mail/mail.module";
-import { StorageModule } from "../storage/storage.module";
-import { GithubModule } from "../github/github.module";
+import { MailModule } from "../../core/mail/mail.module";
+import { StorageModule } from "../../core/storage/storage.module";
+import { GithubModule } from "../../core/github/github.module";
 import { TeamStudentController } from "./controllers/team.student.controller";
 import { TeamOrganizerController } from "./controllers/team.organizer.controller";
 @Module({

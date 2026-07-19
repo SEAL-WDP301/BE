@@ -7,7 +7,7 @@ import { EventJudgeController } from "./controllers/event.judge.controller";
 import { EventJudgeService } from "./services/event.judge.service";
 import { RoundRankingService } from "./services/round-ranking.service";
 import { PrismaModule } from "../../database/prisma/prisma.module";
-import { MailModule } from "../mail/mail.module";
+import { MailModule } from "../../core/mail/mail.module";
 import { TeamModule } from "../team/team.module";
 import { AdminRealtimeGateway } from "./gateways/admin-realtime.gateway";
 
