@@ -40,6 +40,7 @@ import { Inject } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { GithubModule } from './modules/github/github.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { AnalyticsModule } from "./modules/analytics/analytics.module";
     FeedbackModule,
     AnalyticsModule,
     ChatModule,
+    GithubModule,
   ],
 })
 export class AppModule implements NestModule {

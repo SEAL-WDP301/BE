@@ -138,6 +138,16 @@ export class TeamStudentService {
     eventId: number,
     dto: RegisterIndividualDto,
   ) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+    if (!event || event.status !== "active") {
+      throw new BadRequestException("Event is not active for registration");
+    }
+    if (event.registrationDeadline && event.registrationDeadline < new Date()) {
+      throw new BadRequestException("Registration deadline has passed");
+    }
+
     return this.prisma.studentRegistration.upsert({
       where: { userId_eventId: { userId, eventId } },
       update: {
@@ -156,6 +166,16 @@ export class TeamStudentService {
   }
 
   async registerTeam(userId: number, eventId: number, dto: RegisterTeamDto) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+    if (!event || event.status !== "active") {
+      throw new BadRequestException("Event is not active for registration");
+    }
+    if (event.registrationDeadline && event.registrationDeadline < new Date()) {
+      throw new BadRequestException("Registration deadline has passed");
+    }
+
     const track = await this.prisma.track.findUnique({
       where: { id: dto.trackId },
     });

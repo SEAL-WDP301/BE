@@ -188,4 +188,44 @@ export class GithubService {
       return null;
     }
   }
+
+  async getRepoCollaborators(org: string, repoName: string): Promise<any[]> {
+    const token = this.configService.get<string>("github.token");
+    if (!token) return [];
+
+    const response = await fetch(
+      `https://api.github.com/repos/${org}/${repoName}/collaborators`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+
+    if (!response.ok) return [];
+    return response.json();
+  }
+
+  async getRepoInvitations(org: string, repoName: string): Promise<any[]> {
+    const token = this.configService.get<string>("github.token");
+    if (!token) return [];
+
+    const response = await fetch(
+      `https://api.github.com/repos/${org}/${repoName}/invitations`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+
+    if (!response.ok) return [];
+    return response.json();
+  }
 }

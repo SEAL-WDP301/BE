@@ -55,6 +55,17 @@ export class AdminRealtimeGateway
     return { event: "joined", room };
   }
 
+  @SubscribeMessage("joinTeam")
+  handleJoinTeam(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { teamId: number },
+  ) {
+    const room = `team-${data.teamId}`;
+    client.join(room);
+    this.logger.log(`Client ${client.id} joined room: ${room}`);
+    return { event: "joined", room };
+  }
+
   @OnEvent("team.registered")
   handleTeamRegistered(data: any) {
     if (!data.eventId) return;

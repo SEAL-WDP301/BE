@@ -302,6 +302,7 @@ model Team {
   mentorFeedbacks   MentorFeedback[]
   teamRounds        TeamRound[]
   teamMessages      TeamMessage[]
+  githubCommits     GithubCommit[]
 
   @@map("teams")
 }
@@ -512,4 +513,21 @@ model TeamMessageRead {
 
   @@unique([messageId, userId])
   @@map("team_message_reads")
+}
+
+model GithubCommit {
+  id         Int      @id @default(autoincrement())
+  teamId     Int      @map("team_id")
+  commitHash String   @map("commit_hash")
+  message    String   @db.Text
+  pusher     String   
+  url        String   
+  timestamp  DateTime 
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([timestamp(sort: Desc)])
+  @@map("github_commits")
 }

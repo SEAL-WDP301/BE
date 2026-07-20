@@ -21,7 +21,6 @@ import { Role } from "../../../common/enums/role.enum";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { SubmitProjectDto } from "../dto/submit-project.dto";
-import { UpdateFeedbackStatusDto } from "../dto/update-feedback-status.dto";
 import { SubmissionStudentService } from "../services/submission.student.service";
 
 @ApiTags("Student/Teams")
@@ -51,18 +50,4 @@ export class SubmissionStudentController {
     return { message: "Project submitted successfully", data: submission };
   }
 
-  @Patch("my-team/feedbacks/:feedbackId/status")
-  @ApiOperation({ summary: "Update mentor feedback status by student" })
-  async updateFeedbackStatus(
-    @CurrentUser("id") userId: string,
-    @Param("feedbackId") feedbackId: string,
-    @Body() dto: UpdateFeedbackStatusDto,
-  ) {
-    const feedback = await this.submissionStudentService.updateFeedbackStatus(
-      Number(userId),
-      Number(feedbackId),
-      dto.status,
-    );
-    return { message: "Feedback status updated", data: feedback };
-  }
 }
