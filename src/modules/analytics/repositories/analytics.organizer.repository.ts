@@ -399,4 +399,92 @@ export class AnalyticsOrganizerRepository {
       },
     });
   }
+
+  findRegistrationDetails(registrationId: number) {
+    return this.prisma.studentRegistration.findUnique({
+      where: { id: registrationId },
+      select: {
+        id: true,
+        userId: true,
+        eventId: true,
+        hasTeam: true,
+        skills: true,
+        note: true,
+        reviewedAt: true,
+        createdAt: true,
+        reviewedBy: { select: { id: true, name: true, email: true } },
+        track: { select: { id: true, name: true, maxMembersPerTeam: true } },
+        event: {
+          select: { id: true, name: true, season: true, year: true },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            studentProfile: {
+              select: {
+                studentCode: true,
+                studentType: true,
+                universityName: true,
+                phone: true,
+                githubUsername: true,
+              },
+            },
+            teamMemberships: {
+              select: {
+                role: true,
+                status: true,
+                joinedAt: true,
+                team: {
+                  select: {
+                    id: true,
+                    eventId: true,
+                    name: true,
+                    status: true,
+                    leaderId: true,
+                    updatedAt: true,
+                    eliminationReason: true,
+                    leader: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatarUrl: true,
+                      },
+                    },
+                    track: { select: { maxMembersPerTeam: true } },
+                    members: {
+                      orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+                      select: {
+                        id: true,
+                        role: true,
+                        status: true,
+                        joinedAt: true,
+                        user: {
+                          select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            avatarUrl: true,
+                            studentProfile: {
+                              select: {
+                                studentCode: true,
+                                universityName: true,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
