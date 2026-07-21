@@ -20,24 +20,6 @@ export class RegistrationsOrganizerService {
     return this.toDetails(registration);
   }
 
-  async getAnswers(organizerId: number, registrationId: number) {
-    const registration = await this.findRegistration(registrationId);
-    await this.eventAccess.ensureEventAccess(organizerId, registration.eventId);
-    return this.toAnswers(registration);
-  }
-
-  async getTeam(organizerId: number, registrationId: number) {
-    const registration = await this.findRegistration(registrationId);
-    await this.eventAccess.ensureEventAccess(organizerId, registration.eventId);
-    return this.toTeam(registration);
-  }
-
-  async getHistory(organizerId: number, registrationId: number) {
-    const registration = await this.findRegistration(registrationId);
-    await this.eventAccess.ensureEventAccess(organizerId, registration.eventId);
-    return this.toHistory(registration);
-  }
-
   private async findRegistration(registrationId: number) {
     const registration =
       await this.repository.findRegistrationDetails(registrationId);

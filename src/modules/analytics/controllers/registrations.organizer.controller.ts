@@ -26,45 +26,6 @@ import { RegistrationsOrganizerService } from "../services/registrations.organiz
 export class RegistrationsOrganizerController {
   constructor(private readonly service: RegistrationsOrganizerService) {}
 
-  @Get(":id/answers")
-  @ApiOperation({ summary: "Get the submitted answers for a registration" })
-  @ApiResponse({ status: 200, description: "Registration answers retrieved" })
-  async getAnswers(
-    @CurrentUser("id") organizerId: string,
-    @Param("id", ParseIntPipe) registrationId: number,
-  ) {
-    return {
-      message: "Registration answers retrieved",
-      data: await this.service.getAnswers(Number(organizerId), registrationId),
-    };
-  }
-
-  @Get(":id/team")
-  @ApiOperation({ summary: "Get the team associated with a registration" })
-  @ApiResponse({ status: 200, description: "Registration team retrieved" })
-  async getTeam(
-    @CurrentUser("id") organizerId: string,
-    @Param("id", ParseIntPipe) registrationId: number,
-  ) {
-    return {
-      message: "Registration team retrieved",
-      data: await this.service.getTeam(Number(organizerId), registrationId),
-    };
-  }
-
-  @Get(":id/history")
-  @ApiOperation({ summary: "Get the lifecycle history for a registration" })
-  @ApiResponse({ status: 200, description: "Registration history retrieved" })
-  async getHistory(
-    @CurrentUser("id") organizerId: string,
-    @Param("id", ParseIntPipe) registrationId: number,
-  ) {
-    return {
-      message: "Registration history retrieved",
-      data: await this.service.getHistory(Number(organizerId), registrationId),
-    };
-  }
-
   @Get(":id")
   @ApiOperation({
     summary: "Get a registration with answers, team and history",

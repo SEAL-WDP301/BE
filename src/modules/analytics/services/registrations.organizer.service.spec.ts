@@ -114,19 +114,22 @@ describe("RegistrationsOrganizerService", () => {
       hasTeam: false,
       user: { ...registration.user, teamMemberships: [] },
     });
-    await expect(service.getTeam(42, 12)).resolves.toBeNull();
+    await expect(service.getRegistration(42, 12)).resolves.toMatchObject({
+      team: null,
+      teamStatus: "NO_TEAM",
+    });
   });
 
   it("rejects access before returning registration data", async () => {
     eventAccess.ensureEventAccess.mockRejectedValue(new ForbiddenException());
-    await expect(service.getAnswers(42, 12)).rejects.toBeInstanceOf(
+    await expect(service.getRegistration(42, 12)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
 
   it("returns a structured not-found error", async () => {
     repository.findRegistrationDetails.mockResolvedValue(null);
-    await expect(service.getHistory(42, 999)).rejects.toBeInstanceOf(
+    await expect(service.getRegistration(42, 999)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
