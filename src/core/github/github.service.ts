@@ -228,4 +228,28 @@ export class GithubService {
     if (!response.ok) return [];
     return response.json();
   }
+
+  async getRepoCommits(org: string, repoName: string): Promise<any[]> {
+    const token = this.configService.get<string>("github.token");
+    if (!token) return [];
+
+    const response = await fetch(
+      `https://api.github.com/repos/${org}/${repoName}/commits`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const body = (await response.text()).slice(0, 500);
+      this.logger.error(`Failed to fetch commits for ${repoName}: ${body}`);
+      return [];
+    }
+    return response.json();
+  }
 }
