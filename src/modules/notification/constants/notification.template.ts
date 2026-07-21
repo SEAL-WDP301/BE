@@ -71,4 +71,8 @@ export const NotificationTemplates = {
     title: `ℹ️ Reminder: Review your submission for ${roundName}`,
     content: `Hello ${teamName} team members,\n\nWe have received your submission for the ${roundName} round of ${eventName}.\n\n⏰ The system will close at: ${deadline}\n⏳ Time Remaining: ${timeRemaining}\n\nWe recommend that you double-check your uploaded files and links to ensure judges can access them. You can still make changes until the deadline.`,
   }),
+  [NotificationType.event_published]: (eventName: string, startTime: string) => ({
+    title: `New event: ${eventName}`,
+    content: `${eventName} starts ${startTime}. View the event page for schedule and meeting details.`,
+  }),
 };

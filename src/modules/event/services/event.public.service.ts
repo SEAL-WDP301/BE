@@ -12,10 +12,23 @@ export class EventPublicService {
     T extends {
       imageUrl?: string | null;
       endDate?: Date | string | null;
+      location?: string | null;
     },
   >(event: T) {
+    let publicLocation = event.location;
+    if (publicLocation) {
+      try {
+        const parsed = JSON.parse(publicLocation) as Record<string, unknown>;
+        delete parsed.meetingUrl;
+        publicLocation = JSON.stringify(parsed);
+      } catch {
+        // Plain-text physical locations do not contain private meeting data.
+      }
+    }
+
     return {
       ...event,
+      location: publicLocation,
       image_url: event.imageUrl ?? null,
       end_date: event.endDate ?? null,
     };
@@ -65,8 +78,29 @@ export class EventPublicService {
       },
     });
 
+    const eventAchievements =
+      event.status === EventStatus.closed
+        ? await this.prisma.team.findMany({
+            where: {
+              eventId: id,
+              awardId: { not: null },
+              status: { not: "disqualified" },
+            },
+            select: {
+              id: true,
+              name: true,
+              track: { select: { id: true, name: true } },
+              award: {
+                select: { id: true, name: true, description: true },
+              },
+            },
+            orderBy: [{ awardId: "asc" }, { name: "asc" }],
+          })
+        : [];
+
     return this.withPublicAliases({
       ...event,
+      eventAchievements,
       _count: {
         teams: event._count.teams,
         submissions: submissionCount,

@@ -63,6 +63,21 @@ export class EventOrganizerController {
     return { message: "Events fetched", data: events };
   }
 
+  @Get(":id")
+  @ApiOperation({ summary: "Get a managed event with private details" })
+  async getEventById(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser("id") userId: string,
+    @CurrentUser("role") role: string,
+  ) {
+    const event = await this.eventOrganizerService.getManagedEventById(
+      id,
+      Number(userId),
+      role === Role.ADMIN,
+    );
+    return { message: "Event fetched", data: event };
+  }
+
   @Put(":id")
   @ApiOperation({ summary: "Update an event" })
   async updateEvent(
