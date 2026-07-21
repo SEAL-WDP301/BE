@@ -35,13 +35,17 @@ export class TeamOrganizerService {
     limit: number = 10,
     status?: string,
     search?: string,
+    roundStatus?: string,
   ) {
     const where: any = {
       eventId,
       ...(trackId && { trackId }),
       ...(roundId && {
         teamRounds: {
-          some: { roundId },
+          some: {
+            roundId,
+            ...(roundStatus && roundStatus !== "all" && { status: roundStatus }),
+          },
         },
       }),
       ...(hasMentor === "true" && { mentorAssignments: { some: {} } }),

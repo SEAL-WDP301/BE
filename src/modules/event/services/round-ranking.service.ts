@@ -33,6 +33,8 @@ export interface RankedTeamEntry {
   status: RoundResultStatus;
   submittedAt: Date;
   award?: any;
+  totalVotes?: number;
+  votedBy?: any[];
 }
 
 @Injectable()
@@ -314,6 +316,11 @@ export class RoundRankingService {
           },
         },
         scores: true,
+        judgeVotes: {
+          include: {
+            judge: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
       },
     });
 
@@ -336,6 +343,12 @@ export class RoundRankingService {
         submissionId: submission.id,
         finalScore,
         judgesScored,
+        totalVotes: submission.judgeVotes?.length ?? 0,
+        votedBy: submission.judgeVotes?.map(v => ({
+          id: v.judge.id,
+          name: v.judge.name,
+          avatarUrl: v.judge.avatarUrl
+        })) ?? [],
         status:
           submission.team.teamRounds?.[0]?.status ??
           RoundResultStatus.competing,
@@ -350,6 +363,12 @@ export class RoundRankingService {
       if (a.finalScore === null) return 1;
       if (b.finalScore === null) return -1;
       if (b.finalScore === a.finalScore) {
+        // Tie-breaker: votes
+        const bVotes = b.totalVotes ?? 0;
+        const aVotes = a.totalVotes ?? 0;
+        if (bVotes !== aVotes) {
+          return bVotes - aVotes;
+        }
         // Tie-breaker: earlier submission ranks higher
         return a.submittedAt.getTime() - b.submittedAt.getTime();
       }
@@ -385,6 +404,11 @@ export class RoundRankingService {
           },
         },
         scores: { include: { judge: true } },
+        judgeVotes: {
+          include: {
+            judge: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
       },
     });
 
@@ -482,6 +506,12 @@ export class RoundRankingService {
         trackName: submission.team.track.name,
         submissionId: submission.id,
         finalScore,
+        totalVotes: submission.judgeVotes?.length ?? 0,
+        votedBy: submission.judgeVotes?.map(v => ({
+          id: v.judge.id,
+          name: v.judge.name,
+          avatarUrl: v.judge.avatarUrl
+        })) ?? [],
         criteriaAverages,
         judges: validJudges,
         status:
@@ -498,6 +528,11 @@ export class RoundRankingService {
       if (a.finalScore === null) return 1;
       if (b.finalScore === null) return -1;
       if (b.finalScore === a.finalScore) {
+        const bVotes = b.totalVotes ?? 0;
+        const aVotes = a.totalVotes ?? 0;
+        if (bVotes !== aVotes) {
+          return bVotes - aVotes;
+        }
         return a.submittedAt.getTime() - b.submittedAt.getTime();
       }
       return b.finalScore - a.finalScore;

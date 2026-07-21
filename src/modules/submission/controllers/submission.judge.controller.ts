@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Post,
   Put,
   UseGuards,
 } from "@nestjs/common";
@@ -65,5 +66,18 @@ export class SubmissionJudgeController {
       dto,
     );
     return { message: "Scores saved successfully", data: result };
+  }
+
+  @Post("submissions/:submissionId/vote")
+  @ApiOperation({ summary: "Toggle vote for a submission (only after scoring is completed)" })
+  async toggleVote(
+    @CurrentUser("id") userId: string,
+    @Param("submissionId", ParseIntPipe) submissionId: number,
+  ) {
+    const result = await this.judgeService.toggleVote(
+      Number(userId),
+      submissionId,
+    );
+    return { message: "Vote toggled successfully", data: result };
   }
 }

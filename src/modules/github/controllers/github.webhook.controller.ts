@@ -29,10 +29,20 @@ export class GithubWebhookController {
       }
     }
 
+    // If the content type was application/x-www-form-urlencoded, the payload is a string inside payload.payload
+    let parsedPayload = payload;
+    if (payload && payload.payload && typeof payload.payload === 'string') {
+      try {
+        parsedPayload = JSON.parse(payload.payload);
+      } catch (e) {
+        this.logger.error('Failed to parse webhook payload string', e);
+      }
+    }
+
     // 2. Process push event
     if (event === 'push') {
-      this.logger.log(`Received push event for repo: ${payload.repository?.full_name}`);
-      await this.webhookService.handlePushEvent(payload);
+      this.logger.log(`Received push event for repo: ${parsedPayload.repository?.full_name}`);
+      await this.webhookService.handlePushEvent(parsedPayload);
     } else {
       this.logger.log(`Ignored event: ${event}`);
     }
@@ -64,5 +74,10 @@ export class GithubWebhookController {
   @Post('repos/freeze-event/:eventId')
   async freezeEventRepos(@Param('eventId') eventId: string) {
     return this.webhookService.freezeEventRepos(Number(eventId));
+  }
+
+  @Post('repos/sync-event/:eventId')
+  async syncEventCommits(@Param('eventId') eventId: string) {
+    return this.webhookService.syncEventCommits(Number(eventId));
   }
 }

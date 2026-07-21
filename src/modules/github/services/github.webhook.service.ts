@@ -234,4 +234,46 @@ export class GithubWebhookService {
       this.logger.error(`Error processing push event: ${error.message}`, error.stack);
     }
   }
+
+  async syncEventCommits(eventId: number) {
+    const teams = await this.prisma.team.findMany({
+      where: { eventId, githubRepoUrl: { not: null }, githubRepoName: { not: null } },
+      include: { event: true },
+    });
+
+    if (teams.length === 0) return { success: true, message: 'No repositories found' };
+
+    let totalSynced = 0;
+
+    for (const team of teams) {
+      const org = this.githubService.resolveOrgName(team.event.githubOrgUrl);
+      if (!org || !team.githubRepoName) continue;
+
+      const commits = await this.githubService.getRepoCommits(org, team.githubRepoName);
+      
+      for (const commit of commits) {
+        // Upsert commit
+        const hash = commit.sha;
+        const existing = await this.prisma.githubCommit.findFirst({
+          where: { commitHash: hash, teamId: team.id }
+        });
+        
+        if (!existing) {
+          await this.prisma.githubCommit.create({
+            data: {
+              teamId: team.id,
+              commitHash: hash,
+              message: commit.commit?.message || 'No message',
+              pusher: commit.author?.login || commit.commit?.author?.name || 'Unknown',
+              url: commit.html_url,
+              timestamp: new Date(commit.commit?.author?.date || new Date()),
+            }
+          });
+          totalSynced++;
+        }
+      }
+    }
+
+    return { success: true, message: `Synced ${totalSynced} new commits` };
+  }
 }

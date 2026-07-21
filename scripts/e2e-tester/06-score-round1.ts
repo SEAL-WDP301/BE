@@ -88,6 +88,41 @@ async function main() {
                 console.log(`Judge ${assignment.judge.email} scored Team ${sub.teamId} on '${crit.name}': ${randomScore}`);
             }
         }
+
+        // Vote for top 4 submissions with highest score from this judge
+        const submissionsWithScores = [];
+        for (const sub of submissions) {
+            const judgeScores = await prisma.score.findMany({
+                where: { submissionId: sub.id, judgeId: assignment.judgeId }
+            });
+            if (judgeScores.length > 0) {
+                const totalScore = judgeScores.reduce((sum, s) => sum + Number(s.scoreValue), 0);
+                submissionsWithScores.push({ submissionId: sub.id, totalScore, teamId: sub.teamId });
+            }
+        }
+
+        submissionsWithScores.sort((a, b) => b.totalScore - a.totalScore);
+        
+        // Vote for top 20% or any logic, but since user said free, we can just vote for the top 2
+        // Just as a simulation
+        const topToVote = submissionsWithScores.slice(0, Math.max(2, Math.floor(submissionsWithScores.length / 3)));
+
+        for (const topSub of topToVote) {
+            const existingVote = await prisma.judgeVote.findFirst({
+                where: { submissionId: topSub.submissionId, judgeId: assignment.judgeId }
+            });
+            if (!existingVote) {
+                await prisma.judgeVote.create({
+                    data: {
+                        submissionId: topSub.submissionId,
+                        judgeId: assignment.judgeId
+                    }
+                });
+                console.log(`Judge ${assignment.judge.email} voted for Team ${topSub.teamId} (Score: ${topSub.totalScore})`);
+            } else {
+                console.log(`Judge ${assignment.judge.email} already voted for Team ${topSub.teamId}. Skipping.`);
+            }
+        }
     }
 
     console.log("Successfully scored Round 1.");
