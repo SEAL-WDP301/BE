@@ -38,6 +38,7 @@ export class TeamOrganizerController {
     @Query("limit") limit?: string,
     @Query("status") status?: string,
     @Query("search") search?: string,
+    @Query("roundStatus") roundStatus?: string,
   ) {
     const result = await this.teamOrganizerService.getTeamsByEvent(
       eventId,
@@ -48,6 +49,7 @@ export class TeamOrganizerController {
       limit ? Number(limit) : 10,
       status,
       search,
+      roundStatus,
     );
     return { message: "Teams fetched", ...result };
   }
