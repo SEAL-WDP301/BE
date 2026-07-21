@@ -55,6 +55,10 @@ export class SubmissionJudgeService {
           where: { judgeId },
           select: { criterionId: true, scoreValue: true },
         },
+        judgeVotes: {
+          where: { judgeId },
+          select: { id: true },
+        },
       },
       orderBy: { id: "asc" },
     });
@@ -94,6 +98,7 @@ export class SubmissionJudgeService {
           scoredCriteria: scoredCount,
           totalCriteria: criteriaCount,
           weightedScore,
+          isVotedByMe: submission.judgeVotes.length > 0,
         };
       }),
     );
@@ -114,6 +119,10 @@ export class SubmissionJudgeService {
               select: { id: true, name: true, season: true, year: true },
             },
           },
+        },
+        judgeVotes: {
+          where: { judgeId },
+          select: { id: true },
         },
       },
     });
@@ -178,7 +187,56 @@ export class SubmissionJudgeService {
       myScores,
       scoringStatus: this.resolveScoringStatus(myScores.length, rubrics.length),
       weightedScore,
+      isVotedByMe: submission.judgeVotes.length > 0,
     };
+  }
+
+  async toggleVote(judgeId: number, submissionId: number) {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: {
+        team: { select: { trackId: true } },
+      },
+    });
+
+    if (!submission) {
+      throw new NotFoundException("Submission not found");
+    }
+
+    await this.assertJudgeRoundAccess(judgeId, submission.roundId, submission.team.trackId);
+
+    const rubrics = await this.getApplicableCriteria(submission.roundId, submission.team.trackId);
+    const scoredCount = await this.prisma.score.count({
+      where: { submissionId, judgeId },
+    });
+
+    if (scoredCount < rubrics.length || rubrics.length === 0) {
+      throw new BadRequestException("You must complete scoring before voting");
+    }
+
+    const existingVote = await this.prisma.judgeVote.findUnique({
+      where: {
+        submissionId_judgeId: {
+          submissionId,
+          judgeId,
+        },
+      },
+    });
+
+    if (existingVote) {
+      await this.prisma.judgeVote.delete({
+        where: { id: existingVote.id },
+      });
+      return { isVotedByMe: false };
+    } else {
+      await this.prisma.judgeVote.create({
+        data: {
+          submissionId,
+          judgeId,
+        },
+      });
+      return { isVotedByMe: true };
+    }
   }
 
   async submitScores(
