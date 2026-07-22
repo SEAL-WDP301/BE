@@ -94,6 +94,7 @@ enum NotificationType {
   github_repo_created
   bulk_reminder_unsubmitted
   bulk_reminder_submitted
+  event_published
 }
 
 model User {
@@ -114,24 +115,26 @@ model User {
   // Relationships
   studentProfile               StudentProfile?
   stakeholderProfile           StakeholderProfile?
-  eventsCreated                Event[]               @relation("EventCreatedBy")
-  criteriaCreated              Criterion[]           @relation("CriterionCreatedBy")
-  teamsLed                     Team[]                @relation("TeamLeader")
+  eventsCreated                Event[]                   @relation("EventCreatedBy")
+  criteriaCreated              Criterion[]               @relation("CriterionCreatedBy")
+  teamsLed                     Team[]                    @relation("TeamLeader")
   teamMemberships              TeamMember[]
   registrations                StudentRegistration[]
-  submissions                  Submission[]          @relation("SubmissionSubmittedBy")
-  disqualifiedSubmissions      Submission[]          @relation("SubmissionDisqualifiedBy")
+  submissions                  Submission[]              @relation("SubmissionSubmittedBy")
+  disqualifiedSubmissions      Submission[]              @relation("SubmissionDisqualifiedBy")
   scores                       Score[]
   judgeAssignments             JudgeAssignment[]
   judgeVotes                   JudgeVote[]
   judgeAssignedBy              JudgeAssignment[]     @relation("JudgeAssignedBy")
   mentorAssignments            MentorAssignment[]
-  mentorAssignedBy             MentorAssignment[]    @relation("MentorAssignedBy")
+  mentorAssignedBy             MentorAssignment[]        @relation("MentorAssignedBy")
   mentorFeedbacks              MentorFeedback[]
   notifications                Notification[]
-  studentRegistrationsReviewed StudentRegistration[] @relation("RegistrationReviewedBy")
+  studentRegistrationsReviewed StudentRegistration[]     @relation("RegistrationReviewedBy")
   teamMessages                 TeamMessage[]
   teamMessageReads             TeamMessageRead[]
+  googleCalendarConnection     GoogleCalendarConnection?
+  googleOAuthStates            GoogleOAuthState[]
 
   @@map("users")
 }
@@ -187,13 +190,14 @@ model Event {
   createdAt            DateTime    @default(now()) @map("created_at")
   updatedAt            DateTime    @default(now()) @updatedAt @map("updated_at")
 
-  createdBy     User                  @relation("EventCreatedBy", fields: [createdById], references: [id])
-  tracks        Track[]
-  rounds        Round[]
-  teams         Team[]
-  registrations StudentRegistration[]
-  notifications Notification[]
-  prizes        EventPrize[]
+  createdBy       User                  @relation("EventCreatedBy", fields: [createdById], references: [id])
+  tracks          Track[]
+  rounds          Round[]
+  teams           Team[]
+  registrations   StudentRegistration[]
+  notifications   Notification[]
+  prizes          EventPrize[]
+  calendarMeeting EventCalendarMeeting?
 
   @@index([createdById])
   @@index([status])
@@ -202,6 +206,49 @@ model Event {
   @@index([startDate])
   @@index([endDate])
   @@map("events")
+}
+
+model GoogleCalendarConnection {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @unique @map("user_id")
+  refreshTokenEncrypted String   @map("refresh_token_encrypted") @db.Text
+  scope                 String?  @db.Text
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("google_calendar_connections")
+}
+
+model GoogleOAuthState {
+  id        String   @id
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("google_oauth_states")
+}
+
+model EventCalendarMeeting {
+  id            Int       @id @default(autoincrement())
+  eventId       Int       @unique @map("event_id")
+  googleEventId String    @unique @map("google_event_id")
+  calendarId    String    @default("primary") @map("calendar_id")
+  meetUrl       String?   @map("meet_url")
+  htmlLink      String?   @map("html_link")
+  startDate     DateTime? @map("start_date")
+  endDate       DateTime? @map("end_date")
+  timeZone      String    @default("Asia/Ho_Chi_Minh") @map("time_zone")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_calendar_meetings")
 }
 
 model EventPrize {
@@ -522,12 +569,12 @@ model GithubCommit {
   teamId     Int      @map("team_id")
   commitHash String   @map("commit_hash")
   message    String   @db.Text
-  pusher     String   
-  url        String   
-  timestamp  DateTime 
+  pusher     String
+  url        String
+  timestamp  DateTime
   createdAt  DateTime @default(now()) @map("created_at")
 
-  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@index([timestamp(sort: Desc)])

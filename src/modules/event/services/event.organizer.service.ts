@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../database/prisma/prisma.service";
 import { CreateEventDto } from "../dto/create-event.dto";
@@ -76,9 +77,18 @@ export class EventOrganizerService {
           include: { _count: { select: { submissions: true } } },
         },
         prizes: true,
+        calendarMeeting: true,
       },
     });
     if (!event) throw new NotFoundException("Event not found");
+    return event;
+  }
+
+  async getManagedEventById(id: number, userId: number, includeAll = false) {
+    const event = await this.getEventById(id);
+    if (!includeAll && event.createdById !== userId) {
+      throw new ForbiddenException("You do not manage this event");
+    }
     return event;
   }
 

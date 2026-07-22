@@ -618,7 +618,10 @@ export class TeamStudentService {
       },
       include: {
         team: {
-          include: { event: { select: { id: true, name: true } }, track: true },
+          include: {
+            event: { select: { id: true, name: true } },
+            track: true,
+          },
         },
       },
     });
