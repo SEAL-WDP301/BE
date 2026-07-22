@@ -5,9 +5,14 @@ const prisma = new PrismaClient();
 async function main() {
     console.log("Starting 03-assign-judges.ts...");
 
+    // Muốn chạy cho 1 Event cụ thể? Bỏ comment dòng dưới và điền ID (VD: 42)
+    const TARGET_EVENT_ID: number | null = null; 
+
     // 1. Get the latest active event and its tracks & rounds
     const latestEvent = await prisma.event.findFirst({
-        where: { status: 'active' },
+        where: TARGET_EVENT_ID 
+            ? { id: TARGET_EVENT_ID } 
+            : { status: { in: ['active', 'ongoing'] } },
         orderBy: { createdAt: 'desc' },
         include: { tracks: true, rounds: true }
     });

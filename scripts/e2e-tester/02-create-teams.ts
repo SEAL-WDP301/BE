@@ -3,11 +3,16 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log("Starting 02-assign-teams-and-submissions.ts...");
+    console.log("Starting 02-create-teams.ts...");
+
+    // Muốn chạy cho 1 Event cụ thể? Bỏ comment dòng dưới và điền ID (VD: 42)
+    const TARGET_EVENT_ID: number | null = null; 
 
     // 1. Get the latest active event
     const latestEvent = await prisma.event.findFirst({
-        where: { status: 'active' },
+        where: TARGET_EVENT_ID 
+            ? { id: TARGET_EVENT_ID } 
+            : { status: { in: ['active', 'ongoing'] } },
         orderBy: { createdAt: 'desc' },
         include: { tracks: true, rounds: { where: { roundNumber: 1 } } }
     });

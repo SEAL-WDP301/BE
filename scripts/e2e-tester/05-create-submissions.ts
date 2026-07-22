@@ -5,9 +5,14 @@ const prisma = new PrismaClient();
 async function main() {
     console.log("Starting 05-create-submissions.ts...");
 
+    // Muốn chạy cho 1 Event cụ thể? Bỏ comment dòng dưới và điền ID (VD: 42)
+    const TARGET_EVENT_ID: number | null = null; 
+
     // 1. Get the latest active event
     const latestEvent = await prisma.event.findFirst({
-        where: { status: { in: ['active', 'ongoing'] } },
+        where: TARGET_EVENT_ID 
+            ? { id: TARGET_EVENT_ID } 
+            : { status: { in: ['active', 'ongoing'] } },
         orderBy: { createdAt: 'desc' },
         include: { rounds: { where: { roundNumber: 1 } } }
     });
