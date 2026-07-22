@@ -306,8 +306,11 @@ export class EventOrganizerService {
     const teamRounds = await this.prisma.teamRound.findMany({
       where: {
         round: { eventId },
+        team: {
+          status: "approved",
+          ...(trackId && { trackId }),
+        },
         ...(roundId && { roundId }),
-        ...(trackId && { team: { trackId } }),
       },
       include: {
         team: { include: { track: true } },
@@ -319,8 +322,11 @@ export class EventOrganizerService {
     const submissions = await this.prisma.submission.findMany({
       where: {
         round: { eventId },
+        team: {
+          status: "approved",
+          ...(trackId && { trackId }),
+        },
         ...(roundId && { roundId }),
-        ...(trackId && { team: { trackId } }),
       },
       include: {
         submittedBy: { select: { id: true, name: true, email: true } },
