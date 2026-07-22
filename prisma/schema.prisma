@@ -335,6 +335,7 @@ model Team {
   eliminationReason String?    @map("elimination_reason")
   githubRepoUrl     String?    @map("github_repo_url")
   githubRepoName    String?    @map("github_repo_name")
+  isFrozen          Boolean    @default(false) @map("is_frozen")
   leaderId          Int        @map("leader_id")
   awardId           Int?       @map("award_id")
   createdAt         DateTime   @default(now()) @map("created_at")
