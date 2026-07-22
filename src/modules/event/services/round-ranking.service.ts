@@ -116,6 +116,7 @@ export class RoundRankingService {
         roundNumber: round.roundNumber,
         status: round.status,
         isFinalRound: !nextRound,
+        isTrackSpecific: round.isTrackSpecific,
       },
       tracks: rankingsByTrack,
     };

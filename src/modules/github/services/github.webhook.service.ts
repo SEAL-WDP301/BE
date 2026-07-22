@@ -66,6 +66,11 @@ export class GithubWebhookService {
 
     await Promise.all(freezePromises);
     
+    await this.prisma.team.update({
+      where: { id: team.id },
+      data: { isFrozen: true } as any
+    });
+    
     return { success: true, message: `Repository ${team.githubRepoName} is now frozen (Read-only)` };
   }
 
@@ -108,8 +113,61 @@ export class GithubWebhookService {
     }
 
     await Promise.all(freezePromises);
+
+    await this.prisma.team.updateMany({
+      where: { id: { in: teams.map(t => t.id) } },
+      data: { isFrozen: true } as any
+    });
     
     return { success: true, message: `Successfully frozen ${teams.length} repositories` };
+  }
+
+  async unfreezeEventRepos(eventId: number) {
+    const teams = await this.prisma.team.findMany({
+      where: { 
+        eventId: eventId,
+        githubRepoUrl: { not: null },
+        githubRepoName: { not: null }
+      },
+      include: {
+        event: true,
+        members: { include: { user: { include: { studentProfile: true } } } },
+        leader: { include: { studentProfile: true } },
+      }
+    });
+
+    if (teams.length === 0) {
+      return { success: true, message: 'No repositories to unfreeze' };
+    }
+
+    const org = this.githubService.resolveOrgName(teams[0].event.githubOrgUrl);
+    if (!org) throw new NotFoundException('GitHub Organization is not configured');
+
+    const unfreezePromises = [];
+
+    for (const team of teams) {
+      const memberUsers = team.members.map(m => m.user).filter(u => u.id !== team.leaderId);
+      const allUsers = [team.leader, ...memberUsers];
+      
+      for (const user of allUsers) {
+        const githubUsername = user?.studentProfile?.githubUsername;
+        if (githubUsername) {
+          unfreezePromises.push(
+            this.githubService.addCollaborator(org, team.githubRepoName!, githubUsername, 'push')
+              .catch(error => this.logger.error(`Failed to unfreeze repo for user ${githubUsername}: ${error.message}`))
+          );
+        }
+      }
+    }
+
+    await Promise.all(unfreezePromises);
+
+    await this.prisma.team.updateMany({
+      where: { id: { in: teams.map(t => t.id) } },
+      data: { isFrozen: false } as any
+    });
+
+    return { success: true, message: `Successfully unfrozen ${teams.length} repositories` };
   }
 
   async getTeamCollaboratorStatus(teamId: number) {

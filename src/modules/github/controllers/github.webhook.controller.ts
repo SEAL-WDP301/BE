@@ -76,6 +76,11 @@ export class GithubWebhookController {
     return this.webhookService.freezeEventRepos(Number(eventId));
   }
 
+  @Post('repos/unfreeze-event/:eventId')
+  async unfreezeEventRepos(@Param('eventId') eventId: string) {
+    return this.webhookService.unfreezeEventRepos(Number(eventId));
+  }
+
   @Post('repos/sync-event/:eventId')
   async syncEventCommits(@Param('eventId') eventId: string) {
     return this.webhookService.syncEventCommits(Number(eventId));
