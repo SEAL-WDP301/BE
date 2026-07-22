@@ -257,7 +257,7 @@ export class RoundRankingService {
       });
     });
 
-    await this.notifyRoundResults(eventId, round.name, summary);
+    await this.notifyRoundResults(eventId, round.name, summary, isFinalRound);
 
     let repoSyncStarted = false;
     if (nextRound && nextRound.submissionType === "github_link") {
@@ -576,7 +576,46 @@ export class RoundRankingService {
       advancedTeamIds: number[];
       eliminatedTeamIds: number[];
     }>,
+    isFinalRound: boolean = false,
   ) {
+    if (isFinalRound) {
+      const finalTeams = await this.prisma.team.findMany({
+        where: { eventId, status: "approved" },
+        include: {
+          award: true,
+          track: true,
+          leader: true,
+          members: { include: { user: true } },
+        },
+      });
+
+      for (const team of finalTeams) {
+        const trackName = team.track?.name || "General Track";
+        if (team.award) {
+          await this.notifyTeam(
+            team,
+            eventId,
+            NotificationType.round_result,
+            `🏆 Award Announcement: ${roundName}`,
+            `🎉 Congratulations! Team "${team.name}" has won the ${team.award.name} in ${roundName}!`,
+            roundName,
+            trackName
+          );
+        } else {
+          await this.notifyTeam(
+            team,
+            eventId,
+            NotificationType.round_result,
+            `✨ ${roundName} Results Published`,
+            `Team "${team.name}" has completed ${roundName}. Thank you for your participation! You can review your final scores and feedback in your workspace.`,
+            roundName,
+            trackName
+          );
+        }
+      }
+      return;
+    }
+
     for (const trackSummary of summary) {
       const advancedTeams = await this.prisma.team.findMany({
         where: { id: { in: trackSummary.advancedTeamIds } },
